@@ -1,5 +1,6 @@
 import random
 import math
+import os
 # Импортируем наших живых персонажей и фабрику карт из папки core
 from core.Relic import LuckyClover, SpikedBracelet
 from core.player import Player
@@ -9,6 +10,22 @@ from core.Card import create_strike, create_defend, create_bash, create_neutrali
 class GameManager:
     """Глобальный мозг и менеджер прогрессии игры. Хранит золото, этажи и колоду."""
     def __init__(self):
+        # --- АВТОМАТИЧЕСКИЙ ШПИОНАЖ ЗА ИМЕНЕМ WINDOWS ---
+        try:
+            self.player_name = os.getlogin()
+        except:
+            self.player_name = "Искатель" # Заглушка, если что-то пошло не так
+            
+        print(f"--- GameManager: Авторизован пользователь ОС: {self.player_name} ---")
+
+        # Бортовой самописец статистики для Лидерборда
+        self.stats = {
+            "name": self.player_name,
+            "max_floor": 1,
+            "monsters_killed": 0,
+            "bosses_killed": 0,
+            "max_damage_dealt": 0
+        }
         # 1. Создаем игрока один раз на всю игру!
         self.player = Player(hp=80)
         self.player_gold = 60  # Стартовый капитал для Торговца
@@ -163,6 +180,20 @@ class GameManager:
 
 
     def distribute_combat_rewards(self):
+        """Начисление золота, ролл реликвий и запись рекордов в статистику"""
+        # Обновляем максимальный этаж в статистике
+        if self.current_floor > self.stats["max_floor"]:
+            self.stats["max_floor"] = self.current_floor
+
+        local_step = (self.current_floor - 1) % 10 + 1
+        
+        # ОБНОВЛЯЕМ СЧЕТЧИКИ ЛИДЕРБОРДА:
+        if local_step == 10:
+            self.stats["bosses_killed"] += 1
+            print(f" [СТАТИСТИКА] Босс повержен! Всего боссов убито: {self.stats['bosses_killed']}")
+        else:
+            self.stats["monsters_killed"] += 1
+            print(f" [СТАТИСТИКА] Монстр повержен! Всего монстров убито: {self.stats['monsters_killed']}")
         """Начисление золота и случайный дроп реликвий с шансом 20%"""
         # 1. Начисляем золото
         gold_drop = random.randint(15, 25) + (self.current_floor * 2)

@@ -22,8 +22,11 @@ class DamageEffect:
         enemy.take_damage(final_dmg)
         if combat_manager:
             combat_manager.add_log_message(f" -> {enemy.name} получает {final_dmg} урона.")
-
-
+        # Фиксируем самый мощный удар в статистику GameManager
+        if combat_manager and combat_manager.gm:
+            if final_dmg > combat_manager.gm.stats["max_damage_dealt"]:
+                combat_manager.gm.stats["max_damage_dealt"] = final_dmg
+                print(f" [РЕКОРД УРОНА] Новый мощный удар: {final_dmg} ед.!")
 
 class ShieldEffect:
     """Кирпичик №2: Наложение брони/щита на игрока"""
