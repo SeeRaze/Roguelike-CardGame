@@ -1,28 +1,6 @@
 import pygame
 from core.EffectCalculator import EffectCalculator
-
-
-# Стили бейджей: ключ -> (аббревиатура, цвет фона, цвет текста)
-STATUS_STYLES = {
-    "vulnerable": ("УЯЗВ",  (160, 60,  180), (255, 255, 255)),
-    "weak":       ("СЛАБ",  (80,  80,  160), (255, 255, 255)),
-    "wet":        ("МОКР",  (52,  152, 219), (255, 255, 255)),
-    "ignited":    ("ГОР",   (231, 76,  60),  (255, 255, 255)),
-    "poison":     ("ЯД",    (46,  204, 113), (20,  20,  20)),
-    "strength":   ("ЯР",    (240, 180, 40),  (20,  20,  20)),
-    "thorns":     ("ШИП",   (180, 100, 40),  (255, 255, 255)),
-}
-
-# Описания для тултипов при наведении на бейдж
-STATUS_TOOLTIPS = {
-    "vulnerable": "Уязвимость: получаемый урон\nувеличен на 50%.",
-    "weak":       "Слабость: наносимый урон\nуменьшен на 25%.",
-    "wet":        "Мокрый: при наложении Горения\nвзрывается в ПАР (x2 урон).",
-    "ignited":    "Горение: наносит 3 урона\nв конце каждого хода.",
-    "poison":     "Яд: наносит N урона в конце хода,\nпробивая щит. Стак убывает на 1.",
-    "strength":   "Ярость: каждая атака\nнаносит +N доп. урона.",
-    "thorns":     "Шипы: при получении удара\nотражает N урона атакующему.",
-}
+from core.StatusRegistry import STATUSES
 
 
 class CombatInterface:
@@ -60,22 +38,25 @@ class CombatInterface:
         pad_x, pad_y = 8, 4
         badge_h = font.get_linesize() + pad_y * 2
 
-        for key in STATUS_STYLES:
+        for key, data in STATUSES.items():
             val = getattr(creature, key, 0)
             if val <= 0:
                 continue
 
-            abbr, bg_color, fg_color = STATUS_STYLES[key]
-            label = f"{abbr} {val}"
+            abbr     = data["abbr"]
+            bg_color = data["badge_bg"]
+            fg_color = data["badge_fg"]
+            label    = f"{abbr} {val}"
+
             text_surf = font.render(label, True, fg_color)
-            badge_w = text_surf.get_width() + pad_x * 2
+            badge_w   = text_surf.get_width() + pad_x * 2
 
             rect = pygame.Rect(cursor_x, y, badge_w, badge_h)
             pygame.draw.rect(screen, bg_color, rect, border_radius=5)
             pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=5)
             screen.blit(text_surf, (cursor_x + pad_x, y + pad_y))
 
-            badge_rects.append((rect, key, val))   # тройка: rect + ключ + значение
+            badge_rects.append((rect, key, val))
             cursor_x += badge_w + 6
 
         return badge_rects
@@ -87,18 +68,18 @@ class CombatInterface:
         status_val подставляется вместо N в тексте описания.
         Вызывается последним -- поверх всего остального.
         """
-        raw_text = STATUS_TOOLTIPS.get(status_key, "")
-        if not raw_text:
+        data = STATUSES.get(status_key)
+        if not data:
             return
 
-        raw_text = raw_text.replace("N", str(status_val))
-        lines = raw_text.split("\n")
+        raw_text = data["tooltip"].replace("N", str(status_val))
+        lines    = raw_text.split("\n")
 
         pad_x, pad_y = 12, 8
         line_h = font_desc.get_linesize() + 2
-        max_w = max(font_desc.size(l)[0] for l in lines)
-        box_w = max_w + pad_x * 2
-        box_h = len(lines) * line_h + pad_y * 2
+        max_w  = max(font_desc.size(l)[0] for l in lines)
+        box_w  = max_w + pad_x * 2
+        box_h  = len(lines) * line_h + pad_y * 2
 
         tip_x = mouse_pos[0] + 16
         tip_y = mouse_pos[1] + 16
@@ -159,7 +140,7 @@ class CombatInterface:
                     attacker=enemy, target=player,
                     base_damage=enemy.intent_value, dry_run=True
                 )
-                dmg_color = CombatInterface._get_intent_damage_color(
+                dmg_color  = CombatInterface._get_intent_damage_color(
                     predicted, player.shield
                 )
                 label      = "НАМЕРЕНИЕ: АТАКА на "
@@ -173,7 +154,6 @@ class CombatInterface:
                     view.main_font, YELLOW, 100, 195
                 )
 
-            # Бейджи статусов врага
             view.enemy_badge_rects = CombatInterface.draw_status_badges(
                 view.screen, view.card_desc_font, enemy, 100, 240
             )
@@ -214,7 +194,6 @@ class CombatInterface:
             view.main_font, YELLOW, 450, 460
         )
 
-        # Бейджи статусов игрока
         view.player_badge_rects = CombatInterface.draw_status_badges(
             view.screen, view.card_desc_font, player, 100, 510
         )

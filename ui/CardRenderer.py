@@ -2,17 +2,7 @@ import pygame
 import re
 from core.EffectCalculator import EffectCalculator
 from core.cards.base import StatusEffect, PoisonEffect
-
-
-# Расшифровки ключевых слов карты -- те же что в STATUS_TOOLTIPS,
-# но сформулированы как "что делает карта", а не "что значит статус на существе"
-KEYWORD_DESCRIPTIONS = {
-    "vulnerable": ("Уязвимость",  "Цель получает на 50%\nбольше урона."),
-    "weak":       ("Слабость",    "Цель наносит на 25%\nменьше урона."),
-    "wet":        ("Мокрый",      "При наложении Горения\nвзрывается в ПАР (x2 урон)."),
-    "ignited":    ("Горение",     "Наносит 3 урона в конце\nкаждого хода цели."),
-    "poison":     ("Яд",          "Наносит N урона в конце хода,\nпробивая щит. Стак убывает на 1."),
-}
+from core.StatusRegistry import STATUSES
 
 
 class CardRenderer:
@@ -44,8 +34,7 @@ class CardRenderer:
         Возвращает список (status_key, value) для статусных эффектов карты.
         value = реальное число с учётом апгрейда карты.
         """
-        from core.cards.base import StatusEffect, PoisonEffect
-        seen = set()
+        seen     = set()
         keywords = []
         for effect in card.effects:
             key = None
@@ -56,7 +45,7 @@ class CardRenderer:
             elif isinstance(effect, PoisonEffect):
                 key = "poison"
                 val = effect.upgrade_val if card.upgraded else effect.base_val
-            if key and key in KEYWORD_DESCRIPTIONS and key not in seen:
+            if key and key in STATUSES and key not in seen:
                 seen.add(key)
                 keywords.append((key, val))
         return keywords
@@ -71,18 +60,18 @@ class CardRenderer:
         if not keywords:
             return
 
-        pad_x, pad_y  = 14, 10
-        line_h_title  = font_title.get_linesize()
-        line_h_desc   = font_desc.get_linesize() + 1
-        gap           = 6
-        section_gap   = 4
+        pad_x, pad_y = 14, 10
+        line_h_title = font_title.get_linesize()
+        line_h_desc  = font_desc.get_linesize() + 1
+        gap          = 6
+        section_gap  = 4
 
-        # Собираем блоки с подстановкой реального значения вместо N
         blocks = []
         max_w  = 0
         for key, val in keywords:
-            title_str, desc_str = KEYWORD_DESCRIPTIONS[key]
-            desc_str = desc_str.replace("N", str(val))   # подставляем реальное число
+            data       = STATUSES[key]
+            title_str, desc_str = data["keyword"]
+            desc_str   = desc_str.replace("N", str(val))
             title_surf = font_title.render(title_str, True, (255, 220, 80))
             desc_lines = [
                 font_desc.render(l, True, (210, 210, 210))
@@ -103,7 +92,6 @@ class CardRenderer:
             box_h += gap
         box_h -= gap
 
-        # Позиция: справа от карты
         screen_w, screen_h = screen.get_size()
         tip_x = card_rect.right + 12
         tip_y = card_rect.top
@@ -112,12 +100,10 @@ class CardRenderer:
         if tip_y + box_h > screen_h - 10:
             tip_y = screen_h - box_h - 10
 
-        # Фон
         bg_rect = pygame.Rect(tip_x, tip_y, box_w, box_h)
         pygame.draw.rect(screen, (18, 18, 24), bg_rect, border_radius=8)
         pygame.draw.rect(screen, (180, 160, 80), bg_rect, 1, border_radius=8)
 
-        # Рендер блоков
         cursor_y = tip_y + pad_y
         for i, (title_surf, desc_lines) in enumerate(blocks):
             if i > 0:
@@ -236,7 +222,7 @@ class CardRenderer:
             for word, is_dmg_word in line:
                 clean_word = word.replace(CardRenderer._DMG_MARKER, "")
                 if is_dmg_word:
-                    display = f"*{clean_word}*"
+                    display  = f"*{clean_word}*"
                     word_surf = font_big.render(display + " ", True, color_digit)
                 elif is_upgraded and clean_word.isdigit():
                     word_surf = font_big.render(clean_word + " ", True, CardRenderer.COLOR_DMG)
@@ -273,7 +259,7 @@ class CardRenderer:
         pygame.draw.rect(surface, border_color, rect, border_thickness, border_radius=10)
 
         cost_color = CardRenderer.COLOR_COST_LOW if not can_afford else border_color
-        cost_surf = font_title.render(str(card.cost), True, cost_color)
+        cost_surf  = font_title.render(str(card.cost), True, cost_color)
         surface.blit(cost_surf, (rect.x + 14, rect.y + 12))
 
         CardRenderer.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
@@ -292,5 +278,4 @@ class CardRenderer:
         if not can_afford:
             CardRenderer._draw_unaffordable_overlay(surface, rect)
 
-        # Возвращаем rect -- нужен GameView для позиционирования тултипа
         return rect

@@ -1,5 +1,5 @@
 # Project Map — Roguelike Card Game
-_Обновлено: Jun 2, 2026 — Сессия 3_
+_Обновлено: Jun 2, 2026 — Сессия 4_
 
 ---
 
@@ -9,9 +9,9 @@ server.py
 _project_map.md
 
 core/
-  Creature.py
+  Creature.py          ← self.statuses={}, __getattr__/__setattr__, обратная совместимость
   EffectCalculator.py
-  StatusRegistry.py  ← СОЗДАТЬ (Шаг A рефакторинга)
+  StatusRegistry.py    ← ЕДИНЫЙ реестр 7 статусов (создан в Сессии 4)
   cards/
     base.py, basic.py, fire.py, poison.py, water.py
     buff/strength.py, buff/thorns.py
@@ -24,74 +24,74 @@ core/
     base.py, starter.py, elemental.py
 
 managers/
-  GameManager.py  ⚠️ большой файл — использовать query_context
+  GameManager.py       ⚠️ ~176 строк — использовать query_context
   CombatManager.py
   DeckManager.py
   BalanceSimulator.py
   network_manager.py
 
 ui/
-  MainMenu.py, HubView.py, GameView.py  ⚠️ GameView большой
-  MapView.py, CombatInterface.py  ⚠️ CombatInterface большой
+  MainMenu.py, HubView.py
+  GameView.py          ⚠️ ~160 строк
+  MapView.py
+  CombatInterface.py   ⚠️ ~200 строк — использовать query_context
   CardRenderer.py
-  Shop.py, Campfire.py, Chest.py, EventView.py  ⚠️ EventView большой
+  Shop.py, Campfire.py, Chest.py
+  EventView.py         ⚠️ ~233 строки — использовать query_context
   InputHandler.py, LeaderboardView.py
 
 ---
 
-## СЛЕДУЮЩАЯ СТАДИЯ: РЕФАКТОРИНГ АРХИТЕКТУРЫ
+## СЛЕДУЮЩАЯ СТАДИЯ: ДРОБЛЕНИЕ ФАЙЛОВ
 
-ЦЕЛЬ: добавление нового статуса = одна запись в одном файле, ничего больше.
+### Приоритет 1 — СРОЧНО (уже за лимитом 150 строк)
 
-### Шаг A — создать core/StatusRegistry.py (начинать отсюда)
-Единый реестр всех статусов. Структура записи:
+**A. EventView.py (~233 строк) → разбить на:**
+- ui/events/event_data.py — 7 событий как данные (title, text, options + эффекты)
+- ui/events/event_effects.py — функции heal, lose_hp, gain_gold, gain_card, gain_relic и т.д.
+- ui/EventView.py — только init_event, reset, draw_screen, handle_clicks (~60 строк)
+
+**B. GameManager.py (~176 строк) → разбить на:**
+- managers/MapGenerator.py — MapNode, generate_new_map_progression, _pick_node_type (~70 строк)
+- managers/GameManager.py — прогрессия, награды, состояние игрока (~110 строк)
+
+### Приоритет 2 — ПРЕВЕНТИВНО (разрастутся при добавлении контента)
+
+**C. CombatInterface.py (~200 строк) → разбить на:**
+- ui/combat/hud.py — draw_hp_bar, draw_status_badges, draw_status_tooltip, энергия
+- ui/CombatInterface.py — только draw_combat_screen как оркестратор (~60 строк)
+
+**D. InputHandler.py** — при добавлении BOSS_INTRO, DIALOGUE и т.д. разбить на:
+  combat_handler.py, map_handler.py, menu_handler.py
+
+**E. core/cards/base.py** — при добавлении HealEffect, DrawEffect разбить на effects/ подпапку
+
+### Приоритет 3 — АРХИТЕКТУРНЫЕ УЛУЧШЕНИЯ (не срочно)
+
+**F.** GameView.py (~160 строк) — hover-логика в отдельный dataclass HoverState
+**G.** core/BuffRegistry.py — по аналогии с StatusRegistry когда баффов станет больше 4
+**H.** BalanceSimulator.py — проверить актуальность формул после рефакторинга Creature
+
+---
+
+## Ключевые классы и сигнатуры
+
+### core/StatusRegistry.py ← НОВЫЙ (Сессия 4)
+Единый реестр всех 7 статусов. Добавить статус = одна запись здесь.
 ```python
 
-STATUS_REGISTRY = {
+from core.StatusRegistry import STATUSES, get, all_keys
+Поля каждой записи: abbr, badge_bg, badge_fg, tooltip, keyword (tuple), is_duration, is_stack
+Статусы: vulnerable, weak, wet, ignited, poison, strength, thorns
 
-    "vulnerable": {
-
-        "abbr":        "УЯЗВ",
-
-        "badge_bg":    (160, 60, 180),
-
-        "badge_fg":    (255, 255, 255),
-
-        "tooltip":     "Уязвимость: получаемый урон\nувеличен на 50%.",
-
-        "keyword":     ("Уязвимость", "Цель получает на 50%\nбольше урона."),
-
-        "is_duration": True,   # убывает на 1 в конце хода
-
-        "is_stack":    False,  # не накапливается
-
-    },
-
-    # ... остальные 6 статусов
-
-}
-Текущие 7 статусов: vulnerable, weak, wet, ignited, poison, strength, thorns
-
-Шаг B — переключить CombatInterface на реестр
-Убрать STATUS_STYLES + STATUS_TOOLTIPS, читать из StatusRegistry
-
-Шаг C — переключить CardRenderer на реестр
-Убрать KEYWORD_DESCRIPTIONS, читать из StatusRegistry
-
-Шаг D — рефакторинг Creature.py (ОСТОРОЖНО, последним)
-Заменить хардкод атрибутов (self.vulnerable, self.weak...) на self.statuses = {}
-Затрагивает всю боевую математику.
-
-Параллельно: дробить файлы до 150 строк
-Файлы за лимитом: GameManager.py, CombatInterface.py, GameView.py, EventView.py
-
-Ключевые классы и сигнатуры
-core/Creature.py
+core/Creature.py ← РЕФАКТОРИНГ (Сессия 4)
 Базовый класс для игрока и врагов.
 
 __init__(name, hp, max_hp)
-Поля: hp, max_hp, shield, strength, thorns
-Статусы: vulnerable, weak, wet, ignited, poison
+Поля: hp, max_hp, shield
+self.statuses = {k: 0 for k in _STATUS_KEYS} — единый словарь статусов
+__getattr__ / __setattr__ — прозрачная совместимость (creature.weak работает как раньше)
+Публичный API: get_status(key), set_status(key, val), add_status(key, amount)
 take_damage(amount, attacker=None)
 gain_shield(amount)
 tick_statuses(combat_manager=None) — вызывается в конце хода
@@ -123,7 +123,7 @@ add_log_message(text) — лог боя
 core/enemies/base.py — Enemy(Creature)
 Поля: base_test_damage, base_test_shield, intent_type, intent_value, turn_count
 choose_intent() — переопределяется в каждом моб-классе
-execute_intent(player, combat_manager=None) — выполняет намерение, вызывает turn_count += 1
+execute_intent(player, combat_manager=None)
 core/enemies/cultist.py — Cultist(Enemy)
 Ход 0: defend (base_test_shield)
 Ход 1+: attack (base_test_damage + turn_count), разгон +1/ход
@@ -159,26 +159,22 @@ core/cards/poison.py
 Фабрики: create_poison_stab, create_toxic_cloud, create_acid_shield
 ⚠️ НЕТ: create_poison_dart
 
-ui/CardRenderer.py
+ui/CardRenderer.py ← РЕФАКТОРИНГ (Сессия 4)
 draw(surface, card, x, y, font_title, font_desc, is_hovered=False, player=None, enemy=None)
-Возвращает rect карты (нужен для hover-проверки в GameView)
-Рамка — всегда цвет стихии, не меняется при апгрейде
-Апгрейд: "+" в названии карты
+Возвращает rect карты
+Рамка — всегда цвет стихии
 _resolve_description() — подставляет реальный урон через EffectCalculator(dry_run=True)
-_draw_unaffordable_overlay(surface, rect) — 50% затемнение через Surface(SRCALPHA)
-Затемнение: can_afford = card.cost <= player.energy (если player передан)
-COLOR_COST_LOW = (160, 40, 40) — тускло-красный для стоимости недоступной карты
-Оверлей рисуется ПОСЛЕДНИМ поверх всех элементов карты
+_draw_unaffordable_overlay() — 50% затемнение
 _get_card_keywords(card) — сканирует effects, возвращает [(key, val)] с реальными числами
-draw_card_keyword_tooltip() — Hearthstone-style панель справа от карты, N→реальное значение
-ui/CombatInterface.py ⚠️ большой
-STATUS_STYLES — 7 статусов с цветами и аббревиатурами (будет удалён на Шаге B)
-STATUS_TOOLTIPS — описания с N-заглушками (будет удалён на Шаге B)
+draw_card_keyword_tooltip() — Hearthstone-style панель справа от карты
+⚠️ Убран KEYWORD_DESCRIPTIONS — читает из StatusRegistry.STATUSES[key]["keyword"]
+ui/CombatInterface.py ⚠️ большой ← РЕФАКТОРИНГ (Сессия 4)
+⚠️ Убраны STATUS_STYLES + STATUS_TOOLTIPS — читает из StatusRegistry.STATUSES
 draw_status_badges(screen, font, creature, x, y) — возвращает [(rect, key, val)], пропускает val≤0
 draw_status_tooltip(screen, font, key, val, mouse_pos) — N→str(val), автоприжатие к краям
 draw_combat_screen(view) — рисует всё, тултип статуса ПОСЛЕДНИМ
-Динамический Intent врага с цветовой индикацией (красный если пробивает щит, синий если нет)
-ui/GameView.py ⚠️ большой
+Динамический Intent врага с цветовой индикацией
+ui/GameView.py ⚠️ ~160 строк
 Хранит hover-состояния для тултипов:
 
 hovered_status_key, hovered_status_val — сбрасываются каждый кадр в update()
@@ -189,7 +185,7 @@ ui/InputHandler.py
 Блок LEADERBOARD: если handle_clicks() == True →
 Shop.reset() + Campfire.reset() + MainMenu.reset() + event_reset() + GameManager()
 
-ui/EventView.py ⚠️ большой
+ui/EventView.py ⚠️ ~233 строки
 НЕ класс — модуль функций
 init_event(gm) — вызывается из MapView при входе в EVENT
 reset() — вызывается при рестарте из InputHandler
@@ -212,7 +208,7 @@ managers/network_manager.py
 send_run_record() — асинхронный threading.Thread(daemon=True)
 fetch_top_scores() → leaderboard_cache
 Цепочки вызовов
-Бой
+Бой:
 
 
 MapView.handle_click()
@@ -226,7 +222,7 @@ MapView.handle_click()
 → for relic in gm.relics: relic.on_combat_start(self)  ← ДО start_turn_phase
 
 → self.start_turn_phase()
-Ход врага
+Ход врага:
 
 
 CombatManager.end_turn_phase()
@@ -236,7 +232,7 @@ CombatManager.end_turn_phase()
 → EffectCalculator.calculate_damage(...)
 
 → player.take_damage(final_dmg, attacker=enemy)
-Рестарт
+Рестарт:
 
 
 InputHandler (LEADERBOARD блок)
@@ -246,11 +242,11 @@ InputHandler (LEADERBOARD блок)
 → Shop.reset(), Campfire.reset(), MainMenu.reset(), event_reset()
 
 → GameManager() (новый объект)
-Добавление карты (везде одинаково)
+Добавление карты (везде одинаково):
 
 
-gm.add_card(card) ← Shop, Chest, Campfire, EventView
-Экономика (актуальные значения)
+gm.add_card(card)  ← Shop, Chest, Campfire, EventView
+Экономика
 Параметр	Значение
 Стартовое золото	100
 Награда за бой	random.randint(20, 35) + floor × 3
@@ -262,7 +258,7 @@ gm.add_card(card) ← Shop, Chest, Campfire, EventView
 Warrior	80	3
 Rogue	65	3
 Mage	55	3
-Исправленные баги (45 штук, полная история)
+Исправленные баги (49 штук, полная история)
 #	Файл	Суть
 1	GameView.py	pygame.display.flip() перенесён в конец draw()
 2	GameView.py	CHEST и EVENT рендерятся через нативные модули
@@ -309,6 +305,10 @@ Mage	55	3
 43	CardRenderer.py	_get_card_keywords() возвращает (key, val) с реальными числами
 44	CardRenderer.py	draw_card_keyword_tooltip() Hearthstone-style панель
 45	CombatInterface.py	draw_status_tooltip принимает val, N→реальное число
+46	core/StatusRegistry.py	СОЗДАН — единый реестр 7 статусов
+47	CombatInterface.py	убраны STATUS_STYLES/STATUS_TOOLTIPS, читает из реестра
+48	CardRenderer.py	убран KEYWORD_DESCRIPTIONS, читает из реестра
+49	core/Creature.py	self.statuses={}, getattr/setattr, обратная совместимость
 Грабли (не повторять)
 view.view.gm — двойной view это баг
 Эмодзи в pygame SysFont — не рендерятся, никогда не использовать
@@ -319,10 +319,12 @@ spawn_procedural_enemy — МЕТОД GameManager, не импортироват
 LeaderboardView.handle_clicks() — только возвращает True/False, рестарт в InputHandler
 pygame.display.flip() — один раз в конце draw(), не внутри методов
 Отступы Python при копировании из чата — всегда проверять структуру
-Реликвии управляют своими эффектами САМИ через хуки — GameManager не дублирует логику реликвий
+Реликвии управляют своими эффектами САМИ через хуки — GameManager не дублирует
 fire.py — только create_ignite, create_fire_breath. Нет ember/fireball/inferno
 water.py — только create_splash, create_rain_cloud. Нет water_splash/tidal_wave
 poison.py — create_poison_stab, не create_poison_dart
+StatusRegistry должен быть импортирован ДО Creature (нет зависимостей, порядок ок)
+__setattr__ в Creature: _STATUS_KEYS вычисляется при загрузке модуля через all_keys()
 Файлы без сюрпризов (читать напрямую, влезают в контекст)
 Все файлы кроме: GameManager.py, CombatInterface.py, GameView.py, EventView.py
 
