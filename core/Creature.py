@@ -10,26 +10,21 @@ class Creature:
         self.max_hp = max_hp
         self.shield = 0
 
-        # Статусы (тикают каждый ход)
         self.wet = 0
         self.ignited = 0
         self.poison = 0
         self.vulnerable = 0
         self.weak = 0
 
-        # Пассивные баффы (не тикают, постоянны пока не сброшены)
-        self.strength = 0  # Ярость: +X к урону всех атак
-        self.thorns = 0    # Шипы: X урона атакующему при получении удара
+        self.strength = 0
+        self.thorns = 0
 
     def gain_shield(self, amount):
         self.shield += amount
         print(f"[{self.name}] получает +{amount} к щиту. Текущий щит: {self.shield}")
 
     def take_damage(self, amount, attacker=None):
-        if self.vulnerable > 0:
-            amount = int(amount * 1.5)
-            print(f" [Эффект] {self.name} УЯЗВИМ! Урон увеличен до {amount}")
-
+        # Уязвимость уже учтена в EffectCalculator -- здесь не трогаем
         print(f"[{self.name}] атакован на {amount} урона. (Щит: {self.shield}, HP: {self.hp})")
 
         if self.shield >= amount:
@@ -42,12 +37,11 @@ class Creature:
         self.hp = max(self.hp, 0)
         print(f"[{self.name}] Итог -> Осталось щита: {self.shield}, Осталось HP: {self.hp}")
 
-        # Шипы: отражаем урон атакующему (щит не защищает)
         if self.thorns > 0 and attacker is not None:
             print(f" [ШИПЫ] {self.name} отражает {self.thorns} урона на {attacker.name}!")
             attacker.hp = max(attacker.hp - self.thorns, 0)
 
-    def tick_statuses(self):
+    def tick_statuses(self, combat_manager=None):
         """Тикает статусы в конце хода. Баффы (strength, thorns) не трогаем."""
         if self.vulnerable > 0:
             self.vulnerable -= 1
@@ -60,8 +54,13 @@ class Creature:
                 print(f" [Статус] Слабость на существе {self.name} прошла.")
 
         if self.ignited > 0:
-            print(f" [Горение] {self.name} получает 3 урона от огня!")
-            self.hp = max(self.hp - 3, 0)
+            # Базовый урон от горения + бонус от реликвий
+            ignite_dmg = 3
+            if combat_manager and hasattr(combat_manager, 'gm') and combat_manager.gm:
+                for relic in combat_manager.gm.relics:
+                    ignite_dmg += relic.on_tick_ignited(self)
+            print(f" [Горение] {self.name} получает {ignite_dmg} урона от огня!")
+            self.hp = max(self.hp - ignite_dmg, 0)
             self.ignited -= 1
             if self.ignited == 0:
                 print(f" [Статус] Огонь на {self.name} потух.")

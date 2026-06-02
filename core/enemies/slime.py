@@ -9,4 +9,3 @@ class SlimeAndGoblins(Enemy):
         else:
             self.intent_type = "defend"
             self.intent_value = self.base_test_shield + 2
-        self.turn_count += 1

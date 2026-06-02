@@ -8,7 +8,7 @@ class DamageEffect:
         base = self.upgrade_val if is_upgraded else self.base_val
         gm_ref = combat_manager.gm if combat_manager is not None else None
         final_dmg = EffectCalculator.calculate_damage(player, enemy, base, gm_ref, combat_manager)
-        enemy.take_damage(final_dmg, attacker=player)  # <-- передаём игрока
+        enemy.take_damage(final_dmg, attacker=player)
         if combat_manager:
             combat_manager.add_log_message(f" -> {enemy.name} получает {final_dmg} урона.")
 
@@ -29,10 +29,18 @@ class StatusEffect:
         self.upgrade_turns = upgrade_turns
     def execute(self, player, enemy, combat_manager, is_upgraded):
         turns = self.upgrade_turns if is_upgraded else self.base_turns
-        if self.status_type == "weak": enemy.weak += turns
-        elif self.status_type == "vulnerable": enemy.vulnerable += turns
-        elif self.status_type == "wet": enemy.wet += turns
-        elif self.status_type == "ignited": enemy.ignited += turns
+        if self.status_type == "weak":
+            enemy.weak += turns
+        elif self.status_type == "vulnerable":
+            enemy.vulnerable += turns
+        elif self.status_type == "wet":
+            enemy.wet += turns
+            # Хук реликвий: при наложении "мокрый" на врага
+            if combat_manager and hasattr(combat_manager, 'gm') and combat_manager.gm:
+                for relic in combat_manager.gm.relics:
+                    relic.on_wet_applied(combat_manager)
+        elif self.status_type == "ignited":
+            enemy.ignited += turns
         if combat_manager:
             combat_manager.add_log_message(f" -> На {enemy.name} наложен статус {self.status_type} ({turns} х.)")
 

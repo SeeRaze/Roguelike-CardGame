@@ -71,10 +71,10 @@ class CombatManager:
             self.enemy.shield = 0
 
             self.enemy.execute_intent(self.player, self)
-            self.enemy.tick_statuses()
+            self.enemy.tick_statuses(self)
 
         # В конце раунда тикают дебаффы игрока
-        self.player.tick_statuses()
+        self.player.tick_statuses(self)
 
         # ИСПРАВЛЕНО: проверяем победу ДО начала нового хода
         # Если враг умер (в т.ч. от яда) -- не начинаем новый ход

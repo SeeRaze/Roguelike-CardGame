@@ -9,6 +9,3 @@ class Cultist(Enemy):
             self.intent_type = "attack"
             # Смягчаем разгон: +1 урон за ход вместо +2
             self.intent_value = self.base_test_damage + self.turn_count
-        self.turn_count += 1
-
-
