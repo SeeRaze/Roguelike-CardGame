@@ -48,10 +48,16 @@ class Creature:
         if key in _STATUS_KEYS:
             self.statuses[key] = max(0, value)
 
-    def add_status(self, key: str, amount: int):
-        """Добавить к статусу (накопление)."""
+    def add_status(self, key: str, amount: int, combat_manager=None):
+        """Добавить к статусу (накопление). Триггерит хуки реликвий."""
         if key in _STATUS_KEYS:
             self.statuses[key] = max(0, self.statuses.get(key, 0) + amount)
+            # Хук реликвий при наложении "мокрый"
+            if key == "wet" and combat_manager:
+                gm = getattr(combat_manager, 'gm', None)
+                if gm:
+                    for relic in gm.relics:
+                        relic.on_wet_applied(combat_manager)
 
     # ------------------------------------------------------------------
     # Боевые методы

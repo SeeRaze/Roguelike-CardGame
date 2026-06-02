@@ -44,17 +44,10 @@ class StatusEffect:
     def execute(self, player, enemy, combat_manager, is_upgraded):
         turns = self.upgrade_turns if is_upgraded else self.base_turns
 
-        # Универсальное наложение через StatusRegistry — без if/elif
         if self.status_type in STATUSES:
             current = getattr(enemy, self.status_type, 0)
-            setattr(enemy, self.status_type, current + turns)
-        
-        # Специальный хук для "мокрый" (реликвии)
-        if self.status_type == "wet" and combat_manager:
-            gm = getattr(combat_manager, 'gm', None)
-            if gm:
-                for relic in gm.relics:
-                    relic.on_wet_applied(combat_manager)
+            # Передаём combat_manager — хук сработает внутри add_status
+            enemy.add_status(self.status_type, turns, combat_manager)
 
         if combat_manager:
             combat_manager.add_log_message(
