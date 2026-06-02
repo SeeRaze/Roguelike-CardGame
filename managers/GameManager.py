@@ -160,6 +160,9 @@ class GameManager:
         self.player.shield = 0
         for key in ("weak", "vulnerable", "wet", "ignited"):
             self.player.statuses[key] = 0
+        # Хук on_combat_end — реликвии реагируют на конец боя
+        for relic in self.relics:
+            relic.on_combat_end(self.player)            
         """Собирает награды за бой в pending_rewards и переходит на экран победы."""
         if self.current_floor > self.stats["max_floor"]:
             self.stats["max_floor"] = self.current_floor

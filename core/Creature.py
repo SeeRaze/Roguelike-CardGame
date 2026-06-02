@@ -15,7 +15,9 @@ class Creature:
         statuses = object.__getattribute__(self, 'statuses')
         if name in statuses:
             return statuses[name]
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
 
     def __setattr__(self, name, value):
         if name in _STATUS_KEYS:
@@ -42,18 +44,27 @@ class Creature:
     # ------------------------------------------------------------------
     # Боевые методы
     # ------------------------------------------------------------------
-    def heal(self, amount: int):
+    def heal(self, amount: int, combat_manager=None):
         healed = min(amount, self.max_hp - self.hp)
         self.hp += healed
-        print(f"[{self.name}] восстанавливает {healed} HP. Текущее HP: {self.hp}/{self.max_hp}")
+        print(f"[{self.name}] восстанавливает {healed} HP. "
+              f"Текущее HP: {self.hp}/{self.max_hp}")
+        # Хук on_heal — реликвии могут реагировать на хил
+        if healed > 0 and combat_manager:
+            gm = getattr(combat_manager, 'gm', None)
+            if gm:
+                for relic in gm.relics:
+                    relic.on_heal(healed, self)
         return healed
 
     def gain_shield(self, amount):
         self.shield += amount
-        print(f"[{self.name}] получает +{amount} к щиту. Текущий щит: {self.shield}")
+        print(f"[{self.name}] получает +{amount} к щиту. "
+              f"Текущий щит: {self.shield}")
 
     def take_damage(self, amount, attacker=None, combat_manager=None):
-        print(f"[{self.name}] атакован на {amount} урона. (Щит: {self.shield}, HP: {self.hp})")
+        print(f"[{self.name}] атакован на {amount} урона. "
+              f"(Щит: {self.shield}, HP: {self.hp})")
         if self.shield >= amount:
             self.shield -= amount
         else:
@@ -61,21 +72,32 @@ class Creature:
             self.shield = 0
             self.hp    -= damage_left
         self.hp = max(self.hp, 0)
-        print(f"[{self.name}] Итог -> Осталось щита: {self.shield}, Осталось HP: {self.hp}")
+        print(f"[{self.name}] Итог -> Щит: {self.shield}, HP: {self.hp}")
 
-        # Шипы -- отражение урона атакующему
+        # Шипы
         if self.statuses.get('thorns', 0) > 0 and attacker is not None:
-            print(f" [ШИПЫ] {self.name} отражает {self.statuses['thorns']} урона на {attacker.name}!")
+            print(f" [ШИПЫ] {self.name} отражает "
+                  f"{self.statuses['thorns']} урона на {attacker.name}!")
             attacker.hp = max(attacker.hp - self.statuses['thorns'], 0)
 
-        # Кровотечение -- доп. урон сквозь щит при каждом ударе (только если amount > 0)
+        # Кровотечение — с хуком on_bleed_tick
         bleed = self.statuses.get('bleed', 0)
         if bleed > 0 and amount > 0:
-            print(f" [КРОВЬ] {self.name} истекает кровью: +{bleed} урона!")
-            self.hp = max(self.hp - bleed, 0)
+            bleed_dmg = bleed
+            # Реликвии могут изменить урон от кровотечения
+            if combat_manager:
+                gm = getattr(combat_manager, 'gm', None)
+                if gm:
+                    for relic in gm.relics:
+                        bleed_dmg = relic.on_bleed_tick(
+                            bleed_dmg, self, combat_manager
+                        )
+            print(f" [КРОВЬ] {self.name} истекает кровью: +{bleed_dmg} урона!")
+            self.hp = max(self.hp - bleed_dmg, 0)
             if combat_manager:
                 combat_manager.add_log_message(
-                    f" [КРОВЬ] {self.name} получает +{bleed} от кровотечения!"
+                    f" [КРОВЬ] {self.name} получает +{bleed_dmg} "
+                    f"от кровотечения!"
                 )
 
     def tick_statuses(self, combat_manager=None):
@@ -89,24 +111,25 @@ class Creature:
 
         if s.get('ignited', 0) > 0:
             ignite_dmg = 3
-            if combat_manager and hasattr(combat_manager, 'gm') and combat_manager.gm:
+            if combat_manager and hasattr(combat_manager, 'gm') \
+                    and combat_manager.gm:
                 for relic in combat_manager.gm.relics:
                     ignite_dmg += relic.on_tick_ignited(self)
-            print(f" [Горение] {self.name} получает {ignite_dmg} урона от огня!")
+            print(f" [Горение] {self.name} получает {ignite_dmg} урона!")
             self.hp = max(self.hp - ignite_dmg, 0)
             s['ignited'] -= 1
             if s['ignited'] == 0:
                 print(f" [Статус] Огонь на {self.name} потух.")
 
         if s.get('poison', 0) > 0:
-            print(f" [ЯД] {self.name} получает {s['poison']} урона от токсинов сквозь щиты!")
+            print(f" [ЯД] {self.name} получает {s['poison']} урона от яда!")
             self.hp = max(self.hp - s['poison'], 0)
             s['poison'] -= 1
             if s['poison'] == 0:
-                print(f" [Статус] Яд в теле {self.name} полностью рассеялся.")
+                print(f" [Статус] Яд в теле {self.name} рассеялся.")
 
         if s.get('regen', 0) > 0:
-            healed = self.heal(s['regen'])
+            healed = self.heal(s['regen'], combat_manager)
             if combat_manager:
                 combat_manager.add_log_message(
                     f" [РЕГЕН] {self.name} восстанавливает {healed} HP."
@@ -115,7 +138,16 @@ class Creature:
             if s['regen'] == 0:
                 print(f" [Статус] Регенерация на {self.name} иссякла.")
 
-        # Кровотечение -- полностью снимается в конце хода
+        # Кровотечение — сброс с учётом реликвий
         if s.get('bleed', 0) > 0:
-            s['bleed'] = 0
-            print(f" [Статус] Кровотечение на {self.name} остановилось.")
+            gm = getattr(combat_manager, 'gm', None) if combat_manager else None
+            has_gniloy_klyk = gm and any(
+                r.name == "Гнилой Клык" for r in gm.relics
+            )
+            if has_gniloy_klyk:
+                s['bleed'] = s['bleed'] // 2
+                print(f" [Статус] Кровотечение на {self.name} "
+                      f"уменьшилось до {s['bleed']}.")
+            else:
+                s['bleed'] = 0
+                print(f" [Статус] Кровотечение на {self.name} остановилось.")

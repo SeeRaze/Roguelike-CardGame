@@ -15,7 +15,10 @@ class SpikedBracelet(Relic):
         combat_manager.add_log_message(f"[Реликвия] '{self.name}' дает вам 10 Щита!")
 
 class ТочильныйКамень(Relic):
-    def __init__(self): 
+    def __init__(self):
         super().__init__("Точильный Камень", "Увеличивает урон всех ваших атак на +2.")
-    def on_damage_calculated(self, base_dmg):
-        return base_dmg + 2
+
+    def on_damage_calculated(self, base_dmg, is_player_attack=True):
+        if is_player_attack:
+            return base_dmg + 2
+        return base_dmg

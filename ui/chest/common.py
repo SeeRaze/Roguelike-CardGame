@@ -44,9 +44,13 @@ def clicks_common(view, mouse_pos):
             gm.chest_selected = i
             return
 
-    if pygame.Rect(760, 620, 200, 60).collidepoint(mouse_pos) and gm.chest_selected is not None:
+    if pygame.Rect(760, 620, 200, 60).collidepoint(mouse_pos) \
+            and gm.chest_selected is not None:
         gm.add_card(gm.chest_cards[gm.chest_selected])
         gm.chest_opened = True
+        # Хук on_chest_opened — реликвии реагируют на открытие сундука
+        for relic in gm.relics:
+            relic.on_chest_opened("common", gm)
         return
 
     if pygame.Rect(980, 620, 200, 60).collidepoint(mouse_pos):

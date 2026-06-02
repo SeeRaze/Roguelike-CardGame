@@ -23,8 +23,6 @@ class DamageEffect:
 
 
 class VampireDamageEffect:
-    """Урон + восстановление 50% от фактически нанесённого урона.
-    Синергирует с Яростью: сила удара растёт -> хил растёт пропорционально."""
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val
         self.upgrade_val = upgrade_val
@@ -33,15 +31,14 @@ class VampireDamageEffect:
         base = self.upgrade_val if is_upgraded else self.base_val
         gm_ref = combat_manager.gm if combat_manager is not None else None
 
-        # Считаем финальный урон с учётом Ярости, Слабости, Уязвимости и реликвий
         final_dmg = EffectCalculator.calculate_damage(
             player, enemy, base, gm_ref, combat_manager
         )
-        enemy.take_damage(final_dmg, attacker=player, combat_manager=combat_manager)
+        enemy.take_damage(final_dmg, attacker=player,
+                          combat_manager=combat_manager)
 
-        # Хил = 50% от фактического урона (округление вниз, минимум 1)
         heal_amount = max(1, final_dmg // 2)
-        healed = player.heal(heal_amount)
+        healed = player.heal(heal_amount, combat_manager)  # <-- передаём cm
 
         if combat_manager:
             combat_manager.add_log_message(
@@ -74,7 +71,7 @@ class HealEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         amount = self.upgrade_val if is_upgraded else self.base_val
-        healed = player.heal(amount)
+        healed = player.heal(amount, combat_manager)   # <-- передаём cm
         if combat_manager:
             combat_manager.add_log_message(
                 f" -> Вы восстанавливаете {healed} HP."

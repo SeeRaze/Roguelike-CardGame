@@ -57,6 +57,36 @@ class CombatManager:
 
         selected_card.apply(self.player, self.enemy, self)
 
+        def play_card_by_index(self, card_index):
+            if card_index < 0 or card_index >= len(self.deck_manager.hand):
+                return False
+
+            selected_card = self.deck_manager.hand[card_index]
+
+            if self.player.energy < selected_card.cost:
+                self.add_log_message("[!] Не хватает энергии!")
+                return False
+
+            self.player.use_energy(selected_card.cost)
+            self.add_log_message(f"Вы разыграли: {selected_card.name}")
+
+            selected_card.apply(self.player, self.enemy, self)
+
+            # Хук on_card_played — реликвии реагируют на разыгрывание карты
+            if self.gm and hasattr(self.gm, 'relics'):
+                for relic in self.gm.relics:
+                    relic.on_card_played(selected_card, self)
+
+            self.deck_manager.hand.remove(selected_card)
+            if getattr(selected_card, 'exile', False):
+                self.deck_manager.exile_pile.append(selected_card)
+                self.add_log_message(
+                    f" [ИЗГНАНИЕ] {selected_card.name} изгнана до конца боя."
+                )
+            else:
+                self.deck_manager.discard_pile.append(selected_card)
+            return True
+
         self.deck_manager.hand.remove(selected_card)
         if getattr(selected_card, 'exile', False):
             self.deck_manager.exile_pile.append(selected_card)

@@ -7,13 +7,17 @@ class Relic:
 
     Хуки вызываются из соответствующих систем:
       on_combat_start      <- CombatManager.__init__
-      on_turn_start        <- CombatManager.start_turn_phase (если добавить)
+      on_turn_start        <- CombatManager.start_turn_phase
       on_damage_calculated <- EffectCalculator.calculate_damage
       on_tick_ignited      <- Creature.tick_statuses
-      on_wet_applied       <- water.py (create_splash / create_rain_cloud)
-      on_card_played       <- CombatManager.play_card_by_index (заглушка)
+      on_wet_applied       <- Creature.add_status (key="wet")
+      on_card_played       <- CombatManager.play_card_by_index
       on_shield_gained     <- Creature.gain_shield (заглушка)
       on_kill              <- CombatManager.end_turn_phase (заглушка)
+      on_combat_end        <- GameManager.distribute_combat_rewards
+      on_bleed_tick        <- Creature.take_damage (при bleed > 0)
+      on_heal              <- Creature.heal (после фактического хила)
+      on_chest_opened      <- ui/chest/common.py (при открытии сундука)
     """
 
     def __init__(self, name: str, description: str,
@@ -22,14 +26,21 @@ class Relic:
         self.description = description
         self.rarity      = rarity
 
-    # --- Активные хуки (реализованы в реликвиях) ---
-    def on_combat_start(self, combat_manager):       pass
-    def on_turn_start(self, combat_manager):         pass
-    def on_damage_calculated(self, base_dmg):        return base_dmg
-    def on_tick_ignited(self, creature):             return 0
-    def on_wet_applied(self, combat_manager):        pass
+    # --- Активные хуки ---
+    def on_combat_start(self, combat_manager):          pass
+    def on_turn_start(self, combat_manager):            pass
+    def on_damage_calculated(self, base_dmg, is_player_attack=True):
+        return base_dmg
+    def on_tick_ignited(self, creature):                return 0
+    def on_wet_applied(self, combat_manager):           pass
+    def on_card_played(self, card, combat_manager):     pass
+    def on_shield_gained(self, amount, creature):       pass
+    def on_kill(self, enemy, combat_manager):           pass
 
-    # --- Хуки-заглушки для будущих реликвий ---
-    def on_card_played(self, card, combat_manager):  pass
-    def on_shield_gained(self, amount, creature):    pass
-    def on_kill(self, enemy, combat_manager):        pass
+    # --- Новые хуки ---
+    def on_combat_end(self, player):                    pass
+    def on_bleed_tick(self, bleed_dmg, creature,
+                      combat_manager):                  return bleed_dmg
+    def on_heal(self, healed_amount, creature):         pass
+    def on_chest_opened(self, chest_type: str,
+                        game_manager):                  pass
