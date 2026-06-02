@@ -23,7 +23,6 @@ class Creature:
     # Прозрачный доступ: creature.weak  <->  creature.statuses["weak"]
     # ------------------------------------------------------------------
     def __getattr__(self, name):
-        # Вызывается только если атрибут НЕ найден обычным путём
         statuses = object.__getattribute__(self, 'statuses')
         if name in statuses:
             return statuses[name]
@@ -31,7 +30,6 @@ class Creature:
 
     def __setattr__(self, name, value):
         if name in _STATUS_KEYS:
-            # Пишем в словарь статусов
             object.__getattribute__(self, 'statuses')[name] = value
         else:
             object.__setattr__(self, name, value)
@@ -40,11 +38,9 @@ class Creature:
     # Публичный API
     # ------------------------------------------------------------------
     def get_status(self, key: str) -> int:
-        """Явное чтение статуса по ключу."""
         return self.statuses.get(key, 0)
 
     def set_status(self, key: str, value: int):
-        """Явная запись статуса по ключу."""
         if key in _STATUS_KEYS:
             self.statuses[key] = max(0, value)
 
@@ -61,6 +57,13 @@ class Creature:
     # ------------------------------------------------------------------
     # Боевые методы
     # ------------------------------------------------------------------
+    def heal(self, amount: int):
+        """Восстановить HP с жёстким ограничением по max_hp."""
+        healed = min(amount, self.max_hp - self.hp)
+        self.hp += healed
+        print(f"[{self.name}] восстанавливает {healed} HP. Текущее HP: {self.hp}/{self.max_hp}")
+        return healed
+
     def gain_shield(self, amount):
         self.shield += amount
         print(f"[{self.name}] получает +{amount} к щиту. Текущий щит: {self.shield}")
@@ -82,7 +85,7 @@ class Creature:
 
     def tick_statuses(self, combat_manager=None):
         """Тикает статусы в конце хода. Баффы (strength, thorns) не убывают."""
-        s = self.statuses  # короткий псевдоним
+        s = self.statuses
 
         # Длительностные дебаффы -- убывают на 1
         for key in ('vulnerable', 'weak', 'wet'):
@@ -110,3 +113,14 @@ class Creature:
             s['poison'] -= 1
             if s['poison'] == 0:
                 print(f" [Статус] Яд в теле {self.name} полностью рассеялся.")
+
+        # Регенерация -- лечение + убывает
+        if s.get('regen', 0) > 0:
+            healed = self.heal(s['regen'])
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f" [РЕГЕН] {self.name} восстанавливает {healed} HP."
+                )
+            s['regen'] -= 1
+            if s['regen'] == 0:
+                print(f" [Статус] Регенерация на {self.name} иссякла.")

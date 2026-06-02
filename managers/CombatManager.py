@@ -58,8 +58,11 @@ class CombatManager:
         selected_card.apply(self.player, self.enemy, self)
 
         self.deck_manager.hand.remove(selected_card)
-        self.deck_manager.discard_pile.append(selected_card)
-
+        if getattr(selected_card, 'exile', False):
+            self.deck_manager.exile_pile.append(selected_card)
+            self.add_log_message(f" [ИЗГНАНИЕ] {selected_card.name} изгнана до конца боя.")
+        else:
+            self.deck_manager.discard_pile.append(selected_card)
         return True
 
     def end_turn_phase(self):

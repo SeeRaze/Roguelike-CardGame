@@ -35,6 +35,36 @@ class ShieldEffect:
             )
 
 
+class HealEffect:
+    """Восстанавливает HP игрока. Не превышает max_hp."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        amount = self.upgrade_val if is_upgraded else self.base_val
+        healed = player.heal(amount)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Вы восстанавливаете {healed} HP."
+            )
+
+
+class RegenEffect:
+    """Накладывает статус регенерации на игрока."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        amount = self.upgrade_val if is_upgraded else self.base_val
+        player.add_status("regen", amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Вы получаете Регенерацию ({amount})."
+            )
+
+
 class StatusEffect:
     def __init__(self, status_type, base_turns, upgrade_turns):
         self.status_type = status_type
@@ -45,8 +75,6 @@ class StatusEffect:
         turns = self.upgrade_turns if is_upgraded else self.base_turns
 
         if self.status_type in STATUSES:
-            current = getattr(enemy, self.status_type, 0)
-            # Передаём combat_manager — хук сработает внутри add_status
             enemy.add_status(self.status_type, turns, combat_manager)
 
         if combat_manager:
@@ -72,7 +100,7 @@ class PoisonEffect:
 
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
-                 rarity=Rarity.COMMON):
+                 rarity=Rarity.COMMON, exile=False):
         self.name = name
         self.cost = cost
         self.card_type = card_type
@@ -80,6 +108,7 @@ class Card:
         self.effects = effects
         self.rarity = rarity
         self.upgraded = False
+        self.exile = exile          # True = карта изгоняется после разыгрывания
 
     def upgrade(self):
         if not self.upgraded:
