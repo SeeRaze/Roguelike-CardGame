@@ -43,6 +43,11 @@ class GameView:
         self.is_end_turn_hovered = False
         self._map_hovered_col    = None
 
+        # Hover-состояние для тултипов статусов
+        self.hovered_status_key  = None
+        self.enemy_badge_rects   = []
+        self.player_badge_rects  = []
+
         self.gm = GameManager()
         self.gm.start_game()
 
@@ -91,15 +96,33 @@ class GameView:
 
     def update(self):
         self.hovered_card_index = -1
+        self.hovered_status_key = None   # сбрасываем каждый кадр
+
         if self.gm.current_state == "COMBAT" and self.gm.active_combat:
             mouse_pos = pygame.mouse.get_pos()
+
+            # Hover карт в руке
             hand_size = len(self.gm.active_combat.deck_manager.hand)
             for index in range(hand_size):
                 card_x = self.calculate_card_x(index, hand_size)
-                card_rect = pygame.Rect(card_x, self.base_y, self.card_width, self.card_height)
+                card_rect = pygame.Rect(
+                    card_x, self.base_y, self.card_width, self.card_height
+                )
                 if card_rect.collidepoint(mouse_pos):
                     self.hovered_card_index = index
                     break
+
+            # Hover бейджей статусов -- проверяем enemy и player
+            # enemy_badge_rects и player_badge_rects заполняются в draw_combat_screen
+            for rect, key in self.enemy_badge_rects:
+                if rect.collidepoint(mouse_pos):
+                    self.hovered_status_key = key
+                    break
+            if not self.hovered_status_key:
+                for rect, key in self.player_badge_rects:
+                    if rect.collidepoint(mouse_pos):
+                        self.hovered_status_key = key
+                        break
 
         if self.gm.current_state == "HUB":
             from ui.MainMenu import MainMenu
@@ -143,7 +166,7 @@ class GameView:
             from ui.EventView import draw_screen as draw_event
             draw_event(self)
 
-        pygame.display.flip()  # <-- ЗДЕСЬ, один раз, для всех состояний
+        pygame.display.flip()
 
     def _draw_placeholder(self, state, title, subtitle):
         """Временная заглушка для новых экранов."""

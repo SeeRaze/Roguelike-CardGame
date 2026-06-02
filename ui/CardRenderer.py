@@ -9,6 +9,9 @@ class CardRenderer:
     COLOR_GRAY     = (200, 200, 200)  # Серый -- обычный текст
     COLOR_COST_LOW = (160, 40, 40)    # Тускло-красный -- не хватает энергии
 
+    # Маркер для числа урона, которое нужно выделить цветом
+    _DMG_MARKER = "§"
+
     @staticmethod
     def get_card_colors(card):
         name = card.name.lower()
@@ -59,16 +62,16 @@ class CardRenderer:
 
     @staticmethod
     def _resolve_description(description: str, is_upgraded: bool,
-                             player=None, enemy=None) -> tuple[str, bool, bool]:
+                             player=None, enemy=None) -> tuple[str, bool]:
         """
-        Возвращает (итоговый текст, is_boosted, is_combo).
+        Возвращает (итоговый текст с маркером §, is_combo).
 
         Для attack-карт с player+enemy: подставляет реальный урон из
         EffectCalculator вместо базового числа в тексте описания.
-        Для остальных: просто чистит скобки.
+        Число урона помечается маркером § для выделения цветом.
+        Остальные числа (длительности статусов) маркером НЕ помечаются.
         """
-        is_boosted = False
-        is_combo   = False
+        is_combo = False
 
         # Чистим скобки апгрейда
         if is_upgraded:
@@ -77,7 +80,7 @@ class CardRenderer:
             cleaned = re.sub(r'(\d+)\s*\(\d+\)', r'\1', description)
 
         if player is None or enemy is None:
-            return cleaned, is_boosted, is_combo
+            return cleaned, is_combo
 
         # Считаем модификаторы
         is_combo   = getattr(enemy, 'wet', 0) > 0 and getattr(enemy, 'ignited', 0) > 0
@@ -88,12 +91,12 @@ class CardRenderer:
         )
 
         if not is_boosted:
-            return cleaned, is_boosted, is_combo
+            return cleaned, is_combo
 
-        # Подставляем реальный урон вместо каждой цифры в описании
+        # Считаем реальный урон
         base_dmg = CardRenderer._get_base_damage(description, is_upgraded)
         if base_dmg == 0:
-            return cleaned, is_boosted, is_combo
+            return cleaned, is_combo
 
         predicted = EffectCalculator.calculate_damage(
             attacker    = player,
@@ -102,22 +105,22 @@ class CardRenderer:
             dry_run     = True,
         )
 
-        # Заменяем первое число в очищенном тексте на предсказанный урон
-        resolved = re.sub(r'\d+', str(predicted), cleaned, count=1)
-        return resolved, is_boosted, is_combo
+        # Заменяем ТОЛЬКО первое число (урон) на предсказанный урон с маркером §
+        # Маркер § сигнализирует draw_smart_description: это число нужно выделить
+        resolved = re.sub(r'\d+', CardRenderer._DMG_MARKER + str(predicted), cleaned, count=1)
+        return resolved, is_combo
 
     @staticmethod
     def draw_smart_description(surface, description, font, card_rect,
                                is_upgraded, player=None, enemy=None):
         """Рендерит описание карты с динамическим уроном и цветовыми акцентами."""
-        text, is_boosted, is_combo = CardRenderer._resolve_description(
+        text, is_combo = CardRenderer._resolve_description(
             description, is_upgraded, player, enemy
         )
 
         color_digit = (
             CardRenderer.COLOR_COMBO if is_combo
-            else CardRenderer.COLOR_DMG if is_upgraded
-            else CardRenderer.COLOR_GRAY
+            else CardRenderer.COLOR_DMG
         )
         font_big = pygame.font.SysFont("Arial", font.size("0")[1] + 4, bold=True)
 
@@ -127,12 +130,16 @@ class CardRenderer:
         max_width = card_rect.width - 24
 
         for word in words:
-            test_str = " ".join([w for w, _ in current_line] + [word])
+            # Убираем маркер для расчёта ширины
+            clean_word = word.replace(CardRenderer._DMG_MARKER, "")
+            test_str = " ".join(
+                [w.replace(CardRenderer._DMG_MARKER, "") for w, _ in current_line] + [clean_word]
+            )
             if font.size(test_str)[0] <= max_width:
-                current_line.append((word, word.isdigit()))
+                current_line.append((word, word.startswith(CardRenderer._DMG_MARKER)))
             else:
                 lines.append(current_line)
-                current_line = [(word, word.isdigit())]
+                current_line = [(word, word.startswith(CardRenderer._DMG_MARKER))]
         if current_line:
             lines.append(current_line)
 
@@ -141,13 +148,18 @@ class CardRenderer:
 
         for line in lines:
             x_pos = card_rect.x + 15
-            for word, is_digit in line:
-                if is_digit:
-                    display = f"*{word}*" if is_boosted else word
-                    render_font = font_big if (is_upgraded or is_boosted) else font
-                    word_surf = render_font.render(display + " ", True, color_digit)
+            for word, is_dmg_word in line:
+                # Убираем маркер перед рендером
+                clean_word = word.replace(CardRenderer._DMG_MARKER, "")
+                if is_dmg_word:
+                    # Это число урона -- выделяем цветом и размером
+                    display = f"*{clean_word}*"
+                    word_surf = font_big.render(display + " ", True, color_digit)
+                elif is_upgraded and clean_word.isdigit():
+                    # Апгрейд: все числа зелёные (но не золотые -- это не урон)
+                    word_surf = font_big.render(clean_word + " ", True, CardRenderer.COLOR_DMG)
                 else:
-                    word_surf = font.render(word + " ", True, CardRenderer.COLOR_GRAY)
+                    word_surf = font.render(clean_word + " ", True, CardRenderer.COLOR_GRAY)
                 surface.blit(word_surf, (x_pos, y_pos))
                 x_pos += word_surf.get_width()
             y_pos += line_height
