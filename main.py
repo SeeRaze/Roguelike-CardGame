@@ -1,5 +1,5 @@
-from ui.GameView import GameView  # Импортируем наш глобальный движок
+from ui.GameView import GameView
 
-view = GameView()
-
-view.run()
+if __name__ == "__main__":
+    view = GameView()
+    view.run()

@@ -51,7 +51,15 @@ class InputHandler:
                 print(f"Игрок выбрал правый путь: {room_right}")
                 view.gm.enter_chosen_room(room_right)
                 return
-
+            elif view.gm.current_state == "LEADERBOARD":
+                # Проверяем клик по кнопке, которую ты только что добавил в GameView
+                if view.btn_back_leaderboard.collidepoint(mouse_pos):
+                    print("[СИСТЕМА] Нажата кнопка возврата. Перезапускаем менеджер игры...")
+            
+            # Полностью обновляем мозг игры, чтобы сбросить старые ХП и этажи для новой катки
+                    from managers.GameManager import GameManager
+                    view.gm = GameManager() 
+                    view.gm.current_state = "MAIN_MENU"
 
                     
         # 2. КЛИКИ НА ЭКРАНЕ КОСТРА
@@ -64,6 +72,9 @@ class InputHandler:
         elif view.gm.current_state == "SHOP":
             from ui.Shop import Shop
             Shop.handle_clicks(view, mouse_pos)
+        elif view.gm.current_state == "LEADERBOARD":
+            from ui.LeaderboardView import LeaderboardView
+            LeaderboardView.handle_clicks(view, mouse_pos)
 
     @staticmethod
     def process_scroll(view, event_button):

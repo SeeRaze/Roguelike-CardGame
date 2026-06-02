@@ -1,24 +1,49 @@
+from managers.network_manager import send_run_record
 import random
 import math
 import os
-# Импортируем наших живых персонажей и фабрику карт из папки core
-from core.Relic import LuckyClover, SpikedBracelet
-from core.player import Player
-from core.enemy import Enemy
-from core.Card import create_strike, create_defend, create_bash, create_neutralize, create_splash, create_ignite
+from core.relics import LuckyClover, SpikedBracelet
+from core.players import Warrior
+from core.enemies import spawn_procedural_enemy
+from core.cards import (
+    create_strike, create_defend, create_heavy_blade, create_iron_wall,
+    create_bash, create_neutralize, create_intimidate,
+    create_ignite, create_fire_breath,
+    create_splash, create_rain_cloud,
+    create_poison_stab, create_toxic_cloud, create_acid_shield
+)
+
+# Типы узлов и их веса для генерации (этажи 2-18)
+NODE_WEIGHTS = {
+    "COMBAT":   55,
+    "CAMPFIRE": 15,
+    "SHOP":     10,
+    "CHEST":    12,
+    "EVENT":    8,
+}
+
+FLOORS_PER_ACT = 20  # Этажей до босса
+
+
+class MapNode:
+    """Один узел на карте: тип комнаты + список соединений вниз."""
+    def __init__(self, node_type: str, col: int, row: int):
+        self.node_type = node_type  # COMBAT / CAMPFIRE / SHOP / CHEST / EVENT / BOSS
+        self.col = col              # 0, 1, 2 — колонка
+        self.row = row              # 0..19 — строка (0 = первый этаж)
+        self.connections = []       # индексы колонок узлов СЛЕДУЮЩЕЙ строки
+
 
 class GameManager:
-    """Глобальный мозг и менеджер прогрессии игры. Хранит золото, этажи и колоду."""
+    """Глобальный мозг и менеджер прогрессии игры."""
     def __init__(self):
-        # --- АВТОМАТИЧЕСКИЙ ШПИОНАЖ ЗА ИМЕНЕМ WINDOWS ---
         try:
             self.player_name = os.getlogin()
         except:
-            self.player_name = "Искатель" # Заглушка, если что-то пошло не так
-            
+            self.player_name = "Искатель"
+
         print(f"--- GameManager: Авторизован пользователь ОС: {self.player_name} ---")
 
-        # Бортовой самописец статистики для Лидерборда
         self.stats = {
             "name": self.player_name,
             "max_floor": 1,
@@ -26,204 +51,211 @@ class GameManager:
             "bosses_killed": 0,
             "max_damage_dealt": 0
         }
-        # 1. Создаем игрока один раз на всю игру!
-        self.player = Player(hp=80)
-        self.player_gold = 60  # Стартовый капитал для Торговца
-        self.current_floor = 1
-        self.removal_price = 25  # Базовая цена за сжигание карты в магазине
-                # Сумка для пассивных артефактов
-        self.relics = []  # никаких артефактов на старте, чистый хардкор!
 
-        # 2. Формируем стартовую колоду из чистой базы через новые фабричные кирпичики
-        self.current_deck = [
-            create_strike(), create_strike(), create_strike(), create_strike(),
-            create_defend(), create_defend(), create_defend(), create_defend()
-        ]
-        
-        # ТЕКУЩЕЕ СОСТОЯНИЕ ИГРЫ: Стартуем с Главного меню!
+        self.player = Warrior()
+        self.player_gold = 100
+        self.current_floor = 1
+        self.removal_count = 0
+        self.relics = []
+        self.current_deck = self.player.get_starter_deck()
         self.current_state = "MAIN_MENU"
         self.active_combat = None
-        self.procedural_map = []
+
+        # Карта: список строк, каждая строка — список из 3 MapNode
+        self.map_grid = []
+        # Текущий путь игрока: список (row, col) пройденных узлов
+        self.player_path = []
+        # Колонка, выбранная игроком на текущей строке
+        self.current_col = 1  # стартуем по центру
 
     def start_game(self):
-        """Теперь старт игры просто рапортует в консоль, не запуская этажи раньше времени"""
         print("--- GameManager: Глобальный мозг запущен в режиме Главного Меню! ---")
 
-    def setup_next_floor(self):
-        """Процедурно генерирует карту развилок на 10 этажей наперед и контролирует баланс."""
-        # --- НОВЫЙ СТАНДАРТ: Шаг яруса теперь от 1 до 10! ---
-        local_step = (self.current_floor - 1) % 10 + 1
+    def get_removal_price(self) -> int:
+        return (15 + self.current_floor * 2) + self.removal_count * 25
 
-        # Если мы на первом шаге нового яруса башни (1, 11, 21...) — генерируем карту на 10 этажей
-        if local_step == 1:
-            print(f"\n--- GameManager: Генерируем новый ярус башни для этажей {self.current_floor}-{self.current_floor+9} ---")
-            self.generate_new_map_progression()
-            
-        # Если игрок дошел до 10-го финального шага — он безвыборно идет к БОССУ
-        if local_step == 10:
-            print(f" >>> ВНИМАНИЕ: Вход в Логово Главного Босса яруса! <<<")
-            self.enter_chosen_room("COMBAT")
-        else:
-            # В остальных случаях отправляем на экран карты развилок для выбора пути
-            self.current_state = "MAP"
+    # ------------------------------------------------------------------
+    # ГЕНЕРАЦИЯ КАРТЫ
+    # ------------------------------------------------------------------
 
     def generate_new_map_progression(self):
-        """Создает массив из 10 развилок. Идеальный холст под будущие события."""
-        self.procedural_map.clear()
-        
-        # Цикл генерирует 10 комнат вперед
-        for f in range(1, 11):
-            if f == 1:
-                self.procedural_map.append(["COMBAT", "COMBAT"])
-            elif f == 9:
-                # На 9-м этаже (прямо перед боссом) всегда гарантированный привал / закуп
-                self.procedural_map.append(["CAMPFIRE", "SHOP"])
-            elif f == 10:
-                # Финал яруса
-                self.procedural_map.append(["COMBAT", "COMBAT"])
-            else:
-                # 2-8 этажи: случайное распределение
-                # В будущем сюда легко добавятся события "EVENT" или "TREASURE"
-                room_a = random.choices(["COMBAT", "CAMPFIRE", "SHOP"], weights=[65, 20, 15], k=1)[0]
-                room_b = random.choices(["COMBAT", "CAMPFIRE", "SHOP"], weights=[65, 20, 15], k=1)[0]
-                self.procedural_map.append([room_a, room_b])
+        """Генерирует сетку 20×3 узлов с маршрутами в стиле Slay the Spire."""
+        self.map_grid.clear()
+        self.player_path.clear()
+        self.current_col = 1
+
+        # 1. Создаём узлы
+        for row in range(FLOORS_PER_ACT):
+            row_nodes = []
+            for col in range(3):
+                node_type = self._pick_node_type(row)
+                row_nodes.append(MapNode(node_type, col, row))
+            self.map_grid.append(row_nodes)
+
+        # 2. Строим связи (каждый узел соединяется с 1-2 соседними в следующей строке)
+        for row in range(FLOORS_PER_ACT - 1):
+            for col in range(3):
+                node = self.map_grid[row][col]
+                # Основная связь — прямо вперёд
+                targets = {col}
+                # Случайно добавляем диагональ (не выходя за границы)
+                if col > 0 and random.random() < 0.4:
+                    targets.add(col - 1)
+                if col < 2 and random.random() < 0.4:
+                    targets.add(col + 1)
+                node.connections = sorted(targets)
+
+        # 3. Гарантируем, что каждый узел предпоследней строки ведёт к боссу
+        for col in range(3):
+            self.map_grid[FLOORS_PER_ACT - 2][col].connections = [1]  # все к центру
+
+    def _pick_node_type(self, row: int) -> str:
+        """Выбирает тип узла по правилам баланса."""
+        # Первый этаж — только бои
+        if row == 0:
+            return "COMBAT"
+        # Последний этаж — босс
+        if row == FLOORS_PER_ACT - 1:
+            return "BOSS"
+        # Предпоследний — костёр или магазин (подготовка к боссу)
+        if row == FLOORS_PER_ACT - 2:
+            return random.choice(["CAMPFIRE", "SHOP"])
+        # Остальные — взвешенный рандом
+        types = list(NODE_WEIGHTS.keys())
+        weights = list(NODE_WEIGHTS.values())
+        return random.choices(types, weights=weights, k=1)[0]
+
+    # ------------------------------------------------------------------
+    # НАВИГАЦИЯ ПО КАРТЕ
+    # ------------------------------------------------------------------
+
+    def setup_next_floor(self):
+        """Вызывается после каждой комнаты. Переходим на карту или к боссу."""
+        local_step = (self.current_floor - 1) % FLOORS_PER_ACT + 1
+
+        if local_step == 1:
+            print(f"\n--- Генерируем новый акт для этажей "
+                  f"{self.current_floor}-{self.current_floor + FLOORS_PER_ACT - 1} ---")
+            self.generate_new_map_progression()
+
+        if local_step == FLOORS_PER_ACT:
+            print(" >>> БОСС! <<<")
+            self.enter_chosen_room("COMBAT")
+        else:
+            self.current_state = "MAP"
+
+    def enter_chosen_room(self, chosen_room_type: str, col: int = None):
+        """Игрок выбрал узел на карте. col — выбранная колонка."""
+        if col is not None:
+            self.current_col = col
+            row = (self.current_floor - 1) % FLOORS_PER_ACT
+            self.player_path.append((row, col))
+
+        self.current_state = chosen_room_type
+
+        if self.current_state == "COMBAT":
+            self.spawn_procedural_enemy()
+
+    def get_available_nodes(self):
+        """Возвращает узлы, доступные для выбора на текущем шаге."""
+        row = (self.current_floor - 1) % FLOORS_PER_ACT
+        if not self.map_grid:
+            return []
+
+        # Первый шаг — все три узла доступны
+        if row == 0:
+            return self.map_grid[0]
+
+        # Иначе — только те, куда ведут связи из текущей позиции
+        if not self.player_path:
+            return self.map_grid[row]
+
+        prev_row, prev_col = self.player_path[-1]
+        prev_node = self.map_grid[prev_row][prev_col]
+        return [self.map_grid[row][c] for c in prev_node.connections]
+
+    # ------------------------------------------------------------------
+    # БОЙ
+    # ------------------------------------------------------------------
 
     def spawn_procedural_enemy(self):
-        """Сглаженный калькулятор баланса под 10-этажный формат."""
+        """Процедурная генерация врага по этажу."""
         floor = self.current_floor
-        local_step = (floor - 1) % 10 + 1
-        tier = (floor - 1) // 10 + 1
-        
-        # --- СМЯГЧЕНИЕ БАЛАНСА (Чтобы игра стала проходимой!) ---
-        # Рядовые враги теперь растут медленнее: ХП +8 за этаж, атака +1 за этаж (было +15 и +2)
-        enemy_hp = 40 + (floor * 8) + (tier * 25)
-        enemy_dmg = 5 + (floor * 1) + (tier * 4)
+        local_step = (floor - 1) % FLOORS_PER_ACT + 1
+        tier = (floor - 1) // FLOORS_PER_ACT + 1
+
+        enemy_hp  = 40 + (floor * 8) + (tier * 25)
+        enemy_dmg = 5  + (floor * 1) + (tier * 4)
         enemy_shld = int(3 + (floor * 1.0))
-        
-        # Проверяем, финал ли это акта (10-й шаг яруса)
-        is_boss = (local_step == 10)
-        
+
+        is_boss = (local_step == FLOORS_PER_ACT)
+
         if is_boss:
-            # Босс яруса монументален
-            enemy_hp = int(enemy_hp * 2.2)  # Около 250-300 HP
-            enemy_dmg = int(enemy_dmg * 1.3) # Около 20-22 урона
+            enemy_hp   = int(enemy_hp * 2.2)
+            enemy_dmg  = int(enemy_dmg * 1.3)
             enemy_shld = int(enemy_shld * 1.8)
-            
             boss_titles = ["Древний Страж Башни", "Верховный Культист Неона", "Гидра Стихий"]
             e_name = f"👑 БОСС: {random.choice(boss_titles)} [Ярус {tier + 1}]"
         else:
             prefixes = ["Дикий", "Проклятый", "Чумной", "Стальной", "Адский"]
-            types = ["Слизень", "Культист", "Гоблин", "Орк", "Страж"]
-            e_name = f"{random.choice(prefixes)} {random.choice(types)} [Этаж {floor}]"
-        
-        enemy = Enemy(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
+            types    = ["Слизень", "Культист", "Гоблин", "Орк", "Страж"]
+            e_name   = f"{random.choice(prefixes)} {random.choice(types)} [Этаж {floor}]"
+
+        from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy
+
+        if is_boss:
+            enemy = BossTitan(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
+        elif "Культист" in e_name or "Страж" in e_name:
+            enemy = Cultist(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
+        elif "Слизень" in e_name or "Гоблин" in e_name or "Орк" in e_name:
+            enemy = SlimeAndGoblins(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
+        else:
+            enemy = Enemy(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
+
         enemy.base_test_damage = enemy_dmg
         enemy.base_test_shield = enemy_shld
-        
         if is_boss:
             enemy.shield = enemy_shld * 2
-            
+
         from managers.CombatManager import CombatManager
         self.active_combat = CombatManager(self.player, enemy, self.current_deck, self)
 
-
-
-    def enter_chosen_room(self, chosen_room_type):
-        """Метод вызывается, когда игрок физически кликнул по кнопке выбора на карте"""
-        self.current_state = chosen_room_type
-        
-        if self.current_state == "COMBAT":
-            self.spawn_procedural_enemy()
-        # Для костра и магазина дополнительных спавнов не нужно, их экраны просто откроются в draw()
-
-
-    def spawn_procedural_enemy(self):
-        """Автоматический калькулятор баланса статов мобов и Боссов."""
-        floor = self.current_floor
-        local_step = (floor - 1) % 10 + 1
-        tier = (floor - 1) // 10 + 1
-        
-        # 1. МАТЕМАТИКА БАЗОВОГО РОСТА СТАДЫ ВРАГА
-        enemy_hp = 45 + (floor * 15) + (tier * 20)
-        enemy_dmg = 6 + (floor * 2) + (tier * 3)
-        enemy_shld = int(4 + (floor * 1.5))
-        
-        # Проверяем: если это 10-й шаг яруса — перед нами БОСС!
-        is_boss = (local_step == 10)
-        
-        if is_boss:
-            # Накатываем босс-множители баланса
-            enemy_hp = int(enemy_hp * 2.5)
-            enemy_dmg = int(enemy_dmg * 1.3)
-            enemy_shld = int(enemy_shld * 2.0)
-            
-            # Придумываем эпичные имена для Боссов
-            boss_titles = ["Хранитель Очага", "Архимаг Пустоты", "Стальной Разрушитель"]
-            e_name = f"👑 БОСС: {random.choice(boss_titles)} [Ярус {tier}]"
-        else:
-            # Обычные процедурные монстры
-            prefixes = ["Дикий", "Проклятый", "Чумной", "Стальной", "Адский"]
-            types = ["Слизень", "Культист", "Гоблин", "Орк", "Страж"]
-            e_name = f"{random.choice(prefixes)} {random.choice(types)} [Этаж {floor}]"
-        
-        # 2. СПАВНИМ СУЩЕСТВО
-        enemy = Enemy(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
-        enemy.base_test_damage = enemy_dmg
-        enemy.base_test_shield = enemy_shld
-        
-        # Если это Босс, давай наделим его пассивной Слабостью/Уязвимостью на старте для интереса
-        if is_boss:
-            enemy.shield = enemy_shld * 2 # Босс начинает бой сразу в броне!
-            
-        from managers.CombatManager import CombatManager
-        self.active_combat = CombatManager(self.player, enemy, self.current_deck, self)
-
+    # ------------------------------------------------------------------
+    # НАГРАДЫ
+    # ------------------------------------------------------------------
 
     def distribute_combat_rewards(self):
-        """Начисление золота, ролл реликвий и запись рекордов в статистику"""
-        # Обновляем максимальный этаж в статистике
+        """Начисление золота, ролл реликвий, запись статистики."""
         if self.current_floor > self.stats["max_floor"]:
             self.stats["max_floor"] = self.current_floor
 
-        local_step = (self.current_floor - 1) % 10 + 1
-        
-        # ОБНОВЛЯЕМ СЧЕТЧИКИ ЛИДЕРБОРДА:
-        if local_step == 10:
+        local_step = (self.current_floor - 1) % FLOORS_PER_ACT + 1
+
+        if local_step == FLOORS_PER_ACT:
             self.stats["bosses_killed"] += 1
-            print(f" [СТАТИСТИКА] Босс повержен! Всего боссов убито: {self.stats['bosses_killed']}")
         else:
             self.stats["monsters_killed"] += 1
-            print(f" [СТАТИСТИКА] Монстр повержен! Всего монстров убито: {self.stats['monsters_killed']}")
-        """Начисление золота и случайный дроп реликвий с шансом 20%"""
-        # 1. Начисляем золото
-        gold_drop = random.randint(15, 25) + (self.current_floor * 2)
+
+        gold_drop = random.randint(20, 35) + (self.current_floor * 3)
         self.player_gold += gold_drop
-        
         log_msg = f"Залутано +{gold_drop} монет!"
-        
-        # 2. РОЛЛ РЕЛИКВИИ: Шанс 20% (число от 1 до 5, если выпала 1 — дроп!)
+
         if random.randint(1, 2) == 1:
-            from core.Relic import LuckyClover, SpikedBracelet, ЭнергоЯдро, ТочильныйКамень, ДревнееОгниво, НамокшаяРукавица
-            
-            # Собираем полный пул всех существующих реликвий
-            all_pool = [LuckyClover, SpikedBracelet, ЭнергоЯдро, ТочильныйКамень, ДревнееОгниво, НамокшаяРукавица]
-            
-            # Фильтруем пул: убираем те реликвии, которые у игрока УЖЕ есть в сумке
+            from core.relics import (LuckyClover, SpikedBracelet,
+                                     ЭнергоЯдро, ТочильныйКамень,
+                                     ДревнееОгниво, НамокшаяРукавица)
+            all_pool = [LuckyClover, SpikedBracelet, ЭнергоЯдро,
+                        ТочильныйКамень, ДревнееОгниво, НамокшаяРукавица]
             current_relic_names = [r.name for r in self.relics]
-            available_relics = [r for r in all_pool if r().name not in current_relic_names]
-            
+            available_relics = [r for r in all_pool
+                                if r().name not in current_relic_names]
             if available_relics:
-                # Берем случайную новую реликвию, создаем её объект и кладем в сумку!
                 dropped_relic_class = random.choice(available_relics)
                 new_relic = dropped_relic_class()
                 self.relics.append(new_relic)
-                
-                # Если выпало Энерго-Ядро, сразу пассивно качаем игроку максимальную энергию!
                 if new_relic.name == "Энерго-Ядро":
                     self.player.max_energy += 1
-                    
-                log_msg += f" [НАГРАДА] Вы выбили артефакт: '{new_relic.name}'!"
-                
-        # Пишем итоговый праздничный лог в боевой экран перед уходом
+                log_msg += f" [НАГРАДА] Артефакт: '{new_relic.name}'!"
+
         if self.active_combat:
             self.active_combat.add_log_message(log_msg)

@@ -1,5 +1,6 @@
 # Указываем точный путь: DeckManager лежит в одной папке с CombatManager (в managers)
 from managers.DeckManager import DeckManager
+from managers.network_manager import send_run_record
 
 class CombatManager:
     """Менеджер боя, адаптированный под графический движок Pygame."""
@@ -86,3 +87,25 @@ class CombatManager:
         if self.player.hp > 0 and self.enemy.hp > 0:
             self.turn_count += 1
             self.start_turn_phase()
+
+        # --- НАШ КРАШ-ТЕСТ И ФИКСАЦИЯ ПОРАЖЕНИЯ ---
+        if self.player.hp <= 0:
+            self.player.hp = 0
+            print("[СИСТЕМА] Здоровье игрока упало до 0! Запускаем финал катки...")
+            
+            from managers.network_manager import send_run_record
+            
+            # Собираем актуальные данные из GameManager
+            current_floor = self.gm.current_floor if self.gm else 1
+            kills_count = self.gm.stats["monsters_killed"] + self.gm.stats["bosses_killed"] if self.gm else 0
+            max_dmg = self.gm.stats["max_damage_dealt"] if self.gm else 0
+            
+            # Шлем данные напрямую в Google! 
+            print("[СЕТЬ] Отправляем рекорд напрямую в Google...")
+            send_run_record(max_floor=current_floor, kills=kills_count, max_damage=max_dmg)
+            
+            # Переключаем состояние игры на Лидерборд, чтобы показать игроку его место
+            if self.gm:
+                from ui.LeaderboardView import LeaderboardView
+                LeaderboardView.load_data()  # Сразу подтягиваем свежий ТОП
+                self.gm.current_state = "LEADERBOARD"
