@@ -5,8 +5,9 @@ from ui.HubView import HubView
 class MainMenu:
     """Главное меню и делегирование в HubView."""
 
-    is_play_hovered = False
-    is_exit_hovered = False
+    is_play_hovered  = False
+    is_exit_hovered  = False
+    is_cards_hovered = False
 
     _hub: HubView = None
 
@@ -18,7 +19,7 @@ class MainMenu:
 
     @classmethod
     def reset(cls):
-        """БАГ 1: сбрасывает синглтон HubView при рестарте забега."""
+        """Сбрасывает синглтон HubView при рестарте забега."""
         cls._hub = None
 
     @staticmethod
@@ -31,6 +32,7 @@ class MainMenu:
         view.draw_text("Pre-Alpha Edition v0.3", view.card_desc_font,
                        (150, 150, 150), 100, 250)
 
+        # Кнопка ВОЙТИ В ЛАГЕРЬ
         view.btn_menu_play = pygame.Rect(100, 350, 350, 70)
         MainMenu.is_play_hovered = view.btn_menu_play.collidepoint(mouse_pos)
         play_color = (90, 90, 95) if MainMenu.is_play_hovered else (60, 60, 60)
@@ -39,12 +41,21 @@ class MainMenu:
         view.draw_text("ВОЙТИ В ЛАГЕРЬ", view.card_font,
                        (255, 255, 255), 170, 372)
 
-        view.btn_menu_exit = pygame.Rect(100, 450, 350, 70)
+        # Кнопка КАРТЫ
+        view.btn_menu_cards = pygame.Rect(100, 450, 350, 70)
+        MainMenu.is_cards_hovered = view.btn_menu_cards.collidepoint(mouse_pos)
+        cards_color = (60, 90, 60) if MainMenu.is_cards_hovered else (40, 60, 40)
+        pygame.draw.rect(view.screen, cards_color, view.btn_menu_cards)
+        pygame.draw.rect(view.screen, (255, 255, 255), view.btn_menu_cards, 2)
+        view.draw_text("КАРТЫ", view.card_font, (255, 255, 255), 240, 472)
+
+        # Кнопка ВЫХОД
+        view.btn_menu_exit = pygame.Rect(100, 550, 350, 70)
         MainMenu.is_exit_hovered = view.btn_menu_exit.collidepoint(mouse_pos)
         exit_color = (90, 60, 60) if MainMenu.is_exit_hovered else (60, 40, 40)
         pygame.draw.rect(view.screen, exit_color, view.btn_menu_exit)
         pygame.draw.rect(view.screen, (255, 255, 255), view.btn_menu_exit, 2)
-        view.draw_text("ВЫХОД", view.card_font, (255, 255, 255), 230, 472)
+        view.draw_text("ВЫХОД", view.card_font, (255, 255, 255), 230, 572)
 
     @staticmethod
     def draw_hub(view):
@@ -55,6 +66,10 @@ class MainMenu:
         if view.gm.current_state == "MAIN_MENU":
             if hasattr(view, 'btn_menu_play') and view.btn_menu_play.collidepoint(mouse_pos):
                 view.gm.current_state = "HUB"
+            elif hasattr(view, 'btn_menu_cards') and view.btn_menu_cards.collidepoint(mouse_pos):
+                from ui.CardLibraryView import CardLibraryView
+                CardLibraryView.reset()
+                view.gm.current_state = "CARD_LIBRARY"
             elif hasattr(view, 'btn_menu_exit') and view.btn_menu_exit.collidepoint(mouse_pos):
                 pygame.quit()
                 sys.exit()

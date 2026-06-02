@@ -13,6 +13,7 @@ from ui.LeaderboardView import LeaderboardView
 from ui.CardRenderer import CardRenderer
 from ui.chest import Chest
 from ui.VictoryScreen import VictoryScreen
+from ui.CardLibraryView import CardLibraryView
 
 @dataclass
 class HoverState:
@@ -47,6 +48,7 @@ def _draw_shop(view):        Shop.draw_screen(view)
 def _draw_leaderboard(view): LeaderboardView.draw_screen(view)
 def _draw_chest(view):       Chest.draw_screen(view)
 def _draw_victory(view):     VictoryScreen.draw_screen(view)
+def _draw_card_library(view): CardLibraryView.draw_screen(view)
 
 def _draw_event(view):
     from ui.EventView import draw_screen as draw_event
@@ -74,6 +76,7 @@ DRAW_HANDLERS = {
     "CHEST":       _draw_chest,
     "EVENT":       _draw_event,
     "VICTORY":     _draw_victory,
+    "CARD_LIBRARY": _draw_card_library,
 }
 
 

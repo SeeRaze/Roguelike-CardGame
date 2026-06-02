@@ -43,6 +43,9 @@ def _handle_event(view, mouse_pos):
 def _handle_victory(view, mouse_pos):
     from ui.VictoryScreen import VictoryScreen
     VictoryScreen.handle_clicks(view, mouse_pos)
+def _handle_card_library(view, mouse_pos):
+    from ui.CardLibraryView import CardLibraryView
+    CardLibraryView.handle_click(view, mouse_pos)
 
 
 def _handle_leaderboard(view, mouse_pos):
@@ -61,6 +64,7 @@ def _handle_leaderboard(view, mouse_pos):
         print("[СИСТЕМА] Рестарт завершён. Возврат в главное меню.")
 
 
+
 # Диспетчер: состояние -> обработчик.
 # Добавить новый экран = одна строка здесь.
 STATE_HANDLERS = {
@@ -71,6 +75,7 @@ STATE_HANDLERS = {
     "EVENT":       _handle_event,
     "LEADERBOARD": _handle_leaderboard,
     "VICTORY":     _handle_victory,
+    "CARD_LIBRARY": _handle_card_library,
 }
 
 
@@ -90,3 +95,12 @@ class InputHandler:
                 view.scroll_y = max(view.scroll_y - 30, 0)
             elif event_button == 5:
                 view.scroll_y = min(view.scroll_y + 30, 600)
+                if view.gm.current_state == "CARD_LIBRARY":
+                    from ui.CardLibraryView import CardLibraryView
+                    direction = 1 if event_button == 5 else -1
+                    cards = CardLibraryView._get_cards()
+                    CardLibraryView.handle_scroll(direction, len(cards))
+    @classmethod
+    def _handle_card_library(cls, view, mouse_pos):
+        from ui.CardLibraryView import CardLibraryView
+        CardLibraryView.handle_click(view, mouse_pos)

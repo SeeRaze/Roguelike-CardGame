@@ -1,5 +1,5 @@
 # _project_map.md
-# Читать ПЕРВЫМ в каждой сессии. Актуально на Jun 2, 2026 — Сессия 12.
+# Читать ПЕРВЫМ в каждой сессии. Актуально на Jun 2, 2026 — Сессия 13.
 
 ## Архитектура
 - core/ — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py)
@@ -37,6 +37,7 @@ ui/chest/__init__.py, base.py, common.py, locked.py, cursed.py, data.py, shared.
 ui/combat/__init__.py, hud.py
 ui/events/__init__.py, event_data.py, event_effects.py, positive.py, negative.py, neutral.py, special.py
 ui/Campfire.py, CardRenderer.py, CombatInterface.py
+ui/CardLibraryView.py
 ui/EventView.py, GameView.py, HubView.py, InputHandler.py, LeaderboardView.py, MainMenu.py, MapView.py, Shop.py
 ui/VictoryScreen.py
 
@@ -60,21 +61,28 @@ ui/VictoryScreen.py
 - shld = 2
 - Босс: hp×2.2, dmg×1.3, shld×1.8, shield=shld×2
 
+## Библиотека карт (Сессия 13)
+- ui/CardLibraryView.py — статический класс CardLibraryView
+- Кнопка "КАРТЫ" в MainMenu.py между "ВОЙТИ В ЛАГЕРЬ" и "ВЫХОД"
+- State "CARD_LIBRARY" в DRAW_HANDLERS (GameView) и STATE_HANDLERS (InputHandler)
+- 4 вкладки: Все / Воин / Разбойник / Маг
+- COLS=8, CARD_W=180, CARD_H=250, START_X=60, START_Y=200
+- Шапка (Назад + вкладки) y=18-64, разделитель y=80, надпись y=90 x=760
+- Скролл колесом, клиппинг под шапку (y=90), тултипы при наведении
+- Карты по вкладкам:
+  - Воин: strike, defend, heavy_blade, iron_wall, bash, flex, battle_cry, thorn_armor
+  - Разбойник: strike, defend, neutralize, intimidate, poison_stab, toxic_cloud, acid_shield
+  - Маг: strike, defend, ignite, fire_breath, splash, rain_cloud
+  - Все: дедупликация по __name__ фабрики
+
 ## Экран победы (VictoryScreen) — Сессия 12
-- ui/VictoryScreen.py — статический класс
-- distribute_combat_rewards() собирает pending_rewards (list of dict: type/label/value/applied), переключает state → "VICTORY". Награды не применяются сразу.
-- Каждая награда: кнопка "Получить" / "Получено"
-- "Получить все" — забирает все незабранные
-- "Продолжить" — если есть незабранные, открывает модалку подтверждения (SRCALPHA затемнение + "Пропустить награду?" + Да/Нет)
-- GameView: +_draw_victory, +DRAW_HANDLERS["VICTORY"]
-- InputHandler: +_handle_victory, +STATE_HANDLERS["VICTORY"]; _handle_combat больше не вызывает setup_next_floor
+- distribute_combat_rewards() → pending_rewards → state "VICTORY"
+- Кнопки "Получить" / "Получить все" / "Продолжить" + модалка подтверждения
+- GameView: DRAW_HANDLERS["VICTORY"], InputHandler: STATE_HANDLERS["VICTORY"]
 
 ## Сброс состояния игрока после боя — Сессия 12
-В начале distribute_combat_rewards():
-- player.energy = player.max_energy
-- player.shield = 0
-- weak / vulnerable / wet / ignited → 0
-- strength, thorns НЕ сбрасываются (перманентные баффы)
+В distribute_combat_rewards(): energy=max_energy, shield=0, weak/vulnerable/wet/ignited=0.
+strength, thorns НЕ сбрасываются.
 
 ## Реализованные системы
 - Все 14 пунктов плана масштабируемости (A-N) ✅
@@ -83,6 +91,7 @@ ui/VictoryScreen.py
 - UI реликвий в бою с тултипами (ui/combat/hud.py)
 - Хук on_wet_applied в Creature.add_status
 - Экран победы с наградами и модалкой (ui/VictoryScreen.py)
+- Библиотека карт (ui/CardLibraryView.py) ✅
 
 ## Аудит реликвий (все работают)
 - LuckyClover: on_combat_start → draw_cards(2) ✅
@@ -96,7 +105,7 @@ ui/VictoryScreen.py
 - Щит врага сбрасывается каждый ход (намеренно)
 - Хуки on_card_played, on_shield_gained, on_kill — заглушки, не подключены
 
-## План следующей сессии (Сессия 13)
+## План следующей сессии (Сессия 14)
 
 **Приоритет 1 — хуки:**
 1. on_card_played → CombatManager.play_card_by_index
@@ -114,7 +123,7 @@ ui/VictoryScreen.py
 - Отступы Python сбиваются при копировании из чата — всегда проверять
 - view.view.gm — двойной view это баг
 - Pygame не поддерживает эмодзи в SysFont
-- pygame.display.flip() — один раз в конце draw()
+- pygame.display.flip() — один раз в конце GameView.draw(), НЕ вызывать в draw_screen дочерних экранов
 - EventView.py — НЕ класс, только функции
 - self.relics (не self.player_relics!) в GameManager
 - tick_statuses принимает combat_manager=None — всегда передавать self из CombatManager
@@ -128,8 +137,9 @@ ui/VictoryScreen.py
 - distribute_combat_rewards() → pending_rewards → VICTORY; _handle_combat не вызывает setup_next_floor
 - VictoryScreen._show_modal — классовая переменная, сбрасывается в _proceed()
 - CardRenderer.draw(player=None) — карта всегда доступна (can_afford=True)
+- CardLibraryView: from ui.CardLibraryView import CardLibraryView (файл = CardLibraryView.py)
 
 ## Исправленные баги (последние)
 [53] ui/Chest.py → ui/chest/ — регистр импорта
 [54] max_damage_dealt всегда 0 — исправлено в EffectCalculator.calculate_damage()
-[55] Карты в сундуке затемнялись — player.energy=0 после боя; player=None в draw_card_row + сброс в distribute_combat_rewards
+[55] Карты в сундуке затемнялись — player=None в draw_card_row + сброс energy в distribute_combat_rewards
