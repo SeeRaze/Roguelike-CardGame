@@ -8,7 +8,6 @@ class MainMenu:
     is_play_hovered = False
     is_exit_hovered = False
 
-    # Единственный экземпляр HubView — создаётся один раз
     _hub: HubView = None
 
     @classmethod
@@ -17,9 +16,13 @@ class MainMenu:
             cls._hub = HubView()
         return cls._hub
 
+    @classmethod
+    def reset(cls):
+        """БАГ 1: сбрасывает синглтон HubView при рестарте забега."""
+        cls._hub = None
+
     @staticmethod
     def draw_menu(view):
-        """Главное меню при запуске."""
         view.screen.fill((15, 15, 20))
         mouse_pos = pygame.mouse.get_pos()
 
@@ -45,12 +48,10 @@ class MainMenu:
 
     @staticmethod
     def draw_hub(view):
-        """Делегирует отрисовку хаба в HubView."""
         MainMenu.get_hub().draw(view)
 
     @staticmethod
     def handle_clicks(view, mouse_pos):
-        """Обрабатывает клики в меню и хабе."""
         if view.gm.current_state == "MAIN_MENU":
             if hasattr(view, 'btn_menu_play') and view.btn_menu_play.collidepoint(mouse_pos):
                 view.gm.current_state = "HUB"

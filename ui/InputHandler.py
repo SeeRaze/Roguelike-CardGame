@@ -51,12 +51,14 @@ class InputHandler:
         # 6. ЛИДЕРБОРД
         elif view.gm.current_state == "LEADERBOARD":
             from ui.LeaderboardView import LeaderboardView
+            from ui.MainMenu import MainMenu          # БАГ 1: импорт для reset
             LeaderboardView.handle_clicks(view, mouse_pos)
             if view.btn_back_leaderboard.collidepoint(mouse_pos):
                 from managers.GameManager import GameManager
                 from ui.EventView import reset as event_reset
                 Shop.reset()
                 Campfire.reset()
+                MainMenu.reset()                      # БАГ 1: сбрасываем HubView синглтон
                 event_reset()
                 view.gm = GameManager()
                 view.gm.current_state = "MAIN_MENU"
