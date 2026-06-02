@@ -202,7 +202,7 @@ class MapView:
                 gm.enter_chosen_room(room_type, col=node.col)
                 # Инициализируем сундук сразу при входе
                 if gm.current_state == "CHEST":
-                    from ui.Chest import Chest
+                    from ui.chest import Chest
                     Chest.init_chest(view)
                     # Инициализируем событие сразу при входе
                 elif gm.current_state == "EVENT":

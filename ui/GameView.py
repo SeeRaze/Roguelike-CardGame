@@ -11,7 +11,7 @@ from ui.Shop import Shop
 from ui.MapView import MapView
 from ui.LeaderboardView import LeaderboardView
 from ui.CardRenderer import CardRenderer
-from ui.Chest import Chest
+from ui.chest import Chest
 
 
 @dataclass

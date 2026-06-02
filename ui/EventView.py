@@ -2,11 +2,9 @@ import pygame
 from ui.events.event_data    import get_random_event
 from ui.events.event_effects import apply_option
 
-# ─── Состояние ──────────────────────────────────────────────────────────────
 _current_event = None
-_option_rects  = []   # [(tag, pygame.Rect)]
+_option_rects  = []
 
-# ─── Цвета ──────────────────────────────────────────────────────────────────
 _BG_COLOR        = (15,  15,  25)
 _PANEL_COLOR     = (25,  25,  45)
 _BTN_COLOR       = (50,  50,  80)
@@ -19,7 +17,7 @@ _RESULT_COLOR    = (100, 220, 100)
 
 def init_event(gm):
     global _current_event
-    _current_event  = get_random_event()
+    _current_event  = get_random_event(gm)   # <-- передаём gm
     gm.event_result = None
 
 
@@ -64,7 +62,8 @@ def draw_screen(view):
 
         cont_rect = pygame.Rect(W // 2 - 160, y + 100, 320, 60)
         hover = cont_rect.collidepoint(mouse)
-        pygame.draw.rect(screen, _BTN_HOVER_COLOR if hover else _BTN_COLOR, cont_rect, border_radius=10)
+        pygame.draw.rect(screen, _BTN_HOVER_COLOR if hover else _BTN_COLOR,
+                         cont_rect, border_radius=10)
         pygame.draw.rect(screen, _BTN_BORDER, cont_rect, 2, border_radius=10)
         lbl = btn_font.render("Продолжить ->", True, (255, 255, 255))
         screen.blit(lbl, (cont_rect.centerx - lbl.get_width() // 2,
@@ -76,7 +75,8 @@ def draw_screen(view):
     for i, opt in enumerate(_current_event["options"]):
         btn_rect = pygame.Rect(W // 2 - 380, y, 760, 64)
         hover = btn_rect.collidepoint(mouse)
-        pygame.draw.rect(screen, _BTN_HOVER_COLOR if hover else _BTN_COLOR, btn_rect, border_radius=10)
+        pygame.draw.rect(screen, _BTN_HOVER_COLOR if hover else _BTN_COLOR,
+                         btn_rect, border_radius=10)
         pygame.draw.rect(screen, _BTN_BORDER, btn_rect, 2, border_radius=10)
         lbl = btn_font.render(opt["label"], True, (255, 255, 255))
         screen.blit(lbl, (btn_rect.centerx - lbl.get_width() // 2,

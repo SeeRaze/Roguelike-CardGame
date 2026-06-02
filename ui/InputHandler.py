@@ -1,6 +1,6 @@
 import pygame
 import random
-from ui.Chest import Chest
+from ui.chest import Chest
 from ui.Shop import Shop
 from ui.Campfire import Campfire
 
