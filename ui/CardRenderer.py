@@ -4,9 +4,10 @@ from core.EffectCalculator import EffectCalculator
 
 
 class CardRenderer:
-    COLOR_COMBO = (255, 215, 0)    # Золотой -- комбо ПАР
-    COLOR_DMG   = (46, 204, 113)   # Зелёный -- улучшённые цифры
-    COLOR_GRAY  = (200, 200, 200)  # Серый -- обычный текст
+    COLOR_COMBO    = (255, 215, 0)    # Золотой -- комбо ПАР
+    COLOR_DMG      = (46, 204, 113)   # Зелёный -- улучшённые цифры
+    COLOR_GRAY     = (200, 200, 200)  # Серый -- обычный текст
+    COLOR_COST_LOW = (160, 40, 40)    # Тускло-красный -- не хватает энергии
 
     @staticmethod
     def get_card_colors(card):
@@ -152,11 +153,30 @@ class CardRenderer:
             y_pos += line_height
 
     @staticmethod
+    def _draw_unaffordable_overlay(surface, rect: pygame.Rect):
+        """
+        Накладывает полупрозрачный тёмный оверлей на карту,
+        которую нельзя сыграть из-за нехватки энергии.
+        50% затемнение через Surface с SRCALPHA.
+        """
+        overlay = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 128))  # чёрный, альфа 128 = ~50%
+        surface.blit(overlay, (rect.x, rect.y))
+
+    @staticmethod
     def draw(surface, card, x, y, font_title, font_desc,
              is_hovered=False, player=None, enemy=None):
         """Мастер-метод полной отрисовки карты 180×250."""
         width, height = 180, 250
         rect = pygame.Rect(x, y, width, height)
+
+        # Определяем, хватает ли энергии на карту
+        can_afford = (
+            player is None
+            or not hasattr(player, 'energy')
+            or card.cost <= player.energy
+        )
+
         bg_color = (55, 55, 60) if is_hovered else (35, 35, 38)
         border_thickness = 5 if is_hovered else 3
         _, border_color = CardRenderer.get_card_colors(card)
@@ -164,7 +184,9 @@ class CardRenderer:
         pygame.draw.rect(surface, bg_color, rect, border_radius=10)
         pygame.draw.rect(surface, border_color, rect, border_thickness, border_radius=10)
 
-        cost_surf = font_title.render(str(card.cost), True, border_color)
+        # Стоимость: тускло-красная если не хватает энергии, иначе цвет стихии
+        cost_color = CardRenderer.COLOR_COST_LOW if not can_afford else border_color
+        cost_surf = font_title.render(str(card.cost), True, cost_color)
         surface.blit(cost_surf, (rect.x + 14, rect.y + 12))
 
         CardRenderer.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
@@ -180,3 +202,7 @@ class CardRenderer:
                 surface, card.description, font_desc, rect,
                 card.upgraded
             )
+
+        # Оверлей затемнения поверх всего -- рисуем последним
+        if not can_afford:
+            CardRenderer._draw_unaffordable_overlay(surface, rect)

@@ -253,8 +253,6 @@ class GameManager:
                 dropped_relic_class = random.choice(available_relics)
                 new_relic = dropped_relic_class()
                 self.relics.append(new_relic)
-                if new_relic.name == "Энерго-Ядро":
-                    self.player.max_energy += 1
                 log_msg += f" [НАГРАДА] Артефакт: '{new_relic.name}'!"
 
         if self.active_combat:

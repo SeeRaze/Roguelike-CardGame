@@ -9,17 +9,17 @@ import random
 
 def _make_events():
     from core.cards.basic import create_strike, create_defend, create_heavy_blade, create_iron_wall
-    from core.cards.fire import create_ember, create_fireball, create_inferno
-    from core.cards.poison import create_poison_dart, create_toxic_cloud
-    from core.cards.water import create_water_splash, create_tidal_wave
+    from core.cards.fire import create_ignite, create_fire_breath
+    from core.cards.poison import create_poison_stab, create_toxic_cloud
+    from core.cards.water import create_splash, create_rain_cloud
     from core.relics.starter import LuckyClover, SpikedBracelet, ТочильныйКамень
     from core.relics.elemental import ДревнееОгниво, НамокшаяРукавица
 
     CARD_FACTORIES = [
         create_strike, create_defend, create_heavy_blade, create_iron_wall,
-        create_ember, create_fireball, create_inferno,
-        create_poison_dart, create_toxic_cloud,
-        create_water_splash, create_tidal_wave,
+        create_ignite, create_fire_breath,
+        create_poison_stab, create_toxic_cloud,
+        create_splash, create_rain_cloud,
     ]
 
     def heal(amount):
@@ -131,7 +131,7 @@ def _make_events():
             ),
             "options": [
                 {"label": "Принять испытание (-25 HP, +реликвия)", "effect": [lose_hp(25), gain_relic(ДревнееОгниво)]},
-                {"label": "Взять огненную карту",                   "effect": [gain_card(create_fireball)]},
+                {"label": "Взять огненную карту",                   "effect": [gain_card(create_fire_breath)]},
                 {"label": "Отступить",                              "effect": [skip()]},
             ],
         },
@@ -143,7 +143,7 @@ def _make_events():
             ),
             "options": [
                 {"label": "Выпить (+30 HP)",                        "effect": [heal(30)]},
-                {"label": "Наполнить флягу (+15 HP, +водная карта)", "effect": [heal(15), gain_card(create_water_splash)]},
+                {"label": "Наполнить флягу (+15 HP, +водная карта)", "effect": [heal(15), gain_card(create_splash)]},
                 {"label": "Пройти мимо",                            "effect": [skip()]},
             ],
         },
