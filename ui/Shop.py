@@ -151,7 +151,7 @@ class Shop:
                     and view.shop_item_1_rect.collidepoint(mouse_pos):
                 if view.gm.player_gold >= card_price:
                     view.gm.player_gold -= card_price
-                    view.gm.current_deck.append(Shop.item_1)
+                    view.gm.add_card(Shop.item_1)  # ИСПРАВЛЕНО: было current_deck.append()
                     print(f"Куплена карта: {Shop.item_1.name}")
                     Shop.item_1 = None
                 else:
@@ -161,7 +161,7 @@ class Shop:
                     and view.shop_item_2_rect.collidepoint(mouse_pos):
                 if view.gm.player_gold >= card_price:
                     view.gm.player_gold -= card_price
-                    view.gm.current_deck.append(Shop.item_2)
+                    view.gm.add_card(Shop.item_2)  # ИСПРАВЛЕНО: было current_deck.append()
                     print(f"Куплена карта: {Shop.item_2.name}")
                     Shop.item_2 = None
                 else:
