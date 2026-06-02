@@ -8,9 +8,6 @@ from ui.Campfire import Campfire
 def _handle_combat(view, mouse_pos):
     if view.gm.active_combat.enemy.hp <= 0:
         view.gm.distribute_combat_rewards()
-        view.gm.current_floor += 1
-        view.scroll_y = 0
-        view.gm.setup_next_floor()
         return
 
     if view.end_turn_rect.collidepoint(mouse_pos):
@@ -43,6 +40,9 @@ def _handle_chest(view, mouse_pos):
 def _handle_event(view, mouse_pos):
     from ui.EventView import handle_clicks as event_clicks
     event_clicks(view, mouse_pos)
+def _handle_victory(view, mouse_pos):
+    from ui.VictoryScreen import VictoryScreen
+    VictoryScreen.handle_clicks(view, mouse_pos)
 
 
 def _handle_leaderboard(view, mouse_pos):
@@ -70,6 +70,7 @@ STATE_HANDLERS = {
     "CHEST":       _handle_chest,
     "EVENT":       _handle_event,
     "LEADERBOARD": _handle_leaderboard,
+    "VICTORY":     _handle_victory,
 }
 
 

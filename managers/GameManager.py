@@ -155,6 +155,12 @@ class GameManager:
     # ------------------------------------------------------------------
 
     def distribute_combat_rewards(self):
+        # Сброс боевого состояния игрока
+        self.player.energy = self.player.max_energy
+        self.player.shield = 0
+        for key in ("weak", "vulnerable", "wet", "ignited"):
+            self.player.statuses[key] = 0
+        """Собирает награды за бой в pending_rewards и переходит на экран победы."""
         if self.current_floor > self.stats["max_floor"]:
             self.stats["max_floor"] = self.current_floor
 
@@ -166,10 +172,18 @@ class GameManager:
         else:
             self.stats["monsters_killed"] += 1
 
-        gold_drop = random.randint(20, 35) + (self.current_floor * 3)
-        self.player_gold += gold_drop
-        log_msg = f"Залутано +{gold_drop} монет!"
+        rewards = []
 
+        # --- Золото ---
+        gold_drop = random.randint(20, 35) + (self.current_floor * 3)
+        rewards.append({
+            "type":    "gold",
+            "label":   f"+{gold_drop} монет",
+            "value":   gold_drop,
+            "applied": False,
+        })
+
+        # --- Реликвия (50% шанс) ---
         if random.randint(1, 2) == 1:
             roll = random.random()
             if roll < 0.60:
@@ -185,21 +199,27 @@ class GameManager:
 
             current_names    = {r.name for r in self.relics}
             available_relics = [r for r in pool if r().name not in current_names]
-
             if not available_relics:
                 available_relics = [r for r in ALL_RELICS
                                     if r().name not in current_names]
 
             if available_relics:
                 new_relic = random.choice(available_relics)()
-                self.relics.append(new_relic)
-                log_msg += (f" [НАГРАДА] Артефакт [{rarity.value}]: "
-                            f"'{new_relic.name}'!")
+                rewards.append({
+                    "type":    "relic",
+                    "label":   f"Артефакт [{rarity.value}]: {new_relic.name}",
+                    "value":   new_relic,
+                    "applied": False,
+                })
 
-        # Босс всегда роняет ключ                          <-- НОВОЕ
+        # --- Ключ от сундука (только босс) ---
         if is_boss:
-            self.player_keys += 1
-            log_msg += " [КЛЮЧ] Ключ от сундука получен!"
+            rewards.append({
+                "type":    "key",
+                "label":   "Ключ от сундука",
+                "value":   1,
+                "applied": False,
+            })
 
-        if self.active_combat:
-            self.active_combat.add_log_message(log_msg)
+        self.pending_rewards = rewards
+        self.current_state   = "VICTORY"
