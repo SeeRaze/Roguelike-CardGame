@@ -43,10 +43,14 @@ class GameView:
         self.is_end_turn_hovered = False
         self._map_hovered_col    = None
 
-        # Hover-состояние для тултипов статусов
+        # Hover-состояние для тултипов статусов на существах
         self.hovered_status_key  = None
         self.enemy_badge_rects   = []
         self.player_badge_rects  = []
+
+        # Hover-состояние для тултипа ключевых слов карты
+        self.hovered_card_rect   = None   # pygame.Rect карты под курсором
+        self.hovered_card_obj    = None   # сам объект Card
 
         self.gm = GameManager()
         self.gm.start_game()
@@ -96,13 +100,16 @@ class GameView:
 
     def update(self):
         self.hovered_card_index = -1
-        self.hovered_status_key = None   # сбрасываем каждый кадр
+        self.hovered_status_key = None
+        self.hovered_card_rect  = None
+        self.hovered_card_obj   = None
 
         if self.gm.current_state == "COMBAT" and self.gm.active_combat:
             mouse_pos = pygame.mouse.get_pos()
+            dm = self.gm.active_combat.deck_manager
+            hand_size = len(dm.hand)
 
             # Hover карт в руке
-            hand_size = len(self.gm.active_combat.deck_manager.hand)
             for index in range(hand_size):
                 card_x = self.calculate_card_x(index, hand_size)
                 card_rect = pygame.Rect(
@@ -110,10 +117,11 @@ class GameView:
                 )
                 if card_rect.collidepoint(mouse_pos):
                     self.hovered_card_index = index
+                    self.hovered_card_rect  = card_rect
+                    self.hovered_card_obj   = dm.hand[index]
                     break
 
-            # Hover бейджей статусов -- проверяем enemy и player
-            # enemy_badge_rects и player_badge_rects заполняются в draw_combat_screen
+            # Hover бейджей статусов
             for rect, key in self.enemy_badge_rects:
                 if rect.collidepoint(mouse_pos):
                     self.hovered_status_key = key
@@ -134,8 +142,7 @@ class GameView:
         if hasattr(self, 'hovered_card_index') and self.hovered_card_index != -1:
             if y < self.base_y:
                 is_hovered = True
-        from ui.CardRenderer import CardRenderer
-        CardRenderer.draw(
+        return CardRenderer.draw(
             self.screen, card, x, y,
             self.card_font, self.card_desc_font,
             is_hovered, player=player, enemy=enemy
@@ -154,6 +161,15 @@ class GameView:
             MapView.draw_map(self)
         elif self.gm.current_state == "COMBAT":
             CombatInterface.draw_combat_screen(self)
+            # Тултип ключевых слов карты -- поверх всего боевого экрана
+            if self.hovered_card_obj and self.hovered_card_rect:
+                CardRenderer.draw_card_keyword_tooltip(
+                    self.screen,
+                    self.card_font,
+                    self.card_desc_font,
+                    self.hovered_card_obj,
+                    self.hovered_card_rect
+                )
         elif self.gm.current_state == "CAMPFIRE":
             Campfire.draw_screen(self)
         elif self.gm.current_state == "SHOP":
@@ -169,7 +185,6 @@ class GameView:
         pygame.display.flip()
 
     def _draw_placeholder(self, state, title, subtitle):
-        """Временная заглушка для новых экранов."""
         self.screen.fill((20, 20, 30))
         self.draw_text(title,    self.main_font, (255, 220, 60), 760, 480)
         self.draw_text(subtitle, self.ui_font,   (180, 180, 180), 820, 530)

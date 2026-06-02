@@ -1,16 +1,26 @@
 import pygame
 import re
 from core.EffectCalculator import EffectCalculator
+from core.cards.base import StatusEffect, PoisonEffect
+
+
+# Расшифровки ключевых слов карты -- те же что в STATUS_TOOLTIPS,
+# но сформулированы как "что делает карта", а не "что значит статус на существе"
+KEYWORD_DESCRIPTIONS = {
+    "vulnerable": ("Уязвимость",  "Цель получает на 50%\nбольше урона."),
+    "weak":       ("Слабость",    "Цель наносит на 25%\nменьше урона."),
+    "wet":        ("Мокрый",      "При наложении Горения\nвзрывается в ПАР (x2 урон)."),
+    "ignited":    ("Горение",     "Наносит 3 урона в конце\nкаждого хода цели."),
+    "poison":     ("Яд",          "Наносит N урона в конце хода,\nпробивая щит. Стак убывает на 1."),
+}
 
 
 class CardRenderer:
-    COLOR_COMBO    = (255, 215, 0)    # Золотой -- комбо ПАР
-    COLOR_DMG      = (46, 204, 113)   # Зелёный -- улучшённые цифры
-    COLOR_GRAY     = (200, 200, 200)  # Серый -- обычный текст
-    COLOR_COST_LOW = (160, 40, 40)    # Тускло-красный -- не хватает энергии
-
-    # Маркер для числа урона, которое нужно выделить цветом
-    _DMG_MARKER = "§"
+    COLOR_COMBO    = (255, 215, 0)
+    COLOR_DMG      = (46, 204, 113)
+    COLOR_GRAY     = (200, 200, 200)
+    COLOR_COST_LOW = (160, 40, 40)
+    _DMG_MARKER    = "§"
 
     @staticmethod
     def get_card_colors(card):
@@ -27,6 +37,108 @@ class CardRenderer:
             return (45, 45, 45), (240, 70, 70)
         else:
             return (40, 40, 40), (70, 160, 240)
+
+    @staticmethod
+    def _get_card_keywords(card) -> list[str]:
+        """
+        Возвращает список ключевых слов (status_type) которые карта накладывает.
+        Сканирует card.effects -- только StatusEffect и PoisonEffect.
+        Порядок сохраняется, дубликаты исключаются.
+        """
+        seen = set()
+        keywords = []
+        for effect in card.effects:
+            key = None
+            if isinstance(effect, StatusEffect):
+                key = effect.status_type
+            elif isinstance(effect, PoisonEffect):
+                key = "poison"
+            if key and key in KEYWORD_DESCRIPTIONS and key not in seen:
+                seen.add(key)
+                keywords.append(key)
+        return keywords
+
+    @staticmethod
+    def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
+        """
+        Рисует окошко с расшифровкой ключевых слов карты.
+        Появляется справа от карты (или слева если нет места).
+        Вызывается только когда карта в hover и у неё есть ключевые слова.
+        """
+        keywords = CardRenderer._get_card_keywords(card)
+        if not keywords:
+            return
+
+        pad_x, pad_y = 14, 10
+        line_h_title = font_title.get_linesize()
+        line_h_desc  = font_desc.get_linesize() + 1
+        gap          = 6    # между блоками ключевых слов
+        section_gap  = 10   # между заголовком и описанием внутри блока
+
+        # Считаем размер окошка
+        blocks = []   # [(title_surf, [desc_line_surfs])]
+        max_w = 0
+        for key in keywords:
+            title_str, desc_str = KEYWORD_DESCRIPTIONS[key]
+            title_surf = font_title.render(title_str, True, (255, 220, 80))
+            desc_lines = [
+                font_desc.render(l, True, (210, 210, 210))
+                for l in desc_str.split("\n")
+            ]
+            block_w = max(
+                title_surf.get_width(),
+                max(s.get_width() for s in desc_lines)
+            ) + pad_x * 2
+            max_w = max(max_w, block_w)
+            blocks.append((title_surf, desc_lines))
+
+        box_w = max_w
+        box_h = pad_y * 2
+        for title_surf, desc_lines in blocks:
+            box_h += line_h_title + section_gap
+            box_h += len(desc_lines) * line_h_desc
+            box_h += gap
+        box_h -= gap  # убираем лишний gap после последнего блока
+
+        # Позиция: справа от карты, выровнено по верху карты
+        screen_w = screen.get_size()[0]
+        tip_x = card_rect.right + 12
+        tip_y = card_rect.top
+
+        # Нет места справа -- рисуем слева
+        if tip_x + box_w > screen_w - 10:
+            tip_x = card_rect.left - box_w - 12
+
+        # Не вылезаем за нижний край
+        screen_h = screen.get_size()[1]
+        if tip_y + box_h > screen_h - 10:
+            tip_y = screen_h - box_h - 10
+
+        # Фон
+        bg_rect = pygame.Rect(tip_x, tip_y, box_w, box_h)
+        pygame.draw.rect(screen, (18, 18, 24), bg_rect, border_radius=8)
+        pygame.draw.rect(screen, (180, 160, 80), bg_rect, 1, border_radius=8)
+
+        # Рендер блоков
+        cursor_y = tip_y + pad_y
+        for i, (title_surf, desc_lines) in enumerate(blocks):
+            # Разделитель между блоками (кроме первого)
+            if i > 0:
+                sep_y = cursor_y - gap // 2
+                pygame.draw.line(
+                    screen, (80, 80, 80),
+                    (tip_x + pad_x, sep_y),
+                    (tip_x + box_w - pad_x, sep_y), 1
+                )
+
+            screen.blit(title_surf, (tip_x + pad_x, cursor_y))
+            cursor_y += line_h_title + section_gap
+
+            for desc_surf in desc_lines:
+                screen.blit(desc_surf, (tip_x + pad_x, cursor_y))
+                cursor_y += line_h_desc
+
+            cursor_y += gap
 
     @staticmethod
     def draw_centered_title(surface, text, font, card_rect, is_hovered):
@@ -53,7 +165,6 @@ class CardRenderer:
 
     @staticmethod
     def _get_base_damage(description: str, is_upgraded: bool) -> int:
-        """Извлекает базовое число урона из описания карты."""
         if is_upgraded:
             match = re.search(r'\d+\s*\((\d+)\)', description)
         else:
@@ -63,17 +174,7 @@ class CardRenderer:
     @staticmethod
     def _resolve_description(description: str, is_upgraded: bool,
                              player=None, enemy=None) -> tuple[str, bool]:
-        """
-        Возвращает (итоговый текст с маркером §, is_combo).
-
-        Для attack-карт с player+enemy: подставляет реальный урон из
-        EffectCalculator вместо базового числа в тексте описания.
-        Число урона помечается маркером § для выделения цветом.
-        Остальные числа (длительности статусов) маркером НЕ помечаются.
-        """
         is_combo = False
-
-        # Чистим скобки апгрейда
         if is_upgraded:
             cleaned = re.sub(r'\d+\s*\((\d+)\)', r'\1', description)
         else:
@@ -82,7 +183,6 @@ class CardRenderer:
         if player is None or enemy is None:
             return cleaned, is_combo
 
-        # Считаем модификаторы
         is_combo   = getattr(enemy, 'wet', 0) > 0 and getattr(enemy, 'ignited', 0) > 0
         is_boosted = (
             getattr(player, 'strength', 0) > 0
@@ -93,35 +193,26 @@ class CardRenderer:
         if not is_boosted:
             return cleaned, is_combo
 
-        # Считаем реальный урон
         base_dmg = CardRenderer._get_base_damage(description, is_upgraded)
         if base_dmg == 0:
             return cleaned, is_combo
 
         predicted = EffectCalculator.calculate_damage(
-            attacker    = player,
-            target      = enemy,
-            base_damage = base_dmg,
-            dry_run     = True,
+            attacker=player, target=enemy,
+            base_damage=base_dmg, dry_run=True,
         )
-
-        # Заменяем ТОЛЬКО первое число (урон) на предсказанный урон с маркером §
-        # Маркер § сигнализирует draw_smart_description: это число нужно выделить
-        resolved = re.sub(r'\d+', CardRenderer._DMG_MARKER + str(predicted), cleaned, count=1)
+        resolved = re.sub(
+            r'\d+', CardRenderer._DMG_MARKER + str(predicted), cleaned, count=1
+        )
         return resolved, is_combo
 
     @staticmethod
     def draw_smart_description(surface, description, font, card_rect,
                                is_upgraded, player=None, enemy=None):
-        """Рендерит описание карты с динамическим уроном и цветовыми акцентами."""
         text, is_combo = CardRenderer._resolve_description(
             description, is_upgraded, player, enemy
         )
-
-        color_digit = (
-            CardRenderer.COLOR_COMBO if is_combo
-            else CardRenderer.COLOR_DMG
-        )
+        color_digit = CardRenderer.COLOR_COMBO if is_combo else CardRenderer.COLOR_DMG
         font_big = pygame.font.SysFont("Arial", font.size("0")[1] + 4, bold=True)
 
         words = text.split(' ')
@@ -130,10 +221,10 @@ class CardRenderer:
         max_width = card_rect.width - 24
 
         for word in words:
-            # Убираем маркер для расчёта ширины
             clean_word = word.replace(CardRenderer._DMG_MARKER, "")
             test_str = " ".join(
-                [w.replace(CardRenderer._DMG_MARKER, "") for w, _ in current_line] + [clean_word]
+                [w.replace(CardRenderer._DMG_MARKER, "") for w, _ in current_line]
+                + [clean_word]
             )
             if font.size(test_str)[0] <= max_width:
                 current_line.append((word, word.startswith(CardRenderer._DMG_MARKER)))
@@ -149,14 +240,11 @@ class CardRenderer:
         for line in lines:
             x_pos = card_rect.x + 15
             for word, is_dmg_word in line:
-                # Убираем маркер перед рендером
                 clean_word = word.replace(CardRenderer._DMG_MARKER, "")
                 if is_dmg_word:
-                    # Это число урона -- выделяем цветом и размером
                     display = f"*{clean_word}*"
                     word_surf = font_big.render(display + " ", True, color_digit)
                 elif is_upgraded and clean_word.isdigit():
-                    # Апгрейд: все числа зелёные (но не золотые -- это не урон)
                     word_surf = font_big.render(clean_word + " ", True, CardRenderer.COLOR_DMG)
                 else:
                     word_surf = font.render(clean_word + " ", True, CardRenderer.COLOR_GRAY)
@@ -166,13 +254,8 @@ class CardRenderer:
 
     @staticmethod
     def _draw_unaffordable_overlay(surface, rect: pygame.Rect):
-        """
-        Накладывает полупрозрачный тёмный оверлей на карту,
-        которую нельзя сыграть из-за нехватки энергии.
-        50% затемнение через Surface с SRCALPHA.
-        """
         overlay = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 128))  # чёрный, альфа 128 = ~50%
+        overlay.fill((0, 0, 0, 128))
         surface.blit(overlay, (rect.x, rect.y))
 
     @staticmethod
@@ -182,7 +265,6 @@ class CardRenderer:
         width, height = 180, 250
         rect = pygame.Rect(x, y, width, height)
 
-        # Определяем, хватает ли энергии на карту
         can_afford = (
             player is None
             or not hasattr(player, 'energy')
@@ -196,14 +278,12 @@ class CardRenderer:
         pygame.draw.rect(surface, bg_color, rect, border_radius=10)
         pygame.draw.rect(surface, border_color, rect, border_thickness, border_radius=10)
 
-        # Стоимость: тускло-красная если не хватает энергии, иначе цвет стихии
         cost_color = CardRenderer.COLOR_COST_LOW if not can_afford else border_color
         cost_surf = font_title.render(str(card.cost), True, cost_color)
         surface.blit(cost_surf, (rect.x + 14, rect.y + 12))
 
         CardRenderer.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
 
-        # Для attack-карт передаём player+enemy для динамического урона
         if card.card_type == "attack" and player is not None and enemy is not None:
             CardRenderer.draw_smart_description(
                 surface, card.description, font_desc, rect,
@@ -215,6 +295,8 @@ class CardRenderer:
                 card.upgraded
             )
 
-        # Оверлей затемнения поверх всего -- рисуем последним
         if not can_afford:
             CardRenderer._draw_unaffordable_overlay(surface, rect)
+
+        # Возвращаем rect -- нужен GameView для позиционирования тултипа
+        return rect
