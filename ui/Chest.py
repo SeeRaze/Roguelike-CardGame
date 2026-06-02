@@ -230,7 +230,7 @@ class Chest:
         take_rect = pygame.Rect(760, 620, 200, 60)
         if take_rect.collidepoint(mouse_pos) and gm.chest_selected is not None:
             chosen_card = cards[gm.chest_selected]
-            gm.current_deck.append(chosen_card)
+            gm.add_card(chosen_card)
             if chest_type == "rare" and gm.chest_gold > 0:
                 gm.player_gold += gm.chest_gold
             gm.chest_opened = True

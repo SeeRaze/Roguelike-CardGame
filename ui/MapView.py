@@ -179,7 +179,7 @@ class MapView:
                 "Кликните по выделенному узлу чтобы войти в комнату",
                 True, (120, 120, 150)
             )
-            screen.blit(surf, (30, 1050))
+            screen.blit(surf, (30, 1040))
 
         view._map_hovered_col = hovered_node.col if hovered_node else None
 
@@ -196,8 +196,9 @@ class MapView:
             r    = NODE_R_BSS if node.node_type == "BOSS" else NODE_R_ACT
             dist = ((mouse_pos[0] - x) ** 2 + (mouse_pos[1] - y) ** 2) ** 0.5
             if dist <= r + 6:
-                gm.enter_chosen_room(node.node_type, col=node.col)
-                    # Инициализируем сундук сразу при входе
+                room_type = "COMBAT" if node.node_type == "BOSS" else node.node_type
+                gm.enter_chosen_room(room_type, col=node.col)
+                # Инициализируем сундук сразу при входе
                 if gm.current_state == "CHEST":
                     from ui.Chest import Chest
                     Chest.init_chest(view)

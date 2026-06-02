@@ -63,7 +63,7 @@ def _make_events():
     def gain_relic(relic_cls):
         def effect(gm):
             r = relic_cls()
-            gm.player_relics.append(r)
+            gm.relics.append(r)
             gm.event_result = f"Получена реликвия: {r.name}"
         return effect
 
