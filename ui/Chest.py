@@ -115,7 +115,7 @@ class Chest:
         screen.blit(h, (960 - h.get_width() // 2, 130))
 
         if chest_type == "rare" and gm.chest_gold > 0:
-            gold_text = f"+ {gm.chest_gold} золота (уже получено)"
+            gold_text = f"+ {gm.chest_gold} золота (при взятии карты)"
             g = sub_font.render(gold_text, True, Chest.GOLD_COLOR)
             screen.blit(g, (960 - g.get_width() // 2, 170))
 

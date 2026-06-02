@@ -33,21 +33,6 @@ class InputHandler:
                     view.gm.active_combat.play_card_by_index(index)
                     break
 
-        # 2. КАРТА (legacy, MapView.handle_click перехватывает раньше)
-        elif view.gm.current_state == "MAP":
-            local_step = (view.gm.current_floor - 1) % 10 + 1
-            current_options = view.gm.procedural_map[local_step - 1]
-
-            room_left  = current_options[0][0] if isinstance(current_options[0], list) else current_options[0]
-            room_right = current_options[1][0] if isinstance(current_options[1], list) else current_options[1]
-
-            if hasattr(view, 'btn_branch_left') and view.btn_branch_left.collidepoint(mouse_pos):
-                view.gm.enter_chosen_room(room_left)
-                return
-            elif hasattr(view, 'btn_branch_right') and view.btn_branch_right.collidepoint(mouse_pos):
-                view.gm.enter_chosen_room(room_right)
-                return
-
         # 3. КОСТЁР
         elif view.gm.current_state == "CAMPFIRE":
             Campfire.handle_clicks(view, mouse_pos)
@@ -69,8 +54,10 @@ class InputHandler:
             LeaderboardView.handle_clicks(view, mouse_pos)
             if view.btn_back_leaderboard.collidepoint(mouse_pos):
                 from managers.GameManager import GameManager
-                Shop.reset()      # <-- ДОБАВЛЕНО: сброс магазина при новом забеге
-                Campfire.reset()  # <-- ДОБАВЛЕНО: сброс костра при новом забеге
+                from ui.EventView import reset as event_reset
+                Shop.reset()
+                Campfire.reset()
+                event_reset()
                 view.gm = GameManager()
                 view.gm.current_state = "MAIN_MENU"
 

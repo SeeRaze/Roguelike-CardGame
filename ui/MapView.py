@@ -197,8 +197,12 @@ class MapView:
             dist = ((mouse_pos[0] - x) ** 2 + (mouse_pos[1] - y) ** 2) ** 0.5
             if dist <= r + 6:
                 gm.enter_chosen_room(node.node_type, col=node.col)
-                # Инициализируем сундук сразу при входе
+                    # Инициализируем сундук сразу при входе
                 if gm.current_state == "CHEST":
                     from ui.Chest import Chest
                     Chest.init_chest(view)
+                    # Инициализируем событие сразу при входе
+                elif gm.current_state == "EVENT":
+                    from ui.EventView import init_event
+                    init_event(view.gm)
                 return
