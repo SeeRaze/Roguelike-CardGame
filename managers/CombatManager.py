@@ -37,7 +37,8 @@ class CombatManager:
         self.player.shield = 0
 
         self.player.energy = self.player.max_energy
-        self.deck_manager.draw_cards(5)
+        bonus = getattr(self.player, "bonus_draw", 0)
+        self.deck_manager.draw_cards(5 + bonus)
         self.add_log_message(f"--- НАЧАЛО ХОДА {self.turn_count} ---")
 
     def play_card_by_index(self, card_index):
