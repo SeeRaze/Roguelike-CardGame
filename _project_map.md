@@ -1,5 +1,5 @@
 # Project Map — Roguelike Card Game
-_Обновлено: Jun 2, 2026 — Сессия 4_
+_Обновлено: Jun 2, 2026 — Сессия 5_
 
 ---
 
@@ -24,7 +24,8 @@ core/
     base.py, starter.py, elemental.py
 
 managers/
-  GameManager.py       ⚠️ ~176 строк — использовать query_context
+  GameManager.py       ← ~110 строк (рефакторинг Сессия 5)
+  MapGenerator.py      ← НОВЫЙ (Сессия 5): MapNode, generate_map(), _pick_node_type()
   CombatManager.py
   DeckManager.py
   BalanceSimulator.py
@@ -37,31 +38,27 @@ ui/
   CombatInterface.py   ⚠️ ~200 строк — использовать query_context
   CardRenderer.py
   Shop.py, Campfire.py, Chest.py
-  EventView.py         ⚠️ ~233 строки — использовать query_context
+  EventView.py         ← ~80 строк (рефакторинг Сессия 5)
+  events/
+    __init__.py
+    event_data.py      ← НОВЫЙ (Сессия 5): 7 событий как чистые данные + get_random_event()
+    event_effects.py   ← НОВЫЙ (Сессия 5): apply_effect(), apply_option()
   InputHandler.py, LeaderboardView.py
 
 ---
 
 ## СЛЕДУЮЩАЯ СТАДИЯ: ДРОБЛЕНИЕ ФАЙЛОВ
 
-### Приоритет 1 — СРОЧНО (уже за лимитом 150 строк)
+### Приоритет 1 — СРОЧНО (за лимитом 150 строк)
 
-**A. EventView.py (~233 строк) → разбить на:**
-- ui/events/event_data.py — 7 событий как данные (title, text, options + эффекты)
-- ui/events/event_effects.py — функции heal, lose_hp, gain_gold, gain_card, gain_relic и т.д.
-- ui/EventView.py — только init_event, reset, draw_screen, handle_clicks (~60 строк)
-
-**B. GameManager.py (~176 строк) → разбить на:**
-- managers/MapGenerator.py — MapNode, generate_new_map_progression, _pick_node_type (~70 строк)
-- managers/GameManager.py — прогрессия, награды, состояние игрока (~110 строк)
+**C. CombatInterface.py (~200 строк) → разбить на:**
+- ui/combat/__init__.py — пустой
+- ui/combat/hud.py — draw_hp_bar, draw_status_badges, draw_status_tooltip, энергия (~70 строк)
+- ui/CombatInterface.py — только draw_combat_screen как оркестратор (~60 строк)
 
 ### Приоритет 2 — ПРЕВЕНТИВНО (разрастутся при добавлении контента)
 
-**C. CombatInterface.py (~200 строк) → разбить на:**
-- ui/combat/hud.py — draw_hp_bar, draw_status_badges, draw_status_tooltip, энергия
-- ui/CombatInterface.py — только draw_combat_screen как оркестратор (~60 строк)
-
-**D. InputHandler.py** — при добавлении BOSS_INTRO, DIALOGUE и т.д. разбить на:
+**D. InputHandler.py** — при добавлении BOSS_INTRO, DIALOGUE разбить на:
   combat_handler.py, map_handler.py, menu_handler.py
 
 **E. core/cards/base.py** — при добавлении HealEffect, DrawEffect разбить на effects/ подпапку
@@ -101,7 +98,15 @@ core/EffectCalculator.py
 calculate_damage(attacker, target, base_damage, gm=None, cm=None, dry_run=False)
 Формула: (base + relic + strength) × 0.75_weak × 1.5_vulnerable × 2.0_комбо_пар
 dry_run=True — без побочных эффектов, для предпросмотра урона на карте
-managers/GameManager.py ⚠️ большой
+managers/MapGenerator.py ← НОВЫЙ (Сессия 5)
+Чистые функции генерации карты, без состояния.
+
+FLOORS_PER_ACT = 20
+NODE_WEIGHTS — веса типов узлов
+MapNode(node_type, col, row) — узел карты, поля: node_type, col, row, connections[]
+_pick_node_type(row) — выбор типа по правилам баланса
+generate_map() — возвращает map_grid (list[list[MapNode]])
+managers/GameManager.py ← РЕФАКТОРИНГ (Сессия 5)
 spawn_procedural_enemy() — генерирует врага по этажу, создаёт CombatManager
 Формулы (тест): hp = 20 + floor×3 + tier×10, dmg = 3 + tier×1, shld = 2
 Формулы (боевые): hp = 40 + floor×8 + tier×25, dmg = 5 + floor×1 + tier×4, shld = 3 + floor×1
@@ -110,10 +115,10 @@ add_card(card) — добавляет карту в current_deck
 enter_chosen_room(room_type, col) — роутинг по типу узла
 get_available_nodes() — доступные узлы карты
 distribute_combat_rewards() — золото + рандомная реликвия
+setup_next_floor() — вызывает generate_map() из MapGenerator при local_step==1
 ⚠️ НЕ содержит ручной if для ЭнергоЯдро — реликвия управляет сама через хук
 Поля: current_floor, relics[], current_deck, player, active_combat, event_result
 reset() — НЕТ. При новом забеге создаётся новый GameManager()
-Константы: FLOORS_PER_ACT = 20, NODE_WEIGHTS: COMBAT=55, CAMPFIRE=15, SHOP=10, CHEST=12, EVENT=8
 managers/CombatManager.py
 start_turn_phase() — начало хода игрока
 end_turn_phase() — конец хода, тики статусов, ход врага, проверка смерти
@@ -149,16 +154,28 @@ core/relics/elemental.py
 НамокшаяРукавица — on_wet_applied: +4 щита игроку
 core/cards/fire.py
 ⚠️ Только две фабрики: create_ignite, create_fire_breath
-НЕТ: create_ember, create_fireball, create_inferno
 
 core/cards/water.py
 ⚠️ Только две фабрики: create_splash, create_rain_cloud
-НЕТ: create_water_splash, create_tidal_wave
 
 core/cards/poison.py
 Фабрики: create_poison_stab, create_toxic_cloud, create_acid_shield
 ⚠️ НЕТ: create_poison_dart
 
+ui/events/event_data.py ← НОВЫЙ (Сессия 5)
+CARD_FACTORIES — список всех фабрик карт для рандомного выбора
+EVENTS — список из 7 событий, эффекты как строки ("heal:20", "lose_hp:15", "gain_relic:LuckyClover")
+get_random_event() — возвращает случайное событие
+ui/events/event_effects.py ← НОВЫЙ (Сессия 5)
+apply_effect(effect_str, gm) — разбирает строку и применяет эффект
+apply_option(option, gm) — применяет все эффекты варианта
+Поддерживаемые ключи: heal, lose_hp, gain_gold, lose_gold, gain_card, gain_random_card, gain_relic, skip
+ui/EventView.py ← РЕФАКТОРИНГ (Сессия 5) ~80 строк
+НЕ класс — модуль функций
+
+init_event(gm) — вызывается из MapView при входе в EVENT
+reset() — вызывается при рестарте из InputHandler
+from ui.EventView import handle_clicks as event_clicks — правильный импорт
 ui/CardRenderer.py ← РЕФАКТОРИНГ (Сессия 4)
 draw(surface, card, x, y, font_title, font_desc, is_hovered=False, player=None, enemy=None)
 Возвращает rect карты
@@ -168,8 +185,9 @@ _draw_unaffordable_overlay() — 50% затемнение
 _get_card_keywords(card) — сканирует effects, возвращает [(key, val)] с реальными числами
 draw_card_keyword_tooltip() — Hearthstone-style панель справа от карты
 ⚠️ Убран KEYWORD_DESCRIPTIONS — читает из StatusRegistry.STATUSES[key]["keyword"]
-ui/CombatInterface.py ⚠️ большой ← РЕФАКТОРИНГ (Сессия 4)
+ui/CombatInterface.py ⚠️ ~200 строк ← РЕФАКТОРИНГ (Сессия 4)
 ⚠️ Убраны STATUS_STYLES + STATUS_TOOLTIPS — читает из StatusRegistry.STATUSES
+
 draw_status_badges(screen, font, creature, x, y) — возвращает [(rect, key, val)], пропускает val≤0
 draw_status_tooltip(screen, font, key, val, mouse_pos) — N→str(val), автоприжатие к краям
 draw_combat_screen(view) — рисует всё, тултип статуса ПОСЛЕДНИМ
@@ -185,15 +203,9 @@ ui/InputHandler.py
 Блок LEADERBOARD: если handle_clicks() == True →
 Shop.reset() + Campfire.reset() + MainMenu.reset() + event_reset() + GameManager()
 
-ui/EventView.py ⚠️ ~233 строки
-НЕ класс — модуль функций
-init_event(gm) — вызывается из MapView при входе в EVENT
-reset() — вызывается при рестарте из InputHandler
-from ui.EventView import handle_clicks as event_clicks — правильный импорт
-Пул карт: create_ignite, create_fire_breath, create_splash, create_rain_cloud,
-create_poison_stab, create_toxic_cloud, create_strike, create_defend, create_heavy_blade, create_iron_wall
 ui/MapView.py
 handle_click() → gm.enter_chosen_room() → роутинг:
+
 CHEST → Chest.init_chest(view)
 EVENT → EventView.init_event(gm)
 BOSS → room_type = "COMBAT"
@@ -222,6 +234,14 @@ MapView.handle_click()
 → for relic in gm.relics: relic.on_combat_start(self)  ← ДО start_turn_phase
 
 → self.start_turn_phase()
+Генерация карты:
+
+
+gm.setup_next_floor()  (local_step == 1)
+
+→ MapGenerator.generate_map()
+
+→ gm.map_grid = result
 Ход врага:
 
 
@@ -258,7 +278,7 @@ gm.add_card(card)  ← Shop, Chest, Campfire, EventView
 Warrior	80	3
 Rogue	65	3
 Mage	55	3
-Исправленные баги (49 штук, полная история)
+Исправленные баги (51 штука, полная история)
 #	Файл	Суть
 1	GameView.py	pygame.display.flip() перенесён в конец draw()
 2	GameView.py	CHEST и EVENT рендерятся через нативные модули
@@ -309,6 +329,8 @@ Mage	55	3
 47	CombatInterface.py	убраны STATUS_STYLES/STATUS_TOOLTIPS, читает из реестра
 48	CardRenderer.py	убран KEYWORD_DESCRIPTIONS, читает из реестра
 49	core/Creature.py	self.statuses={}, getattr/setattr, обратная совместимость
+50	ui/events/	СОЗДАН пакет: event_data.py + event_effects.py, EventView похудел до ~80 строк
+51	managers/MapGenerator.py	СОЗДАН: MapNode, generate_map(), _pick_node_type() вынесены из GameManager
 Грабли (не повторять)
 view.view.gm — двойной view это баг
 Эмодзи в pygame SysFont — не рендерятся, никогда не использовать
@@ -320,11 +342,11 @@ LeaderboardView.handle_clicks() — только возвращает True/False
 pygame.display.flip() — один раз в конце draw(), не внутри методов
 Отступы Python при копировании из чата — всегда проверять структуру
 Реликвии управляют своими эффектами САМИ через хуки — GameManager не дублирует
-fire.py — только create_ignite, create_fire_breath. Нет ember/fireball/inferno
-water.py — только create_splash, create_rain_cloud. Нет water_splash/tidal_wave
+fire.py — только create_ignite, create_fire_breath
+water.py — только create_splash, create_rain_cloud
 poison.py — create_poison_stab, не create_poison_dart
 StatusRegistry должен быть импортирован ДО Creature (нет зависимостей, порядок ок)
 __setattr__ в Creature: _STATUS_KEYS вычисляется при загрузке модуля через all_keys()
+generate_map() возвращает map_grid — GameManager сохраняет сам (не мутирует self внутри)
 Файлы без сюрпризов (читать напрямую, влезают в контекст)
-Все файлы кроме: GameManager.py, CombatInterface.py, GameView.py, EventView.py
-
+Все файлы кроме: CombatInterface.py, GameView.py
