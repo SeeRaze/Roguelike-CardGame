@@ -60,6 +60,7 @@ class GameManager:
         self.current_deck = self.player.get_starter_deck()
         self.current_state = "MAIN_MENU"
         self.active_combat = None
+        self.event_result = None   # результат последнего события
 
         # Карта: список строк, каждая строка — список из 3 MapNode
         self.map_grid = []
@@ -259,3 +260,6 @@ class GameManager:
 
         if self.active_combat:
             self.active_combat.add_log_message(log_msg)
+    def add_card(self, card):
+        """Добавляет карту в текущую колоду игрока."""
+        self.current_deck.append(card)    

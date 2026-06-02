@@ -10,6 +10,7 @@ from ui.MapView import MapView
 from ui.LeaderboardView import LeaderboardView
 from ui.CardRenderer import CardRenderer
 from ui.Chest import Chest
+from ui.EventView import EventView
 
 
 class GameView:
@@ -140,7 +141,8 @@ class GameView:
         elif self.gm.current_state == "CHEST":
             Chest.draw_screen(self)
         elif self.gm.current_state == "EVENT":
-            self._draw_placeholder("EVENT", "Случайное событие", "(в разработке)")
+            from ui.EventView import draw_screen as draw_event
+            draw_event(self)
 
         pygame.display.flip()  # <-- ЗДЕСЬ, один раз, для всех состояний
 

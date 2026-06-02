@@ -59,6 +59,9 @@ class InputHandler:
         # 5. СУНДУК
         elif view.gm.current_state == "CHEST":
             Chest.handle_clicks(view, mouse_pos)
+        elif view.gm.current_state == "EVENT":
+            from ui.EventView import handle_clicks as event_clicks
+            event_clicks(view, mouse_pos)
 
         # 6. ЛИДЕРБОРД
         elif view.gm.current_state == "LEADERBOARD":
