@@ -74,7 +74,8 @@ InputHandler.py, LeaderboardView.py
 
 ### managers/GameManager.py  ⚠️ большой
 - `spawn_procedural_enemy()` — генерирует врага по этажу, создаёт CombatManager
-  - Формулы: `hp = 20 + floor×3 + tier×10`, `dmg = 3 + tier×1`, `shld = 2` _(тестовый режим)_
+  - Формулы (боевые): `hp = 40 + floor×8 + tier×25`, `dmg = 5 + floor×1 + tier×4`, `shld = 3 + floor×1`
+Формулы (тест): `hp = 20 + floor×3 + tier×10`, `dmg = 3 + tier×1`, `shld = 2`
   - Босс (local_step==20): hp×2.2, dmg×1.3, shld×1.8, shield=shld×2
 - `add_card(card)` — добавляет карту в current_deck
 - `enter_chosen_room(room_type, col)` — роутинг по типу узла
@@ -120,10 +121,9 @@ InputHandler.py, LeaderboardView.py
 
 ### ui/InputHandler.py
 ⚠️ Единственное место логики рестарта:
-```python
+
 Блок LEADERBOARD при handle_clicks() == True:
 Shop.reset() + Campfire.reset() + MainMenu.reset() + event_reset() + GameManager()
-
 
 ### ui/EventView.py
 - НЕ класс — модуль функций
