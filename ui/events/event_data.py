@@ -7,6 +7,10 @@ from core.cards.basic  import (
 from core.cards.fire    import create_ignite, create_fire_breath
 from core.cards.poison  import create_poison_stab, create_toxic_cloud
 from core.cards.water   import create_splash, create_rain_cloud
+from core.cards.heal    import create_bandage, create_second_wind, create_elixir
+from core.cards.buff.regen     import create_regenerate, create_vitality, create_triage
+from core.cards.buff.vampirism import create_drain, create_blood_feast, create_life_tap
+from core.cards.debuff.bleed   import create_lacerate, create_hemorrhage, create_open_wound
 
 from ui.events.positive import POSITIVE_EVENTS
 from ui.events.negative import NEGATIVE_EVENTS
@@ -18,6 +22,10 @@ CARD_FACTORIES = [
     create_ignite, create_fire_breath,
     create_poison_stab, create_toxic_cloud,
     create_splash, create_rain_cloud,
+    create_bandage, create_second_wind, create_elixir,
+    create_regenerate, create_vitality, create_triage,
+    create_drain, create_blood_feast, create_life_tap,
+    create_lacerate, create_hemorrhage, create_open_wound,
 ]
 
 # Базовый пул (без особых)
@@ -36,7 +44,6 @@ def get_random_event(gm=None):
         for event in SPECIAL_EVENTS:
             condition = event.get("condition")
             if condition is None or condition(gm):
-                # Особый ивент добавляем дважды для небольшого веса
                 pool.append(event)
                 pool.append(event)
 

@@ -1,3 +1,5 @@
+# ui/Shop.py
+
 import pygame
 import random
 from core.cards import (create_strike, create_defend, create_heavy_blade, create_iron_wall,
@@ -5,6 +7,10 @@ from core.cards import (create_strike, create_defend, create_heavy_blade, create
     create_ignite, create_fire_breath,
     create_splash, create_rain_cloud,
     create_poison_stab, create_toxic_cloud, create_acid_shield)
+from core.cards.heal import create_bandage, create_second_wind, create_elixir
+from core.cards.buff.regen import create_regenerate, create_vitality, create_triage
+from core.cards.buff.vampirism import create_drain, create_blood_feast, create_life_tap
+from core.cards.debuff.bleed import create_lacerate, create_hemorrhage, create_open_wound
 
 
 class Shop:
@@ -40,7 +46,15 @@ class Shop:
             create_bash, create_neutralize, create_intimidate,
             create_ignite, create_fire_breath,
             create_splash, create_rain_cloud,
-            create_poison_stab, create_toxic_cloud, create_acid_shield
+            create_poison_stab, create_toxic_cloud, create_acid_shield,
+            # heal
+            create_bandage, create_second_wind, create_elixir,
+            # regen
+            create_regenerate, create_vitality, create_triage,
+            # vampirism
+            create_drain, create_blood_feast, create_life_tap,
+            # bleed
+            create_lacerate, create_hemorrhage, create_open_wound,
         ]
         showcase_classes = random.sample(all_cards_pool, 2)
         Shop.item_1 = showcase_classes[0]()

@@ -5,6 +5,11 @@ from core.cards import (
     create_poison_stab, create_toxic_cloud, create_acid_shield,
     create_bash, create_neutralize, create_intimidate,
     create_flex, create_battle_cry, create_thorn_armor,
+    # Новые механики
+    create_bandage, create_second_wind, create_elixir,
+    create_regenerate, create_vitality, create_triage,
+    create_drain, create_blood_feast, create_life_tap,
+    create_lacerate, create_hemorrhage, create_open_wound,
 )
 from ui.CardRenderer import CardRenderer
 
@@ -20,8 +25,17 @@ MAGE_CARDS = [
     create_strike, create_defend, create_ignite, create_fire_breath,
     create_splash, create_rain_cloud,
 ]
+
+# Новые карты без привязки к классу — только в "Все"
+NEW_CARDS = [
+    create_bandage, create_second_wind, create_elixir,
+    create_regenerate, create_vitality, create_triage,
+    create_drain, create_blood_feast, create_life_tap,
+    create_lacerate, create_hemorrhage, create_open_wound,
+]
+
 ALL_CARDS = list({f.__name__: f for f in
-    WARRIOR_CARDS + ROGUE_CARDS + MAGE_CARDS}.values())
+    WARRIOR_CARDS + ROGUE_CARDS + MAGE_CARDS + NEW_CARDS}.values())
 
 TABS = [
     ("Все",       ALL_CARDS),

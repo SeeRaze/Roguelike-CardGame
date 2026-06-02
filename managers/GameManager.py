@@ -62,7 +62,10 @@ class GameManager:
         print("--- GameManager: Глобальный мозг запущен в режиме Главного Меню! ---")
 
     def get_removal_price(self) -> int:
-        return (15 + self.current_floor * 2) + self.removal_count * 25
+        base = (15 + self.current_floor * 2) + self.removal_count * 25
+        if any(r.name == "Проклятая Корона" for r in self.relics):
+            base *= 2
+        return base
 
     def add_card(self, card):
         self.current_deck.append(card)
@@ -158,7 +161,7 @@ class GameManager:
         # Сброс боевого состояния игрока
         self.player.energy = self.player.max_energy
         self.player.shield = 0
-        for key in ("weak", "vulnerable", "wet", "ignited"):
+        for key in ("weak", "vulnerable", "wet", "ignited", "strength"):
             self.player.statuses[key] = 0
         # Хук on_combat_end — реликвии реагируют на конец боя
         for relic in self.relics:

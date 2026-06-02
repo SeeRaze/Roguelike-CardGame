@@ -3,14 +3,31 @@ from ui.events.event_data import CARD_FACTORIES
 
 
 def _get_relic_class(name: str):
-    from core.relics.starter   import LuckyClover, SpikedBracelet, ТочильныйКамень
+    from core.relics.starter  import LuckyClover, SpikedBracelet, ТочильныйКамень
     from core.relics.elemental import ДревнееОгниво, НамокшаяРукавица
+    from core.relics.advanced import (
+        ОкровавленныйШприц, СердцеТитана, ГнилойКлык,
+        ПроклятаяКорона, ФлаконСЖелчью, СвинцовыйНабалдашник,
+        СтараяПиявка, СчастливаяМонетка, ЗасохшийКлевер,
+        Заплатка, ЗаточенныйОсколок,
+    )
     registry = {
-        "LuckyClover":      LuckyClover,
-        "SpikedBracelet":   SpikedBracelet,
-        "ТочильныйКамень":  ТочильныйКамень,
-        "ДревнееОгниво":    ДревнееОгниво,
-        "НамокшаяРукавица": НамокшаяРукавица,
+        "LuckyClover":        LuckyClover,
+        "SpikedBracelet":     SpikedBracelet,
+        "ТочильныйКамень":    ТочильныйКамень,
+        "ДревнееОгниво":      ДревнееОгниво,
+        "НамокшаяРукавица":   НамокшаяРукавица,
+        "ОкровавленныйШприц": ОкровавленныйШприц,
+        "СердцеТитана":       СердцеТитана,
+        "ГнилойКлык":         ГнилойКлык,
+        "ПроклятаяКорона":    ПроклятаяКорона,
+        "ФлаконСЖелчью":      ФлаконСЖелчью,
+        "СвинцовыйНабалдашник": СвинцовыйНабалдашник,
+        "СтараяПиявка":       СтараяПиявка,
+        "СчастливаяМонетка":  СчастливаяМонетка,
+        "ЗасохшийКлевер":     ЗасохшийКлевер,
+        "Заплатка":           Заплатка,
+        "ЗаточенныйОсколок":  ЗаточенныйОсколок,
     }
     return registry[name]
 
@@ -20,17 +37,33 @@ def _get_card_factory(name: str):
     from core.cards.fire   import create_ignite, create_fire_breath
     from core.cards.poison import create_poison_stab, create_toxic_cloud
     from core.cards.water  import create_splash, create_rain_cloud
+    from core.cards.heal   import create_bandage, create_second_wind, create_elixir
+    from core.cards.buff.regen     import create_regenerate, create_vitality, create_triage
+    from core.cards.buff.vampirism import create_drain, create_blood_feast, create_life_tap
+    from core.cards.debuff.bleed   import create_lacerate, create_hemorrhage, create_open_wound
     registry = {
-        "create_strike":      create_strike,
-        "create_defend":      create_defend,
-        "create_heavy_blade": create_heavy_blade,
-        "create_iron_wall":   create_iron_wall,
-        "create_ignite":      create_ignite,
-        "create_fire_breath": create_fire_breath,
-        "create_poison_stab": create_poison_stab,
-        "create_toxic_cloud": create_toxic_cloud,
-        "create_splash":      create_splash,
-        "create_rain_cloud":  create_rain_cloud,
+        "create_strike":       create_strike,
+        "create_defend":       create_defend,
+        "create_heavy_blade":  create_heavy_blade,
+        "create_iron_wall":    create_iron_wall,
+        "create_ignite":       create_ignite,
+        "create_fire_breath":  create_fire_breath,
+        "create_poison_stab":  create_poison_stab,
+        "create_toxic_cloud":  create_toxic_cloud,
+        "create_splash":       create_splash,
+        "create_rain_cloud":   create_rain_cloud,
+        "create_bandage":      create_bandage,
+        "create_second_wind":  create_second_wind,
+        "create_elixir":       create_elixir,
+        "create_regenerate":   create_regenerate,
+        "create_vitality":     create_vitality,
+        "create_triage":       create_triage,
+        "create_drain":        create_drain,
+        "create_blood_feast":  create_blood_feast,
+        "create_life_tap":     create_life_tap,
+        "create_lacerate":     create_lacerate,
+        "create_hemorrhage":   create_hemorrhage,
+        "create_open_wound":   create_open_wound,
     }
     return registry[name]
 
@@ -79,7 +112,6 @@ def apply_effect(effect_str: str, gm) -> None:
         gm.event_result = f"Получена реликвия: {r.name}"
 
     elif key == "remove_flag":
-        # Убирает флаг с gm (например has_basilisk_egg)
         if hasattr(gm, value):
             setattr(gm, value, False)
         gm.event_result = "Флаг снят."

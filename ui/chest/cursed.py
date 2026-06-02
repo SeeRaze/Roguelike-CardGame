@@ -5,6 +5,26 @@ _HP_COLOR   = (220,  80,  80)
 _TEXT_COLOR = (200, 200, 200)
 
 
+def _draw_wrapped(screen, font, text, color, rect, start_y, line_h=20):
+    """Рисует текст с переносом по словам внутри rect.width."""
+    words = text.split()
+    lines = []
+    current = ""
+    for word in words:
+        test = (current + " " + word).strip()
+        if font.size(test)[0] <= rect.width - 16:
+            current = test
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    for j, line in enumerate(lines):
+        surf = font.render(line, True, color)
+        screen.blit(surf, (rect.centerx - surf.get_width() // 2, start_y + j * line_h))
+
+
 def draw_cursed(view, screen, sub_font, card_font, desc_font):
     gm    = view.gm
     buffs = getattr(gm, "cursed_buffs", [])
@@ -54,8 +74,7 @@ def draw_cursed(view, screen, sub_font, card_font, desc_font):
         n = card_font.render(name, True, name_color)
         screen.blit(n, (rect.centerx - n.get_width() // 2, cy + 14))
 
-        d = desc_font.render(desc, True, (170, 170, 190))
-        screen.blit(d, (rect.centerx - d.get_width() // 2, cy + 56))
+        _draw_wrapped(screen, desc_font, desc, (170, 170, 190), rect, cy + 50)
 
         if is_taken:
             s = card_font.render("ВЗЯТО", True, (100, 220, 100))
