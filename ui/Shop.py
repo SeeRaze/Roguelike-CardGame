@@ -6,15 +6,26 @@ from core.cards import (create_strike, create_defend, create_heavy_blade, create
     create_splash, create_rain_cloud,
     create_poison_stab, create_toxic_cloud, create_acid_shield)
 
+
 class Shop:
     """Графический экран Магазина Торговца под Full HD с ховерами и просторной сеткой."""
-    sub_state = "MAIN"
-    item_1 = None
-    item_2 = None
+    sub_state          = "MAIN"
+    item_1             = None
+    item_2             = None
     showcase_generated = False
 
     is_remove_hovered = False
     is_leave_hovered  = False
+
+    @staticmethod
+    def reset():
+        """Сбрасывает состояние магазина. Вызывать при старте нового забега."""
+        Shop.sub_state          = "MAIN"
+        Shop.item_1             = None
+        Shop.item_2             = None
+        Shop.showcase_generated = False
+        Shop.is_remove_hovered  = False
+        Shop.is_leave_hovered   = False
 
     @staticmethod
     def get_card_price(floor: int) -> int:
@@ -59,7 +70,7 @@ class Shop:
 
             card_price = Shop.get_card_price(view.gm.current_floor)
 
-            # ── Карта 1 ──
+            # Карта 1
             view.shop_item_1_rect = pygame.Rect(100, 220, view.card_width, view.card_height)
             if Shop.item_1:
                 is_hovered = view.shop_item_1_rect.collidepoint(mouse_pos)
@@ -72,7 +83,7 @@ class Shop:
                 view.draw_text("[ПРОДАНО]", view.card_font, GRAY,
                                view.shop_item_1_rect.x + 35, view.shop_item_1_rect.y + 110)
 
-            # ── Карта 2 ──
+            # Карта 2
             view.shop_item_2_rect = pygame.Rect(320, 220, view.card_width, view.card_height)
             if Shop.item_2:
                 is_hovered = view.shop_item_2_rect.collidepoint(mouse_pos)
@@ -85,7 +96,7 @@ class Shop:
                 view.draw_text("[ПРОДАНО]", view.card_font, GRAY,
                                view.shop_item_2_rect.x + 35, view.shop_item_2_rect.y + 110)
 
-            # ── Кнопка сжигания ──
+            # Кнопка сжигания
             view.btn_shop_remove_rect = pygame.Rect(100, 520, 400, 70)
             Shop.is_remove_hovered = view.btn_shop_remove_rect.collidepoint(mouse_pos)
             remove_color = (90, 90, 95) if Shop.is_remove_hovered else (60, 60, 60)
@@ -97,7 +108,7 @@ class Shop:
                 view.btn_shop_remove_rect.x + 25, view.btn_shop_remove_rect.y + 22
             )
 
-            # ── Кнопка выхода ──
+            # Кнопка выхода
             view.btn_shop_leave_rect = pygame.Rect(100, 610, 400, 70)
             Shop.is_leave_hovered = view.btn_shop_leave_rect.collidepoint(mouse_pos)
             leave_color = (65, 65, 70) if Shop.is_leave_hovered else (40, 40, 45)
@@ -178,7 +189,7 @@ class Shop:
                     if card_rect.collidepoint(mouse_pos):
                         removed = view.gm.current_deck.pop(index)
                         view.gm.player_gold -= view.gm.get_removal_price()
-                        view.gm.removal_count += 1   # <-- счётчик, цена пересчитается сама
+                        view.gm.removal_count += 1
                         print(f"Карта '{removed.name}' сожжена. "
                               f"Следующее сжигание: {view.gm.get_removal_price()} з.")
                         Shop.sub_state = "MAIN"

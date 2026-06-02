@@ -18,24 +18,16 @@ NODE_LABELS = {
     "BOSS":     "БОСС",
 }
 
-# Геометрия: карта горизонтальная
-# Колонки (col 0,1,2) → строки по Y
-# Этажи (row 0..19) → столбцы по X
+MAP_LEFT   = 120
+MAP_RIGHT  = 1820
+ROW_Y      = [300, 540, 780]
 
-MAP_LEFT   = 120    # X старта (этаж 1)
-MAP_RIGHT  = 1820   # X финала (босс)
-ROW_Y      = [300, 540, 780]  # Y трёх путей (верх / центр / низ)
-
-NODE_R     = 18     # радиус обычного узла
-NODE_R_ACT = 24     # радиус доступного узла
-NODE_R_BSS = 30     # радиус босса
+NODE_R     = 18
+NODE_R_ACT = 24
+NODE_R_BSS = 30
 
 
 def _node_pos(row: int, col: int, total_rows: int) -> tuple:
-    """
-    row  = шаг по карте (0=старт, total_rows-1=босс) → X
-    col  = путь (0=верх, 1=центр, 2=низ)             → Y
-    """
     t = row / (total_rows - 1) if total_rows > 1 else 0
     x = int(MAP_LEFT + t * (MAP_RIGHT - MAP_LEFT))
     y = ROW_Y[col]
@@ -43,7 +35,6 @@ def _node_pos(row: int, col: int, total_rows: int) -> tuple:
 
 
 class MapView:
-    """Горизонтальная карта: старт слева, босс справа, 3 пути по высоте."""
 
     @staticmethod
     def draw_map(view):
@@ -60,8 +51,8 @@ class MapView:
         available_cols  = {n.col for n in available_nodes}
         mouse_pos       = pygame.mouse.get_pos()
 
-        font_step   = pygame.font.SysFont("Courier New", 16)
-        font_tip    = pygame.font.SysFont("Arial", 22, bold=True)
+        font_step = pygame.font.SysFont("Courier New", 16)
+        font_tip  = pygame.font.SysFont("Arial", 22, bold=True)
 
         hovered_node = None
 
@@ -127,29 +118,27 @@ class MapView:
         if gm.player_path:
             pr, pc = gm.player_path[-1]
             px, py = _node_pos(pr, pc, total_rows)
-            # Маленький жёлтый ромб над узлом
             pts = [
-                (px,          py - NODE_R - 14),
-                (px - 8,      py - NODE_R - 6),
-                (px,          py - NODE_R - 2),
-                (px + 8,      py - NODE_R - 6),
+                (px,     py - NODE_R - 14),
+                (px - 8, py - NODE_R - 6),
+                (px,     py - NODE_R - 2),
+                (px + 8, py - NODE_R - 6),
             ]
             pygame.draw.polygon(screen, (255, 240, 60), pts)
 
-        # ── 4. НОМЕРА ШАГОВ под картой ────────────────────────────────
+        # ── 4. НОМЕРА ШАГОВ ───────────────────────────────────────────
         for row in range(total_rows):
-            x, _ = _node_pos(row, 1, total_rows)  # центральный путь как ориентир
+            x, _ = _node_pos(row, 1, total_rows)
             step_num = row + 1
             is_cur   = (row == current_row)
             color    = (255, 220, 60) if is_cur else (55, 55, 75)
             surf     = font_step.render(str(step_num), True, color)
             rect     = surf.get_rect(center=(x, 870))
             screen.blit(surf, rect)
-            # Засечка
             tick_color = (255, 220, 60) if is_cur else (40, 40, 58)
             pygame.draw.line(screen, tick_color, (x, 855), (x, 862), 1)
 
-        # ── 5. ПОДПИСИ ПУТЕЙ слева ────────────────────────────────────
+        # ── 5. ПОДПИСИ ПУТЕЙ ──────────────────────────────────────────
         path_labels = ["Путь A", "Путь B", "Путь C"]
         for col in range(3):
             y = ROW_Y[col]
@@ -168,7 +157,7 @@ class MapView:
         )
         view.draw_text(f"Золото: {gm.player_gold} з.", view.main_font, YELLOW, 1650, 20)
 
-        # ── 7. ЛЕГЕНДА (нижний левый угол) ───────────────────────────
+        # ── 7. ЛЕГЕНДА ────────────────────────────────────────────────
         lx, ly = 30, 900
         view.draw_text("Легенда:", view.ui_font, (160, 160, 180), lx, ly)
         for i, (ntype, label) in enumerate(NODE_LABELS.items()):
@@ -200,7 +189,6 @@ class MapView:
         if not gm.map_grid:
             return
         total_rows      = len(gm.map_grid)
-        current_row     = (gm.current_floor - 1) % total_rows
         available_nodes = gm.get_available_nodes()
 
         for node in available_nodes:
@@ -209,4 +197,8 @@ class MapView:
             dist = ((mouse_pos[0] - x) ** 2 + (mouse_pos[1] - y) ** 2) ** 0.5
             if dist <= r + 6:
                 gm.enter_chosen_room(node.node_type, col=node.col)
+                # Инициализируем сундук сразу при входе
+                if gm.current_state == "CHEST":
+                    from ui.Chest import Chest
+                    Chest.init_chest(view)
                 return

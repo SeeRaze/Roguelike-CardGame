@@ -9,6 +9,7 @@ from ui.Shop import Shop
 from ui.MapView import MapView
 from ui.LeaderboardView import LeaderboardView
 from ui.CardRenderer import CardRenderer
+from ui.Chest import Chest
 
 
 class GameView:
@@ -25,9 +26,9 @@ class GameView:
         self.fps   = 60
         self.is_running = True
 
-        self.main_font     = pygame.font.SysFont("Arial", 32, bold=True)
-        self.ui_font       = pygame.font.SysFont("Courier New", 24)
-        self.card_font     = pygame.font.SysFont("Arial", 22, bold=True)
+        self.main_font      = pygame.font.SysFont("Arial", 32, bold=True)
+        self.ui_font        = pygame.font.SysFont("Courier New", 24)
+        self.card_font      = pygame.font.SysFont("Arial", 22, bold=True)
         self.card_desc_font = pygame.font.SysFont("Arial", 16)
 
         self.scroll_y = 0
@@ -40,7 +41,7 @@ class GameView:
 
         self.hovered_card_index  = -1
         self.is_end_turn_hovered = False
-        self._map_hovered_col    = None  # для MapView
+        self._map_hovered_col    = None
 
         self.gm = GameManager()
         self.gm.start_game()
@@ -65,17 +66,14 @@ class GameView:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    # Меню и хаб
                     if self.gm.current_state in ["MAIN_MENU", "HUB"]:
                         MainMenu.handle_clicks(self, mouse_pos)
                         continue
 
-                    # Карта — клик по узлу
                     if self.gm.current_state == "MAP":
                         MapView.handle_click(self, mouse_pos)
                         continue
 
-                    # Всё остальное (бой, магазин, костёр...)
                     InputHandler.process_mouse_clicks(self, event.pos)
 
                 elif event.button in [4, 5]:
@@ -140,23 +138,21 @@ class GameView:
         elif self.gm.current_state == "LEADERBOARD":
             LeaderboardView.draw_screen(self)
         elif self.gm.current_state == "CHEST":
-            self._draw_placeholder("CHEST", "📦 Сундук", "(в разработке)")
+            Chest.draw_screen(self)
         elif self.gm.current_state == "EVENT":
-            self._draw_placeholder("EVENT", "❓ Случайное событие", "(в разработке)")
+            self._draw_placeholder("EVENT", "Случайное событие", "(в разработке)")
 
-        pygame.display.flip()
+        pygame.display.flip()  # <-- ЗДЕСЬ, один раз, для всех состояний
 
     def _draw_placeholder(self, state, title, subtitle):
         """Временная заглушка для новых экранов."""
         self.screen.fill((20, 20, 30))
         self.draw_text(title,    self.main_font, (255, 220, 60), 760, 480)
         self.draw_text(subtitle, self.ui_font,   (180, 180, 180), 820, 530)
-        # Кнопка "Продолжить"
         btn = pygame.Rect(760, 620, 400, 70)
         pygame.draw.rect(self.screen, (60, 60, 80), btn)
         pygame.draw.rect(self.screen, (255, 255, 255), btn, 2)
-        self.draw_text("Продолжить →", self.card_font, (255, 255, 255), 870, 643)
-        # Клик по кнопке
+        self.draw_text("Продолжить ->", self.card_font, (255, 255, 255), 870, 643)
         mouse = pygame.mouse.get_pos()
         if btn.collidepoint(mouse):
             for event in pygame.event.get(pygame.MOUSEBUTTONDOWN):
