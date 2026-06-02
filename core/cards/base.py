@@ -1,3 +1,4 @@
+# core/cards/base.py
 from core.EffectCalculator import EffectCalculator
 from core.StatusRegistry import STATUSES
 from core.rarity import Rarity
@@ -14,10 +15,40 @@ class DamageEffect:
         final_dmg = EffectCalculator.calculate_damage(
             player, enemy, base, gm_ref, combat_manager
         )
-        enemy.take_damage(final_dmg, attacker=player)
+        enemy.take_damage(final_dmg, attacker=player, combat_manager=combat_manager)
         if combat_manager:
             combat_manager.add_log_message(
                 f" -> {enemy.name} получает {final_dmg} урона."
+            )
+
+
+class VampireDamageEffect:
+    """Урон + восстановление 50% от фактически нанесённого урона.
+    Синергирует с Яростью: сила удара растёт -> хил растёт пропорционально."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        gm_ref = combat_manager.gm if combat_manager is not None else None
+
+        # Считаем финальный урон с учётом Ярости, Слабости, Уязвимости и реликвий
+        final_dmg = EffectCalculator.calculate_damage(
+            player, enemy, base, gm_ref, combat_manager
+        )
+        enemy.take_damage(final_dmg, attacker=player, combat_manager=combat_manager)
+
+        # Хил = 50% от фактического урона (округление вниз, минимум 1)
+        heal_amount = max(1, final_dmg // 2)
+        healed = player.heal(heal_amount)
+
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> {enemy.name} получает {final_dmg} урона."
+            )
+            combat_manager.add_log_message(
+                f" [ВАМПИР] Вы восстанавливаете {healed} HP."
             )
 
 
@@ -73,10 +104,8 @@ class StatusEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         turns = self.upgrade_turns if is_upgraded else self.base_turns
-
         if self.status_type in STATUSES:
             enemy.add_status(self.status_type, turns, combat_manager)
-
         if combat_manager:
             combat_manager.add_log_message(
                 f" -> На {enemy.name} наложен статус "
@@ -108,7 +137,7 @@ class Card:
         self.effects = effects
         self.rarity = rarity
         self.upgraded = False
-        self.exile = exile          # True = карта изгоняется после разыгрывания
+        self.exile = exile
 
     def upgrade(self):
         if not self.upgraded:

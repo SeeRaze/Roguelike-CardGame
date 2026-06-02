@@ -82,7 +82,8 @@ class Enemy(Creature):
             final_dmg = EffectCalculator.calculate_damage(
                 self, player, intent.value, gm, combat_manager
             )
-            player.take_damage(final_dmg, attacker=self)
+            # Передаём combat_manager для триггера кровотечения
+            player.take_damage(final_dmg, attacker=self, combat_manager=combat_manager)
             if combat_manager:
                 combat_manager.add_log_message(
                     f" -> Бьет вас на {final_dmg} урона."
