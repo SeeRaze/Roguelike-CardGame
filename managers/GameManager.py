@@ -2,7 +2,8 @@ import random
 import os
 from managers.network_manager import send_run_record
 from managers.MapGenerator    import generate_map, FLOORS_PER_ACT
-from core.relics              import LuckyClover, SpikedBracelet
+from core.relics              import LuckyClover, SpikedBracelet, RELIC_POOL, ALL_RELICS
+from core.rarity              import Rarity
 from core.players             import Warrior
 from core.cards import (
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
@@ -11,6 +12,18 @@ from core.cards import (
     create_splash, create_rain_cloud,
     create_poison_stab, create_toxic_cloud, create_acid_shield,
 )
+
+# Реестр врагов: имя-ключ -> класс.
+# Добавить врага = один импорт + одна строка здесь.
+from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy
+
+ENEMY_REGISTRY = {
+    "Культист": Cultist,
+    "Страж":    Cultist,
+    "Слизень":  SlimeAndGoblins,
+    "Гоблин":   SlimeAndGoblins,
+    "Орк":      SlimeAndGoblins,
+}
 
 
 class GameManager:
@@ -120,31 +133,27 @@ class GameManager:
             enemy_hp   = int(enemy_hp   * 2.2)
             enemy_dmg  = int(enemy_dmg  * 1.3)
             enemy_shld = int(enemy_shld * 1.8)
-            boss_titles = ["Древний Страж Башни", "Верховный Культист Неона", "Гидра Стихий"]
+            boss_titles = ["Древний Страж Башни", "Верховный Культист Неона",
+                           "Гидра Стихий"]
             e_name = f"БОСС: {random.choice(boss_titles)} [Ярус {tier + 1}]"
+            enemy_class = BossTitan
         else:
             prefixes = ["Дикий", "Проклятый", "Чумной", "Стальной", "Адский"]
-            types    = ["Слизень", "Культист", "Гоблин", "Орк", "Страж"]
-            e_name   = f"{random.choice(prefixes)} {random.choice(types)} [Этаж {floor}]"
+            types    = list(ENEMY_REGISTRY.keys())
+            e_type   = random.choice(types)
+            e_name   = f"{random.choice(prefixes)} {e_type} [Этаж {floor}]"
+            enemy_class = ENEMY_REGISTRY.get(e_type, Enemy)
 
-        from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy
-
-        if is_boss:
-            enemy = BossTitan(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
-        elif "Культист" in e_name or "Страж" in e_name:
-            enemy = Cultist(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
-        elif "Слизень" in e_name or "Гоблин" in e_name or "Орк" in e_name:
-            enemy = SlimeAndGoblins(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
-        else:
-            enemy = Enemy(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
-
+        enemy = enemy_class(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
         enemy.base_test_damage = enemy_dmg
         enemy.base_test_shield = enemy_shld
         if is_boss:
             enemy.shield = enemy_shld * 2
 
         from managers.CombatManager import CombatManager
-        self.active_combat = CombatManager(self.player, enemy, self.current_deck, self)
+        self.active_combat = CombatManager(
+            self.player, enemy, self.current_deck, self
+        )
 
     # ------------------------------------------------------------------
     # НАГРАДЫ
@@ -167,17 +176,32 @@ class GameManager:
         log_msg = f"Залутано +{gold_drop} монет!"
 
         if random.randint(1, 2) == 1:
-            from core.relics import (LuckyClover, SpikedBracelet,
-                                     ЭнергоЯдро, ТочильныйКамень,
-                                     ДревнееОгниво, НамокшаяРукавица)
-            all_pool = [LuckyClover, SpikedBracelet, ЭнергоЯдро,
-                        ТочильныйКамень, ДревнееОгниво, НамокшаяРукавица]
-            current_names    = [r.name for r in self.relics]
-            available_relics = [r for r in all_pool if r().name not in current_names]
+            # Ролл редкости: 60% COMMON, 30% UNCOMMON, 10% RARE
+            roll = random.random()
+            if roll < 0.60:
+                rarity = Rarity.COMMON
+            elif roll < 0.90:
+                rarity = Rarity.UNCOMMON
+            else:
+                rarity = Rarity.RARE
+
+            pool = RELIC_POOL.get(rarity, [])
+            # Фолбэк: если пул пуст — берём из ALL_RELICS
+            if not pool:
+                pool = ALL_RELICS
+
+            current_names    = {r.name for r in self.relics}
+            available_relics = [r for r in pool if r().name not in current_names]
+
+            if not available_relics:
+                available_relics = [r for r in ALL_RELICS
+                                    if r().name not in current_names]
+
             if available_relics:
                 new_relic = random.choice(available_relics)()
                 self.relics.append(new_relic)
-                log_msg += f" [НАГРАДА] Артефакт: '{new_relic.name}'!"
+                log_msg += (f" [НАГРАДА] Артефакт [{rarity.value}]: "
+                            f"'{new_relic.name}'!")
 
         if self.active_combat:
             self.active_combat.add_log_message(log_msg)

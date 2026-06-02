@@ -117,13 +117,11 @@ class CombatInterface:
 
         for index, card in enumerate(dm.hand):
             card_x = view.calculate_card_x(index, hand_size)
-            card_y = view.base_y
-            if index == view.hovered_card_index:
-                card_y = view.base_y - 40
+            card_y = view.base_y - 40 if index == view.hover.card_index else view.base_y
             view.draw_card_by_data(card, card_x, card_y, enemy=enemy, player=player)
 
         # 4. КНОПКА КОНЦА ХОДА
-        btn_color = (90, 90, 95) if view.is_end_turn_hovered else (60, 60, 60)
+        btn_color = (90, 90, 95) if view.hover.end_turn else (60, 60, 60)
         pygame.draw.rect(view.screen, btn_color, view.end_turn_rect)
         pygame.draw.rect(view.screen, WHITE, view.end_turn_rect, 2)
         view.draw_text(
@@ -144,11 +142,9 @@ class CombatInterface:
             )
 
         # 6. ТУЛТИП СТАТУСА -- рисуется ПОСЛЕДНИМ, поверх всего
-        hovered_key = getattr(view, 'hovered_status_key', None)
-        hovered_val = getattr(view, 'hovered_status_val', 0)
-        if hovered_key:
-            mouse_pos = pygame.mouse.get_pos()
+        if view.hover.status_key:
             CombatHUD.draw_status_tooltip(
                 view.screen, view.card_desc_font,
-                hovered_key, hovered_val, mouse_pos
+                view.hover.status_key, view.hover.status_val,
+                pygame.mouse.get_pos()
             )

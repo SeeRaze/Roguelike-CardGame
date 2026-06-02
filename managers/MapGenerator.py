@@ -10,27 +10,34 @@ NODE_WEIGHTS = {
     "EVENT":    8,
 }
 
+# Переопределения типов для конкретных строк.
+# Добавить правило = одна строка здесь, функция не меняется.
+ROW_OVERRIDES = {
+    0:                    "COMBAT",                          # первая комната всегда бой
+    FLOORS_PER_ACT - 1:  "BOSS",                            # последняя — босс
+    FLOORS_PER_ACT - 2:  lambda: random.choice(["CAMPFIRE", "SHOP"]),  # предбосс
+}
+
 
 class MapNode:
     """Один узел на карте: тип комнаты + список соединений вниз."""
     def __init__(self, node_type: str, col: int, row: int):
-        self.node_type   = node_type   # COMBAT / CAMPFIRE / SHOP / CHEST / EVENT / BOSS
-        self.col         = col         # 0, 1, 2 — колонка
-        self.row         = row         # 0..19 — строка
-        self.connections = []          # индексы колонок узлов СЛЕДУЮЩЕЙ строки
+        self.node_type   = node_type
+        self.col         = col
+        self.row         = row
+        self.connections = []
 
 
 def _pick_node_type(row: int) -> str:
     """Выбирает тип узла по правилам баланса."""
-    if row == 0:
-        return "COMBAT"
-    if row == FLOORS_PER_ACT - 1:
-        return "BOSS"
-    if row == FLOORS_PER_ACT - 2:
-        return random.choice(["CAMPFIRE", "SHOP"])
-    types   = list(NODE_WEIGHTS.keys())
-    weights = list(NODE_WEIGHTS.values())
-    return random.choices(types, weights=weights, k=1)[0]
+    override = ROW_OVERRIDES.get(row)
+    if override is not None:
+        return override() if callable(override) else override
+    return random.choices(
+        list(NODE_WEIGHTS.keys()),
+        weights=list(NODE_WEIGHTS.values()),
+        k=1
+    )[0]
 
 
 def generate_map() -> list:
@@ -38,9 +45,7 @@ def generate_map() -> list:
     map_grid = []
 
     for row in range(FLOORS_PER_ACT):
-        row_nodes = []
-        for col in range(3):
-            row_nodes.append(MapNode(_pick_node_type(row), col, row))
+        row_nodes = [MapNode(_pick_node_type(row), col, row) for col in range(3)]
         map_grid.append(row_nodes)
 
     for row in range(FLOORS_PER_ACT - 1):
