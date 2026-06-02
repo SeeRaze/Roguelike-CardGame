@@ -1,6 +1,6 @@
 # _project_map.md — навигатор проекта
 # Читать ПЕРВЫМ в каждой сессии
-# Последнее обновление: Jun 2, 2026 — Сессия 7
+# Последнее обновление: Jun 2, 2026 — Сессия 8
 
 ## РЕПОЗИТОРИЙ
 GitHub: https://github.com/SeeRaze/Roguelike-CardGame
@@ -12,11 +12,11 @@ GitHub: https://github.com/SeeRaze/Roguelike-CardGame
 - Лимит файла: 150 строк (золотой стандарт)
 - Python + Pygame
 
-## ПОЛНЫЙ СПИСОК ФАЙЛОВ (актуально на Jun 2, 2026 — Сессия 7)
+## ПОЛНЫЙ СПИСОК ФАЙЛОВ (актуально на Jun 2, 2026 — Сессия 8)
 
 main.py, server.py, _project_map.md
 
-core/rarity.py                          — Rarity enum: COMMON, UNCOMMON, RARE, EPIC, LEGENDARY
+core/rarity.py                          — Rarity enum + RARITY_COLORS dict (цвет рамки по редкости)
 core/Creature.py                        — базовый класс (hp, shield, self.statuses={}, __getattr__/__setattr__)
 core/EffectCalculator.py                — единая точка боевой математики (dry_run=True)
 core/StatusRegistry.py                  — единый реестр 7 статусов
@@ -35,10 +35,10 @@ core/cards/debuff/vulnerable.py
 core/cards/debuff/weak.py
 
 core/enemies/__init__.py
-core/enemies/base.py                    — Enemy + Intent-объекты (IntentAttack/Defend/Debuff/None) + сеттеры совместимости
+core/enemies/base.py                    — Enemy + Intent-объекты + сеттеры совместимости
 core/enemies/cultist.py
 core/enemies/slime.py
-core/enemies/boss.py                    — BossTitan (убран дублирующий turn_count += 1)
+core/enemies/boss.py
 
 core/players/__init__.py
 core/players/base.py                    — Player + _extra_starter_cards + add_to_starter_deck()
@@ -47,23 +47,23 @@ core/players/rogue.py
 core/players/warrior.py
 
 core/relics/__init__.py                 — RELIC_POOL по редкостям + ALL_RELICS
-core/relics/base.py                     — Relic + rarity поле + 8 хуков (5 активных + 3 заглушки)
+core/relics/base.py                     — Relic + rarity + 8 хуков (5 активных + 3 заглушки)
 core/relics/starter.py
 core/relics/elemental.py
 
-managers/BalanceSimulator.py            — перепись под текущую архитектуру (Warrior/Rogue/Mage)
+managers/BalanceSimulator.py
 managers/CombatManager.py
 managers/DeckManager.py
-managers/GameManager.py                 — ENEMY_REGISTRY dict; distribute_combat_rewards с роллом редкости
+managers/GameManager.py                 — ENEMY_REGISTRY dict; distribute_combat_rewards
 managers/MapGenerator.py               — ROW_OVERRIDES конфиг; MapNode, generate_map()
 managers/network_manager.py
 
 ui/Campfire.py
 ui/CardRenderer.py
 ui/Chest.py
-ui/CombatInterface.py                   — оркестратор; читает view.hover.* (HoverState)
+ui/CombatInterface.py                   — draw_relics через CombatHUD; draw_relic_tooltip последним
 ui/EventView.py
-ui/GameView.py                          — HoverState dataclass + DRAW_HANDLERS диспетчер
+ui/GameView.py                          — HoverState (+ relic_obj) + DRAW_HANDLERS + relic_rects в update()
 ui/HubView.py
 ui/InputHandler.py                      — STATE_HANDLERS диспетчер
 ui/LeaderboardView.py
@@ -71,7 +71,9 @@ ui/MainMenu.py
 ui/MapView.py
 ui/Shop.py
 ui/combat/__init__.py
-ui/combat/hud.py                        — CombatHUD: draw_hp_bar, draw_status_badges, draw_status_tooltip
+ui/combat/hud.py                        — draw_hp_bar, draw_status_badges, draw_status_tooltip,
+                                          draw_relics, draw_relic_tooltip
+
 ui/events/__init__.py
 ui/events/event_data.py
 ui/events/event_effects.py
@@ -93,6 +95,7 @@ ui/events/event_effects.py
 
 ### Rarity (core/rarity.py)
 - COMMON, UNCOMMON, RARE, EPIC, LEGENDARY
+- RARITY_COLORS: {Rarity → (R, G, B)} — импортировать из core.rarity
 - Card.rarity = Rarity.COMMON по умолчанию
 - Relic.rarity = Rarity.COMMON по умолчанию
 
@@ -102,6 +105,17 @@ ui/events/event_effects.py
    Rarity.RARE: [ЭнергоЯдро], EPIC: [], LEGENDARY: []}
 - Ролл редкости: 60% COMMON, 30% UNCOMMON, 10% RARE
 
+### UI реликвий в бою (ui/combat/hud.py)
+- draw_relics(screen, font, relics, x, y) → [(rect, relic)]
+- draw_relic_tooltip(screen, font, relic, mouse_pos) — тултип с именем цветом редкости
+- HoverState.relic_obj — реликвия под курсором, сбрасывается каждый кадр
+- view.relic_rects заполняется в CombatInterface, проверяется в GameView.update()
+
+### Хуки реликвий (core/relics/base.py)
+- on_combat_start, on_turn_start, on_damage_calculated, on_tick_ignited, on_wet_applied — активные
+- on_card_played, on_shield_gained, on_kill — ЗАГЛУШКИ (не подключены в CombatManager)
+- Реликвии управляют своими эффектами САМИ через хуки
+
 ### ENEMY_REGISTRY (managers/GameManager.py)
 - {"Культист": Cultist, "Страж": Cultist,
    "Слизень": SlimeAndGoblins, "Гоблин": SlimeAndGoblins, "Орк": SlimeAndGoblins}
@@ -109,23 +123,15 @@ ui/events/event_effects.py
 
 ### Intent-объекты (core/enemies/base.py)
 - IntentAttack, IntentDefend, IntentDebuff, IntentNone
-- Обратная совместимость: .intent_type и .intent_value работают как раньше через @property + setter
 - Предпочтительный способ: enemy.set_intent("attack", 10)
 
 ### HoverState (ui/GameView.py)
-- Все hover-данные в self.hover (card_index, card_rect, card_obj, status_key, status_val, end_turn, map_col)
+- Поля: card_index, card_rect, card_obj, status_key, status_val, end_turn, map_col, relic_obj
 - Сбрасывается в update() каждый кадр
-- CombatInterface читает view.hover.* (не плоские атрибуты)
-
-### Реликвии — хуки
-- on_combat_start, on_turn_start, on_damage_calculated, on_tick_ignited, on_wet_applied — активные
-- on_card_played, on_shield_gained, on_kill — заглушки для будущих реликвий
-- Реликвии управляют своими эффектами САМИ через хуки
 
 ### Player (core/players/base.py)
-- _extra_starter_cards: list — карты добавленные реликвиями/событиями
-- add_to_starter_deck(card) — добавить карту в стартовую деку
-- get_starter_deck() — фабрика + extra карты
+- _extra_starter_cards: list
+- add_to_starter_deck(card), get_starter_deck()
 
 ## ФОРМУЛЫ ВРАГОВ (тестовый режим, Jun 2 сессия)
 hp  = 20 + floor×3 + tier×10
@@ -141,6 +147,7 @@ shld = 2
 ## ИЗВЕСТНЫЕ НЕРЕШЁННЫЕ ПРОБЛЕМЫ
 - Ключи как предмет для закрытых сундуков (отложено)
 - Щит врага сбрасывается каждый ход (намеренно)
+- Хуки on_card_played, on_shield_gained, on_kill — заглушки, не подключены в CombatManager
 
 ## ВАЖНЫЕ ГРАБЛИ
 - При копировании кода из чата легко сбиваются отступы Python — всегда проверять
@@ -156,22 +163,26 @@ shld = 2
 - Все файлы читать из ветки DEV, не main
 - BotCombatManager: бой стартует в __init__, вызывать run_bot_loop() после создания объекта
 - CombatManager.__init__ сигнатура: (player, enemy, starting_deck, game_manager=None)
+- RARITY_COLORS импортировать из core.rarity (не из core.relics)
 
 ## ИСПРАВЛЕННЫЕ БАГИ (полная история, 52 штука)
-[1-51 — см. предыдущие сессии]
-52. core/enemies/boss.py — убран дублирующий turn_count += 1 (двойной инкремент счётчика)
+[1-52 — см. предыдущие сессии]
 
-## ПЛАН СЛЕДУЮЩЕЙ СЕССИИ (Сессия 8)
-Все 14 пунктов A-N из плана масштабируемости ВЫПОЛНЕНЫ.
+## ПЛАН СЛЕДУЮЩЕЙ СЕССИИ (Сессия 9)
 
-Возможные направления:
-1. Новый контент: карты UNCOMMON/RARE/EPIC, реликвии EPIC/LEGENDARY
-2. Хуки on_card_played, on_shield_gained, on_kill — реализовать первые реликвии на них
-3. Запустить BalanceSimulator, проверить win rate по классам, скорректировать баланс
-4. UI: экран выбора реликвии с отображением редкости (цвет рамки по Rarity)
-5. Новые типы врагов или боссов
+Приоритет — подключить хуки-заглушки:
+1. on_card_played — подключить в CombatManager.play_card_by_index, написать реликвию
+2. on_shield_gained — подключить в Creature.gain_shield (или CombatManager), написать реликвию
+3. on_kill — подключить в CombatManager.end_turn_phase, написать реликвию
+4. Новые реликвии UNCOMMON/RARE на этих хуках
+
+Дополнительно:
+- Карты UNCOMMON/RARE/EPIC для каждого класса
+- Реликвии EPIC/LEGENDARY
+- Экран выбора реликвии с рамкой по RARITY_COLORS
+- Запустить BalanceSimulator, проверить win rate по классам
 
 ## СТАТУС
-Сессия 7 завершена (Jun 2, 2026).
-Реализованы все 14 пунктов плана масштабируемости (A-N).
-Проект полностью переведён на диспетчеры, объекты намерений, систему редкостей и HoverState.
+Сессия 8 завершена (Jun 2, 2026).
+UI реликвий в бою: рамки по редкости + тултип при наведении.
+Следующая стадия: подключение хуков on_card_played / on_shield_gained / on_kill.

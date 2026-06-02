@@ -1,5 +1,6 @@
 import pygame
 from core.StatusRegistry import STATUSES
+from core.rarity import RARITY_COLORS
 
 
 class CombatHUD:
@@ -61,6 +62,33 @@ class CombatHUD:
         return badge_rects
 
     @staticmethod
+    def draw_relics(screen, font, relics, x, y):
+        """
+        Рисует реликвии в ряд начиная с (x, y).
+        Каждая реликвия — прямоугольник с рамкой цвета редкости.
+        Возвращает список [(rect, relic)] для hover-проверки.
+        """
+        relic_rects = []
+        cursor_x = x
+        pad_x, pad_y = 10, 5
+        relic_h = font.get_linesize() + pad_y * 2
+
+        for relic in relics:
+            text_surf    = font.render(relic.name, True, (230, 230, 230))
+            relic_w      = text_surf.get_width() + pad_x * 2
+            rect         = pygame.Rect(cursor_x, y, relic_w, relic_h)
+            border_color = RARITY_COLORS.get(relic.rarity, (150, 150, 150))
+
+            pygame.draw.rect(screen, (35, 35, 45), rect, border_radius=5)
+            pygame.draw.rect(screen, border_color, rect, 2, border_radius=5)
+            screen.blit(text_surf, (cursor_x + pad_x, y + pad_y))
+
+            relic_rects.append((rect, relic))
+            cursor_x += relic_w + 8
+
+        return relic_rects
+
+    @staticmethod
     def draw_status_tooltip(screen, font_desc, status_key, status_val, mouse_pos):
         """
         Рисует тултип с описанием статуса рядом с курсором.
@@ -96,3 +124,41 @@ class CombatHUD:
         for i, line in enumerate(lines):
             surf = font_desc.render(line, True, (230, 230, 230))
             screen.blit(surf, (tip_x + pad_x, tip_y + pad_y + i * line_h))
+
+    @staticmethod
+    def draw_relic_tooltip(screen, font, relic, mouse_pos):
+        """
+        Рисует тултип с именем и описанием реликвии рядом с курсором.
+        Вызывается последним -- поверх всего остального.
+        """
+        lines        = relic.description.split("\n")
+        border_color = RARITY_COLORS.get(relic.rarity, (150, 150, 150))
+
+        pad_x, pad_y = 12, 8
+        line_h = font.get_linesize() + 2
+        max_w  = max((font.size(l)[0] for l in lines), default=100)
+        max_w  = max(max_w, font.size(relic.name)[0])
+        box_w  = max_w + pad_x * 2
+        box_h  = len(lines) * line_h + pad_y * 2 + line_h + 4  # +строка под заголовок
+
+        tip_x = mouse_pos[0] + 16
+        tip_y = mouse_pos[1] + 16
+
+        screen_w, screen_h = screen.get_size()
+        if tip_x + box_w > screen_w - 10:
+            tip_x = mouse_pos[0] - box_w - 10
+        if tip_y + box_h > screen_h - 10:
+            tip_y = mouse_pos[1] - box_h - 10
+
+        bg_rect = pygame.Rect(tip_x, tip_y, box_w, box_h)
+        pygame.draw.rect(screen, (20, 20, 25), bg_rect, border_radius=6)
+        pygame.draw.rect(screen, border_color, bg_rect, 2, border_radius=6)
+
+        # Заголовок цветом редкости
+        name_surf = font.render(relic.name, True, border_color)
+        screen.blit(name_surf, (tip_x + pad_x, tip_y + pad_y))
+
+        # Описание
+        for i, line in enumerate(lines):
+            surf = font.render(line, True, (200, 200, 200))
+            screen.blit(surf, (tip_x + pad_x, tip_y + pad_y + line_h + 4 + i * line_h))

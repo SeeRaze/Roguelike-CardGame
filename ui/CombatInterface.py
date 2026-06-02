@@ -22,13 +22,14 @@ class CombatInterface:
         dm     = combat.deck_manager
 
         # --- РЕЛИКВИИ ---
-        view.draw_text("АРТЕФАКТЫ:", view.card_font, YELLOW, 100, 20)
+        view.draw_text("АРТЕФАКТЫ:", view.card_font, YELLOW, 20, 20)
         if hasattr(view.gm, 'relics'):
-            for r_idx, relic in enumerate(view.gm.relics):
-                view.draw_text(
-                    f"[{relic.name}]", view.card_desc_font, WHITE,
-                    250 + r_idx * 180, 23
-                )
+            view.relic_rects = CombatHUD.draw_relics(
+                view.screen, view.card_desc_font,
+                view.gm.relics, 200, 15
+            )
+        else:
+            view.relic_rects = []
 
         # 1. ИНТЕРФЕЙС ВРАГА
         view.draw_text(f"ВРАГ: {enemy.name}", view.main_font, WHITE, 100, 70)
@@ -141,10 +142,18 @@ class CombatInterface:
                 log_x, log_y + 35 + log_index * 26
             )
 
-        # 6. ТУЛТИП СТАТУСА -- рисуется ПОСЛЕДНИМ, поверх всего
+        # 6. ТУЛТИП СТАТУСА -- рисуется поверх всего
         if view.hover.status_key:
             CombatHUD.draw_status_tooltip(
                 view.screen, view.card_desc_font,
                 view.hover.status_key, view.hover.status_val,
+                pygame.mouse.get_pos()
+            )
+
+        # 7. ТУЛТИП РЕЛИКВИИ -- рисуется самым последним
+        if view.hover.relic_obj:
+            CombatHUD.draw_relic_tooltip(
+                view.screen, view.card_desc_font,
+                view.hover.relic_obj,
                 pygame.mouse.get_pos()
             )

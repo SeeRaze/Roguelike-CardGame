@@ -17,13 +17,14 @@ from ui.Chest import Chest
 @dataclass
 class HoverState:
     """Всё hover-состояние за один кадр. Сбрасывается в update()."""
-    card_index:   int            = -1
+    card_index:   int              = -1
     card_rect:    Optional[object] = None
     card_obj:     Optional[object] = None
-    status_key:   Optional[str]  = None
-    status_val:   int            = 0
-    end_turn:     bool           = False
-    map_col:      Optional[int]  = None
+    status_key:   Optional[str]    = None
+    status_val:   int              = 0
+    end_turn:     bool             = False
+    map_col:      Optional[int]    = None
+    relic_obj:    Optional[object] = None  # реликвия под курсором
 
     def reset(self):
         self.card_index  = -1
@@ -33,6 +34,7 @@ class HoverState:
         self.status_val  = 0
         self.end_turn    = False
         self.map_col     = None
+        self.relic_obj   = None
 
 
 # Диспетчер отрисовки: состояние -> функция.
@@ -106,9 +108,10 @@ class GameView:
         # Все hover-данные в одном объекте
         self.hover = HoverState()
 
-        # Бейджи статусов (заполняются CombatHUD)
+        # Бейджи статусов и реликвии (заполняются CombatHUD)
         self.enemy_badge_rects  = []
         self.player_badge_rects = []
+        self.relic_rects        = []
 
         self.gm = GameManager()
         self.gm.start_game()
@@ -184,6 +187,11 @@ class GameView:
                         self.hover.status_key = key
                         self.hover.status_val = val
                         break
+
+            for rect, relic in self.relic_rects:
+                if rect.collidepoint(mouse_pos):
+                    self.hover.relic_obj = relic
+                    break
 
         if self.gm.current_state == "HUB":
             dt = self.clock.get_time() / 1000.0
