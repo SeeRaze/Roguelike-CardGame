@@ -1,57 +1,39 @@
 # Project Map — Roguelike Card Game
-_Обновлено: Jun 2, 2026_
+_Обновлено: Jun 2, 2026 — Сессия 2_
 
 ---
 
 ## Структура проекта
 main.py
-
 server.py
+_project_map.md
 
 core/
+  Creature.py
+  EffectCalculator.py
+  cards/
+    base.py, basic.py, fire.py, poison.py, water.py
+    buff/strength.py, buff/thorns.py
+    debuff/vulnerable.py, debuff/weak.py
+  enemies/
+    base.py, cultist.py, slime.py, boss.py
+  players/
+    base.py, warrior.py, rogue.py, mage.py
+  relics/
+    base.py, starter.py, elemental.py
 
-Creature.py
-
-EffectCalculator.py
-
-cards/
-
-base.py, basic.py, fire.py, poison.py, water.py
-
-buff/strength.py, buff/thorns.py
-
-debuff/vulnerable.py, debuff/weak.py
-enemies/
-
-base.py, cultist.py, slime.py, boss.py
-players/
-
-base.py, warrior.py, rogue.py, mage.py
-relics/
-
-base.py, starter.py, elemental.py
 managers/
-
-GameManager.py ⚠️ большой файл — использовать query_context
-
-CombatManager.py
-
-DeckManager.py
-
-BalanceSimulator.py
-
-network_manager.py
+  GameManager.py  ⚠️ большой файл — использовать query_context
+  CombatManager.py
+  DeckManager.py
+  BalanceSimulator.py
+  network_manager.py
 
 ui/
-
-MainMenu.py, HubView.py, GameView.py
-
-MapView.py, CombatInterface.py, CardRenderer.py
-
-Shop.py, Campfire.py, Chest.py, EventView.py
-
-InputHandler.py, LeaderboardView.py
-
+  MainMenu.py, HubView.py, GameView.py
+  MapView.py, CombatInterface.py, CardRenderer.py
+  Shop.py, Campfire.py, Chest.py, EventView.py
+  InputHandler.py, LeaderboardView.py
 
 ---
 
@@ -74,12 +56,13 @@ InputHandler.py, LeaderboardView.py
 
 ### managers/GameManager.py  ⚠️ большой
 - `spawn_procedural_enemy()` — генерирует врага по этажу, создаёт CombatManager
+  - Формулы (тест): `hp = 20 + floor×3 + tier×10`, `dmg = 3 + tier×1`, `shld = 2`
   - Формулы (боевые): `hp = 40 + floor×8 + tier×25`, `dmg = 5 + floor×1 + tier×4`, `shld = 3 + floor×1`
-Формулы (тест): `hp = 20 + floor×3 + tier×10`, `dmg = 3 + tier×1`, `shld = 2`
   - Босс (local_step==20): hp×2.2, dmg×1.3, shld×1.8, shield=shld×2
 - `add_card(card)` — добавляет карту в current_deck
 - `enter_chosen_room(room_type, col)` — роутинг по типу узла
 - `get_available_nodes()` — доступные узлы карты
+- `distribute_combat_rewards()` — золото + рандомная реликвия. ⚠️ НЕ содержит ручной if для ЭнергоЯдро
 - Поля: `current_floor, relics[], current_deck, player, active_combat, event_result`
 - `reset()` — НЕТ. При новом забеге создаётся новый `GameManager()`
 - Константы: `FLOORS_PER_ACT = 20`, `NODE_WEIGHTS: COMBAT=55, CAMPFIRE=15, SHOP=10, CHEST=12, EVENT=8`
@@ -113,23 +96,53 @@ InputHandler.py, LeaderboardView.py
 ### core/relics/base.py
 Хуки: `on_combat_start, on_turn_start, on_damage_calculated, on_tick_ignited, on_wet_applied`
 
+### core/relics/starter.py
+- `LuckyClover` — on_combat_start: +2 карты в руку
+- `SpikedBracelet` — on_combat_start: +10 щита
+- `ТочильныйКамень` — on_damage_calculated: base_dmg + 2
+
+### core/relics/elemental.py
+- `ЭнергоЯдро` — on_combat_start: max_energy +1, energy +1 (один раз за забег, флаг _applied)
+  ⚠️ Правило: только хук управляет эффектом. GameManager НЕ дублирует это вручную.
+- `ДревнееОгниво` — on_tick_ignited: возвращает +2 к урону тика горения
+- `НамокшаяРукавица` — on_wet_applied: +4 щита игроку
+
+### core/cards/fire.py
+⚠️ Только две фабрики: `create_ignite`, `create_fire_breath`
+НЕТ: create_ember, create_fireball, create_inferno
+
+### core/cards/water.py
+⚠️ Только две фабрики: `create_splash`, `create_rain_cloud`
+НЕТ: create_water_splash, create_tidal_wave
+
+### core/cards/poison.py
+Фабрики: `create_poison_stab`, `create_toxic_cloud`, `create_acid_shield`
+⚠️ НЕТ: create_poison_dart
+
 ### ui/CardRenderer.py
-- `draw(surface, card, x, y, player=None, enemy=None)`
+- `draw(surface, card, x, y, font_title, font_desc, is_hovered=False, player=None, enemy=None)`
 - Рамка — всегда цвет стихии, не меняется при апгрейде
 - Апгрейд: `"+"` в названии карты
 - `_resolve_description()` — подставляет реальный урон через `EffectCalculator(dry_run=True)`
+- `_draw_unaffordable_overlay(surface, rect)` — 50% затемнение через Surface(SRCALPHA)
+- Затемнение: `can_afford = card.cost <= player.energy` (если player передан)
+- `COLOR_COST_LOW = (160, 40, 40)` — тускло-красный для стоимости недоступной карты
+- Оверлей рисуется ПОСЛЕДНИМ поверх всех элементов карты
 
 ### ui/InputHandler.py
 ⚠️ Единственное место логики рестарта:
+Блок LEADERBOARD: если handle_clicks() == True →
 
-Блок LEADERBOARD при handle_clicks() == True:
 Shop.reset() + Campfire.reset() + MainMenu.reset() + event_reset() + GameManager()
+
 
 ### ui/EventView.py
 - НЕ класс — модуль функций
 - `init_event(gm)` — вызывается из MapView при входе в EVENT
 - `reset()` — вызывается при рестарте из InputHandler
 - `from ui.EventView import handle_clicks as event_clicks` — правильный импорт
+- Пул карт в событиях: create_ignite, create_fire_breath, create_splash, create_rain_cloud,
+  create_poison_stab, create_toxic_cloud, create_strike, create_defend, create_heavy_blade, create_iron_wall
 
 ### ui/MapView.py
 - `handle_click()` → `gm.enter_chosen_room()` → роутинг:
@@ -153,25 +166,31 @@ Shop.reset() + Campfire.reset() + MainMenu.reset() + event_reset() + GameManager
 ---
 
 ## Цепочки вызовов
-Бой
+
+**Бой**
 MapView.handle_click()
 
 → gm.enter_chosen_room("COMBAT")
 
 → gm.spawn_procedural_enemy()
 
-  → CombatManager(player, enemy, deck, gm)
-Ход врага
-CombatManager.end_turn_phase()
+→ CombatManager(player, enemy, deck, gm)
 
-→ enemy.choose_intent()
+→ for relic in gm.relics: relic.on_combat_start(self)  ← ДО start_turn_phase
+
+→ self.start_turn_phase()
+
+**Ход врага**
+CombatManager.end_turn_phase()
 
 → enemy.execute_intent(player, combat_manager)
 
 → EffectCalculator.calculate_damage(...)
 
 → player.take_damage(final_dmg, attacker=enemy)
-Рестарт
+
+
+**Рестарт**
 InputHandler (LEADERBOARD блок)
 
 → LeaderboardView.handle_clicks() == True
@@ -179,8 +198,10 @@ InputHandler (LEADERBOARD блок)
 → Shop.reset(), Campfire.reset(), MainMenu.reset(), event_reset()
 
 → GameManager() (новый объект)
-Добавление карты (везде одинаково)
-gm.add_card(card) ← Shop, Chest, Campfire
+
+
+**Добавление карты (везде одинаково)**
+gm.add_card(card) ← Shop, Chest, Campfire, EventView
 
 
 ---
@@ -199,11 +220,56 @@ gm.add_card(card) ← Shop, Chest, Campfire
 
 ## Персонажи
 
-| Класс | HP |
-|---|---|
-| Warrior | 80 |
-| Rogue | 65 |
-| Mage | 55 |
+| Класс | HP | Энергия |
+|---|---|---|
+| Warrior | 80 | 3 |
+| Rogue | 65 | 3 |
+| Mage | 55 | 3 |
+
+---
+
+## Исправленные баги (38 штук, полная история)
+
+| # | Файл | Суть |
+|---|---|---|
+| 1 | GameView.py | pygame.display.flip() перенесён в конец draw() |
+| 2 | GameView.py | CHEST и EVENT рендерятся через нативные модули |
+| 3 | InputHandler.py | блоки CHEST и EVENT добавлены, импорты на уровне модуля |
+| 4 | Chest.py | CHEST_CARD_POOL переделан на фабричные функции |
+| 5 | Shop.py / Campfire.py | добавлены методы reset() |
+| 6 | EventView.py | создан с нуля (7 событий, полный цикл) |
+| 7 | EventView.py | ImportError -- не класс, а модуль функций |
+| 8 | MapView.py | добавлен вызов EventView.init_event(gm) при входе в EVENT |
+| 9 | InputHandler.py | добавлен event_reset() при рестарте |
+| 10 | Chest.py | ложная надпись "уже получено" → "при взятии карты" |
+| 11 | InputHandler.py | удалён мёртвый legacy MAP-блок |
+| 12 | EventView.py | gm.player_relics → gm.relics в gain_relic |
+| 13 | MapView.py | подсказка y=1050 → y=1040 |
+| 14 | Chest.py | gm.current_deck.append() → gm.add_card() |
+| 15 | MapView.py | BOSS-узел роутится через room_type = "COMBAT" |
+| 16 | Shop.py | gm.current_deck.append() → gm.add_card() |
+| 17 | CombatManager.py | реликвии on_combat_start ДО start_turn_phase() |
+| 18 | CombatManager.py | проверка enemy.hp <= 0 ДО начала нового хода |
+| 19 | core/enemies/__init__.py | удалена сломанная фабрика spawn_procedural_enemy |
+| 20 | cultist.py + slime.py | убран двойной turn_count += 1 из choose_intent() |
+| 21 | core/Creature.py | убрана двойная уязвимость ×1.5 из take_damage() |
+| 22 | core/relics/base.py | добавлены хуки on_tick_ignited, on_wet_applied |
+| 23 | core/relics/elemental.py | реализованы ЭнергоЯдро, ДревнееОгниво, НамокшаяРукавица |
+| 24 | core/Creature.py | tick_statuses принимает combat_manager=None |
+| 25 | core/cards/base.py | StatusEffect.execute вызывает on_wet_applied у реликвий |
+| 26 | CombatManager.py | tick_statuses передают self |
+| 27 | HubView.py | убраны эмодзи из CLASS_INFO |
+| 28 | HubView.py | добавлен reset() метод |
+| 29 | HubView.py | spread_total ограничен шириной экрана |
+| 30 | MainMenu.py | добавлен reset() classmethod |
+| 31 | InputHandler.py | MainMenu.reset() в блоке рестарта |
+| 32 | LeaderboardView.py | handle_clicks() возвращает True/False, без логики рестарта |
+| 33 | InputHandler.py | единственное место рестарта |
+| 34 | network_manager.py | send_run_record() асинхронный |
+| 35 | network_manager.py | _get_username() с try/except fallback |
+| 36 | GameManager.py | удалён мёртвый импорт spawn_procedural_enemy |
+| 37 | EventView.py | исправлены 6 несуществующих импортов карт |
+| 38 | GameManager.py | удалён ручной if ЭнергоЯдро: max_energy += 1 (дублировал хук) |
 
 ---
 
@@ -218,6 +284,10 @@ gm.add_card(card) ← Shop, Chest, Campfire
 - `LeaderboardView.handle_clicks()` — только возвращает True/False, рестарт в InputHandler
 - `pygame.display.flip()` — один раз в конце `draw()`, не внутри методов
 - Отступы Python при копировании из чата — всегда проверять структуру
+- Реликвии управляют своими эффектами САМИ через хуки — GameManager не дублирует логику реликвий
+- `fire.py` — только `create_ignite`, `create_fire_breath`. Нет ember/fireball/inferno
+- `water.py` — только `create_splash`, `create_rain_cloud`. Нет water_splash/tidal_wave
+- `poison.py` — `create_poison_stab`, не create_poison_dart
 
 ---
 
