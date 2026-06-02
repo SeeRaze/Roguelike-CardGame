@@ -39,23 +39,26 @@ class CardRenderer:
             return (40, 40, 40), (70, 160, 240)
 
     @staticmethod
-    def _get_card_keywords(card) -> list[str]:
+    def _get_card_keywords(card) -> list[tuple[str, int]]:
         """
-        Возвращает список ключевых слов (status_type) которые карта накладывает.
-        Сканирует card.effects -- только StatusEffect и PoisonEffect.
-        Порядок сохраняется, дубликаты исключаются.
+        Возвращает список (status_key, value) для статусных эффектов карты.
+        value = реальное число с учётом апгрейда карты.
         """
+        from core.cards.base import StatusEffect, PoisonEffect
         seen = set()
         keywords = []
         for effect in card.effects:
             key = None
+            val = 0
             if isinstance(effect, StatusEffect):
                 key = effect.status_type
+                val = effect.upgrade_turns if card.upgraded else effect.base_turns
             elif isinstance(effect, PoisonEffect):
                 key = "poison"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
             if key and key in KEYWORD_DESCRIPTIONS and key not in seen:
                 seen.add(key)
-                keywords.append(key)
+                keywords.append((key, val))
         return keywords
 
     @staticmethod
@@ -63,23 +66,23 @@ class CardRenderer:
         """
         Рисует окошко с расшифровкой ключевых слов карты.
         Появляется справа от карты (или слева если нет места).
-        Вызывается только когда карта в hover и у неё есть ключевые слова.
         """
         keywords = CardRenderer._get_card_keywords(card)
         if not keywords:
             return
 
-        pad_x, pad_y = 14, 10
-        line_h_title = font_title.get_linesize()
-        line_h_desc  = font_desc.get_linesize() + 1
-        gap          = 6    # между блоками ключевых слов
-        section_gap  = 10   # между заголовком и описанием внутри блока
+        pad_x, pad_y  = 14, 10
+        line_h_title  = font_title.get_linesize()
+        line_h_desc   = font_desc.get_linesize() + 1
+        gap           = 6
+        section_gap   = 4
 
-        # Считаем размер окошка
-        blocks = []   # [(title_surf, [desc_line_surfs])]
-        max_w = 0
-        for key in keywords:
+        # Собираем блоки с подстановкой реального значения вместо N
+        blocks = []
+        max_w  = 0
+        for key, val in keywords:
             title_str, desc_str = KEYWORD_DESCRIPTIONS[key]
+            desc_str = desc_str.replace("N", str(val))   # подставляем реальное число
             title_surf = font_title.render(title_str, True, (255, 220, 80))
             desc_lines = [
                 font_desc.render(l, True, (210, 210, 210))
@@ -98,19 +101,14 @@ class CardRenderer:
             box_h += line_h_title + section_gap
             box_h += len(desc_lines) * line_h_desc
             box_h += gap
-        box_h -= gap  # убираем лишний gap после последнего блока
+        box_h -= gap
 
-        # Позиция: справа от карты, выровнено по верху карты
-        screen_w = screen.get_size()[0]
+        # Позиция: справа от карты
+        screen_w, screen_h = screen.get_size()
         tip_x = card_rect.right + 12
         tip_y = card_rect.top
-
-        # Нет места справа -- рисуем слева
         if tip_x + box_w > screen_w - 10:
             tip_x = card_rect.left - box_w - 12
-
-        # Не вылезаем за нижний край
-        screen_h = screen.get_size()[1]
         if tip_y + box_h > screen_h - 10:
             tip_y = screen_h - box_h - 10
 
@@ -122,7 +120,6 @@ class CardRenderer:
         # Рендер блоков
         cursor_y = tip_y + pad_y
         for i, (title_surf, desc_lines) in enumerate(blocks):
-            # Разделитель между блоками (кроме первого)
             if i > 0:
                 sep_y = cursor_y - gap // 2
                 pygame.draw.line(
@@ -130,14 +127,11 @@ class CardRenderer:
                     (tip_x + pad_x, sep_y),
                     (tip_x + box_w - pad_x, sep_y), 1
                 )
-
             screen.blit(title_surf, (tip_x + pad_x, cursor_y))
             cursor_y += line_h_title + section_gap
-
             for desc_surf in desc_lines:
                 screen.blit(desc_surf, (tip_x + pad_x, cursor_y))
                 cursor_y += line_h_desc
-
             cursor_y += gap
 
     @staticmethod

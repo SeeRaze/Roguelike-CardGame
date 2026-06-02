@@ -52,7 +52,7 @@ class CombatInterface:
     def draw_status_badges(screen, font, creature, x, y):
         """
         Рисует цветные бейджи активных статусов существа начиная с (x, y).
-        Возвращает список [(rect, status_key)] для hover-проверки.
+        Возвращает список [(rect, status_key, val)] для hover-проверки.
         Пропускает статусы с нулевым значением.
         """
         badge_rects = []
@@ -75,22 +75,23 @@ class CombatInterface:
             pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=5)
             screen.blit(text_surf, (cursor_x + pad_x, y + pad_y))
 
-            badge_rects.append((rect, key))
+            badge_rects.append((rect, key, val))   # тройка: rect + ключ + значение
             cursor_x += badge_w + 6
 
         return badge_rects
 
     @staticmethod
-    def draw_status_tooltip(screen, font_desc, status_key, mouse_pos):
+    def draw_status_tooltip(screen, font_desc, status_key, status_val, mouse_pos):
         """
         Рисует тултип с описанием статуса рядом с курсором.
+        status_val подставляется вместо N в тексте описания.
         Вызывается последним -- поверх всего остального.
-        Автоматически прижимается к краям экрана.
         """
         raw_text = STATUS_TOOLTIPS.get(status_key, "")
         if not raw_text:
             return
 
+        raw_text = raw_text.replace("N", str(status_val))
         lines = raw_text.split("\n")
 
         pad_x, pad_y = 12, 8
@@ -99,23 +100,19 @@ class CombatInterface:
         box_w = max_w + pad_x * 2
         box_h = len(lines) * line_h + pad_y * 2
 
-        # Позиция: правее и чуть ниже курсора
         tip_x = mouse_pos[0] + 16
         tip_y = mouse_pos[1] + 16
 
-        # Прижимаем к правому/нижнему краю экрана
         screen_w, screen_h = screen.get_size()
         if tip_x + box_w > screen_w - 10:
             tip_x = mouse_pos[0] - box_w - 10
         if tip_y + box_h > screen_h - 10:
             tip_y = mouse_pos[1] - box_h - 10
 
-        # Фон тултипа
         bg_rect = pygame.Rect(tip_x, tip_y, box_w, box_h)
         pygame.draw.rect(screen, (20, 20, 25), bg_rect, border_radius=6)
         pygame.draw.rect(screen, (200, 200, 200), bg_rect, 1, border_radius=6)
 
-        # Текст
         for i, line in enumerate(lines):
             surf = font_desc.render(line, True, (230, 230, 230))
             screen.blit(surf, (tip_x + pad_x, tip_y + pad_y + i * line_h))
@@ -262,10 +259,11 @@ class CombatInterface:
             )
 
         # 6. ТУЛТИП СТАТУСА -- рисуется ПОСЛЕДНИМ, поверх всего
-        # hovered_status_key выставляется в GameView.update()
         hovered_key = getattr(view, 'hovered_status_key', None)
+        hovered_val = getattr(view, 'hovered_status_val', 0)
         if hovered_key:
             mouse_pos = pygame.mouse.get_pos()
             CombatInterface.draw_status_tooltip(
-                view.screen, view.card_desc_font, hovered_key, mouse_pos
+                view.screen, view.card_desc_font,
+                hovered_key, hovered_val, mouse_pos
             )

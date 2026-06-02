@@ -45,6 +45,7 @@ class GameView:
 
         # Hover-состояние для тултипов статусов на существах
         self.hovered_status_key  = None
+        self.hovered_status_val  = 0
         self.enemy_badge_rects   = []
         self.player_badge_rects  = []
 
@@ -99,6 +100,7 @@ class GameView:
         return int(start_x + index * card_step)
 
     def update(self):
+        self.hovered_status_val  = 0
         self.hovered_card_index = -1
         self.hovered_status_key = None
         self.hovered_card_rect  = None
@@ -122,14 +124,16 @@ class GameView:
                     break
 
             # Hover бейджей статусов
-            for rect, key in self.enemy_badge_rects:
+            for rect, key, val in self.enemy_badge_rects:
                 if rect.collidepoint(mouse_pos):
                     self.hovered_status_key = key
+                    self.hovered_status_val = val
                     break
             if not self.hovered_status_key:
-                for rect, key in self.player_badge_rects:
+                for rect, key, val in self.player_badge_rects:
                     if rect.collidepoint(mouse_pos):
                         self.hovered_status_key = key
+                        self.hovered_status_val = val
                         break
 
         if self.gm.current_state == "HUB":
