@@ -35,5 +35,8 @@ class EffectCalculator:
                 target.ignited = max(0, target.ignited - 1)
                 if combat_manager:
                     combat_manager.add_log_message("[!!! КОМБО: ПАР (х2.0) !!!]")
+        if not dry_run and game_manager and hasattr(game_manager, 'stats'):
+            if final_damage > game_manager.stats.get("max_damage_dealt", 0):
+                game_manager.stats["max_damage_dealt"] = final_damage
 
         return final_damage
