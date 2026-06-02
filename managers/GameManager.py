@@ -13,8 +13,6 @@ from core.cards import (
     create_poison_stab, create_toxic_cloud, create_acid_shield,
 )
 
-# Реестр врагов: имя-ключ -> класс.
-# Добавить врага = один импорт + одна строка здесь.
 from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy
 
 ENEMY_REGISTRY = {
@@ -47,6 +45,7 @@ class GameManager:
 
         self.player        = Warrior()
         self.player_gold   = 100
+        self.player_keys   = 0              # <-- НОВОЕ
         self.current_floor = 1
         self.removal_count = 0
         self.relics        = []
@@ -73,7 +72,6 @@ class GameManager:
     # ------------------------------------------------------------------
 
     def setup_next_floor(self):
-        """Вызывается после каждой комнаты."""
         local_step = (self.current_floor - 1) % FLOORS_PER_ACT + 1
 
         if local_step == 1:
@@ -90,7 +88,6 @@ class GameManager:
             self.current_state = "MAP"
 
     def enter_chosen_room(self, chosen_room_type: str, col: int = None):
-        """Игрок выбрал узел на карте."""
         if col is not None:
             self.current_col = col
             row = (self.current_floor - 1) % FLOORS_PER_ACT
@@ -102,7 +99,6 @@ class GameManager:
             self.spawn_procedural_enemy()
 
     def get_available_nodes(self):
-        """Узлы, доступные для выбора на текущем шаге."""
         row = (self.current_floor - 1) % FLOORS_PER_ACT
         if not self.map_grid:
             return []
@@ -119,7 +115,6 @@ class GameManager:
     # ------------------------------------------------------------------
 
     def spawn_procedural_enemy(self):
-        """Процедурная генерация врага по этажу."""
         floor      = self.current_floor
         local_step = (floor - 1) % FLOORS_PER_ACT + 1
         tier       = (floor - 1) // FLOORS_PER_ACT + 1
@@ -160,13 +155,13 @@ class GameManager:
     # ------------------------------------------------------------------
 
     def distribute_combat_rewards(self):
-        """Начисление золота, ролл реликвий, запись статистики."""
         if self.current_floor > self.stats["max_floor"]:
             self.stats["max_floor"] = self.current_floor
 
         local_step = (self.current_floor - 1) % FLOORS_PER_ACT + 1
+        is_boss    = (local_step == FLOORS_PER_ACT)
 
-        if local_step == FLOORS_PER_ACT:
+        if is_boss:
             self.stats["bosses_killed"] += 1
         else:
             self.stats["monsters_killed"] += 1
@@ -176,7 +171,6 @@ class GameManager:
         log_msg = f"Залутано +{gold_drop} монет!"
 
         if random.randint(1, 2) == 1:
-            # Ролл редкости: 60% COMMON, 30% UNCOMMON, 10% RARE
             roll = random.random()
             if roll < 0.60:
                 rarity = Rarity.COMMON
@@ -186,7 +180,6 @@ class GameManager:
                 rarity = Rarity.RARE
 
             pool = RELIC_POOL.get(rarity, [])
-            # Фолбэк: если пул пуст — берём из ALL_RELICS
             if not pool:
                 pool = ALL_RELICS
 
@@ -202,6 +195,11 @@ class GameManager:
                 self.relics.append(new_relic)
                 log_msg += (f" [НАГРАДА] Артефакт [{rarity.value}]: "
                             f"'{new_relic.name}'!")
+
+        # Босс всегда роняет ключ                          <-- НОВОЕ
+        if is_boss:
+            self.player_keys += 1
+            log_msg += " [КЛЮЧ] Ключ от сундука получен!"
 
         if self.active_combat:
             self.active_combat.add_log_message(log_msg)

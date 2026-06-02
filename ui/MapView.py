@@ -156,6 +156,8 @@ class MapView:
             view.ui_font, YELLOW, 30, 58
         )
         view.draw_text(f"Золото: {gm.player_gold} з.", view.main_font, YELLOW, 1650, 20)
+        keys = getattr(gm, "player_keys", 0)
+        view.draw_text(f"Ключи: {keys}", view.main_font, (255, 215, 0), 1650, 58)
 
         # ── 7. ЛЕГЕНДА ────────────────────────────────────────────────
         lx, ly = 30, 900
