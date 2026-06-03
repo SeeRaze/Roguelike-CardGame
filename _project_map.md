@@ -1,5 +1,5 @@
 # _project_map.md
-_Последнее обновление: Сессия 28, Jun 3, 2026_
+_Последнее обновление: Сессия 29, Jun 4, 2026_
 _История изменений по версиям — в `PATCHNOTES.md`._
 
 ## Архитектура
@@ -61,13 +61,17 @@ core/enemies/init.py, base.py, cultist.py, slime.py, boss.py
 
 core/players/init.py, base.py, mage.py, rogue.py, warrior.py, druid.py, berserker.py
 
-core/players/ability.py, abilities.py
+core/players/ability.py (базовый ClassAbility)
 
-core/relics/init.py, base.py, starter.py, elemental.py, advanced.py
+core/players/abilities/init.py, warrior.py, rogue.py, mage.py, druid.py, berserker.py (один файл на способность)
+
+core/relics/init.py, base.py, starter.py, elemental.py
+
+core/relics/advanced/init.py, bleed_poison.py, shield.py, healing.py, damage.py, utility.py (по теме)
 
 managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py,
 
-     MapGenerator.py, network_manager.py
+     MapGenerator.py, network_manager.py, EnemySpawner.py, RewardManager.py
 ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
 ui/combat/init.py, hud.py
@@ -122,7 +126,7 @@ vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire
 Класс намерения на враге: `enemy.intent` ∈ `IntentAttack/IntentDefend/IntentDebuff/IntentNone` (есть `set_intent(type, value)` + св-ва-совместимости `intent_type`/`intent_value`).
 - `choose_intent()` — переопределяется в подклассах (`cultist.py`, `slime.py`, `boss.py`), задаёт намерение на ход.
 - `execute_intent(player, cm)` — исполняет: attack → `calculate_damage` + `take_damage`; defend → `gain_shield`; debuff → `player.weak += value`.
-- `base_test_damage`/`base_test_shield` — базовые значения, проставляются в `GameManager.spawn_procedural_enemy`.
+- `base_test_damage`/`base_test_shield` — базовые значения, проставляются в `EnemySpawner.build_enemy` (статы/имя/класс врага). `GameManager.spawn_procedural_enemy` — тонкий фасад: зовёт `build_enemy`, создаёт `CombatManager`.
 
 ### Реликвии — хуки
 `on_combat_start`, `on_turn_start`, `on_damage_calculated(base_dmg, is_player_attack=True)`,
@@ -132,7 +136,7 @@ vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire
 `on_turn_start` вызывается в `CombatManager.start_turn_phase` ПОСЛЕ сброса щита.
 
 ### Активные способности классов
-Файлы: `core/players/ability.py` (базовый класс), `core/players/abilities.py` (все 5).
+Файлы: `core/players/ability.py` (базовый класс `ClassAbility`), пакет `core/players/abilities/` — по одному файлу на способность (`warrior.py`/`rogue.py`/`mage.py`/`druid.py`/`berserker.py`), реэкспорт через `abilities/__init__.py`.
 - **WarriorAbility «Щитовой удар»**: урон врагу = 50% текущего щита. Один раз за бой.
 - **RogueAbility «Вскрытие»**: удвоить кровотечение на враге, -1 энергия в следующем ходу. Один раз за бой. Флаг `_penalty_pending`, хук `on_turn_start`.
 - **MageAbility «Стихийный барьер»**: блок стихий на врага на 1 ход (`_elemental_blocked` на CombatManager), щит = сумма стихийных стаков × 3. Один раз за бой.
@@ -181,14 +185,14 @@ shld = 3 + tier*1
 3. Куда попадёт в игру: стартовая колода класса (`get_<class>_deck()` в `core/players/<class>.py`), и/или пулы магазина/наград/событий. `CardLibraryView` показывает карты, привязанные к классам.
 
 **Новая реликвия:**
-1. Класс-наследник `Relic` в `core/relics/advanced.py` (или starter/elemental), переопределить нужные хуки (см. «Реликвии — хуки»). Передать `rarity`.
+1. Класс-наследник `Relic` в подходящем по теме модуле `core/relics/advanced/` (`bleed_poison`/`shield`/`healing`/`damage`/`utility`; или starter/elemental), переопределить нужные хуки (см. «Реликвии — хуки»). Передать `rarity`. Реэкспортировать из `core/relics/advanced/__init__.py`.
 2. Зарегистрировать в `RELIC_POOL[rarity]` в `core/relics/__init__.py` (попадёт в `ALL_RELICS` автоматически).
 3. Активная реликвия → `self.is_active = True` + метод `activate(cm)`; клик ловит `InputHandler._handle_combat`.
 4. ВСЕГДА проверять `is_player_attack` в `on_damage_calculated`; передавать `combat_manager` в `add_status`/`gain_shield`.
 
 **Новый враг:**
 1. Класс-наследник `Enemy` в `core/enemies/`, переопределить `choose_intent()` (через `set_intent(type, value)`). Реэкспорт из `core/enemies/__init__.py`.
-2. Зарегистрировать в `ENEMY_REGISTRY` в `managers/GameManager.py` (имя → класс). Статы считает `spawn_procedural_enemy` по формулам этажа/яруса.
+2. Зарегистрировать в `ENEMY_REGISTRY` в `managers/EnemySpawner.py` (имя → класс; реэкспортируется из `GameManager`). Статы считает `build_enemy` по формулам этажа/яруса.
 
 **Новый класс игрока:**
 1. `core/players/<name>.py`: наследник `Player`, задать hp/energy/gold/`starter_deck_factory`, в `__init__` присвоить `self.active_ability`. Переопределить пассив-хуки при необходимости.
@@ -275,7 +279,12 @@ shld = 3 + tier*1
 1. **Инвентарь реликвий в бою** — реликвии не помещаются на полосе, нужен отдельный UI (свёрнутая панель / скролл / отдельный экран по кнопке)
 
 ### Приоритет 2 (рефакторинг):
-2. Файлы >150 строк (ГОСТ): HubView.py (386), CombatInterface.py (370), CardRenderer.py (357), Shop.py (273), GameView.py (271), advanced.py (269), hud.py (252), abilities.py (248), VictoryScreen.py (226), CombatManager.py (159) — кандидаты на разбивку.
+2. Файлы >150 строк (ГОСТ) — остаток после Сессии 29 (UI, Stage 2/3 плана рефакторинга):
+   - **Stage 2**: HubView.py (386) → `ui/hub/`, CombatInterface.py (370) → `ui/combat/`, CardRenderer.py (357) → `ui/cards/`
+   - **Stage 3**: Shop.py (273) → `ui/shop/`, GameView.py (271), VictoryScreen.py (226) → `ui/victory/`, MapView.py (167) → `ui/map/`, CardLibraryView.py (167) → `ui/library/`
+   - Оставлено намеренно: Creature.py (184, цельный), hud.py (252, чистый UI-хелпер), CombatManager.py (159, оркестратор).
+   - ✅ Сделано в Сессии 29: abilities.py→пакет, relics/advanced.py→пакет (по теме), GameManager god-object разобран (EnemySpawner + RewardManager, 266→145).
+   - 🧹 Долг: ~64 предсуществующих неиспользуемых импорта (ruff F401) по проекту — не в CI-наборе; разово почистить `ruff --select F401 --fix`.
 
 ### Отложено (нужны мульти-враги):
 - `on_kill` хук — реликвии-заглушки:
@@ -284,4 +293,5 @@ shld = 3 + tier*1
 
 ## Статус
 Сессия 27 завершена (Jun 3, 2026).
-Сессия 28: настроен GitHub CLI + CI, проведён аудит зависимостей/логики, карта синхронизирована с кодом. Следующее — инвентарь реликвий + фиксы из аудита.
+Сессия 28: настроен GitHub CLI + CI, проведён аудит зависимостей/логики, карта синхронизирована с кодом.
+Сессия 29 (Jun 4, 2026): рефакторинг крупных файлов, Stage 1 (контент-ядро). Раздроблены `core/players/abilities.py`→пакет (1 файл/способность), `core/relics/advanced.py`→пакет по теме, разобран god-object `GameManager` (вынесены `EnemySpawner`+`RewardManager`, 266→145 строк). Публичные точки входа сохранены через реэкспорт. Все проверки CI зелёные локально. Следующее — Stage 2 (крупный UI: HubView/CombatInterface/CardRenderer).

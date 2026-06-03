@@ -8,6 +8,39 @@
 
 ---
 
+## Сессия 29 — 4 июня 2026
+
+### 🔧 Изменено (рефакторинг — Stage 1: контент-ядро)
+- **`core/players/abilities.py` (248 стр.) → пакет `core/players/abilities/`.** По одному файлу
+  на способность (`warrior`/`rogue`/`mage`/`druid`/`berserker`), реэкспорт через `__init__.py`.
+  Базовый `ClassAbility` остался в `core/players/ability.py`. Точка входа
+  `from core.players.abilities import *Ability` не изменилась.
+- **`core/relics/advanced.py` (269 стр.) → пакет `core/relics/advanced/` (по теме).**
+  Файлы: `bleed_poison` (кровь/яд), `shield` (щит), `healing` (исцеление), `damage` (урон/дебафф),
+  `utility` (экономика). `RELIC_POOL`/`ALL_RELICS` и все импорты неизменны (`ALL_RELICS` = 19).
+- **Разобран god-object `GameManager` (266 → 145 стр.).** Спавн врага вынесен в
+  `managers/EnemySpawner.py` (`build_enemy` + `ENEMY_REGISTRY` + формулы статов), расчёт наград —
+  в `managers/RewardManager.py` (`build_rewards`: золото/реликвия/ключ). Методы
+  `spawn_procedural_enemy`/`distribute_combat_rewards` остались тонкими фасадами с прежними
+  сигнатурами; публичный интерфейс `gm.*` не изменился. `ENEMY_REGISTRY` реэкспортируется из
+  `GameManager` для совместимости.
+
+### ⚙️ Инфраструктура / Качество
+- Все локальные проверки CI зелёные после каждого под-этапа: `ruff` (E9,F63,F7,F82), `compileall`,
+  импорт `managers.GameManager`, `BalanceSimulator` (1500 боёв). Затронутые файлы — без лишних импортов.
+- Все новые/изменённые файлы Stage 1 укладываются в ГОСТ ≤150 строк.
+
+### 📝 Документация
+- `_project_map.md` синхронизирован: список файлов, разделы «Активные способности», «Враги»,
+  cookbook («Новая реликвия»/«Новый враг»), раздел техдолга (Stage 2/3 рефакторинга UI).
+
+### 🔎 Известные проблемы / технический долг
+- Остаток >150 строк — крупный UI (Stage 2: HubView/CombatInterface/CardRenderer; Stage 3:
+  Shop/GameView/VictoryScreen/MapView/CardLibraryView).
+- ~64 предсуществующих неиспользуемых импорта (`ruff F401`) по проекту — вне CI-набора; разовая чистка.
+
+---
+
 ## Сессия 28 — 3 июня 2026
 
 ### ⚙️ Инфраструктура

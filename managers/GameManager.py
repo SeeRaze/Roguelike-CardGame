@@ -1,27 +1,11 @@
-import random
 import os
-from managers.network_manager import send_run_record
 from managers.MapGenerator    import generate_map, FLOORS_PER_ACT
-from core.relics              import LuckyClover, SpikedBracelet, RELIC_POOL, ALL_RELICS
-from core.rarity              import Rarity
+from managers.EnemySpawner    import build_enemy, ENEMY_REGISTRY
+from managers.RewardManager   import build_rewards
 from core.players             import Warrior
-from core.cards import (
-    create_strike, create_defend, create_heavy_blade, create_iron_wall,
-    create_bash, create_neutralize, create_intimidate,
-    create_ignite, create_fire_breath,
-    create_splash, create_rain_cloud,
-    create_poison_stab, create_toxic_cloud, create_acid_shield,
-)
 
-from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy
-
-ENEMY_REGISTRY = {
-    "Культист": Cultist,
-    "Страж":    Cultist,
-    "Слизень":  SlimeAndGoblins,
-    "Гоблин":   SlimeAndGoblins,
-    "Орк":      SlimeAndGoblins,
-}
+# ENEMY_REGISTRY реэкспортируется для обратной совместимости (живёт в EnemySpawner).
+__all__ = ["GameManager", "ENEMY_REGISTRY"]
 
 
 class GameManager:
@@ -71,9 +55,7 @@ class GameManager:
     def add_card(self, card):
         self.current_deck.append(card)
 
-    # ------------------------------------------------------------------
-    # НАВИГАЦИЯ
-    # ------------------------------------------------------------------
+    # --- НАВИГАЦИЯ ПО КАРТЕ ---
 
     def setup_next_floor(self):
         local_step = (self.current_floor - 1) % FLOORS_PER_ACT + 1
@@ -117,64 +99,20 @@ class GameManager:
         prev_node = self.map_grid[prev_row][prev_col]
         return [self.map_grid[row][c] for c in prev_node.connections]
 
-    # ------------------------------------------------------------------
-    # БОЙ
-    # ------------------------------------------------------------------
+    # --- БОЙ (спавн врага -> EnemySpawner) ---
 
     def spawn_procedural_enemy(self, is_elite: bool = False):
-        floor      = self.current_floor
-        local_step = (floor - 1) % FLOORS_PER_ACT + 1
-        tier       = (floor - 1) // FLOORS_PER_ACT + 1
+        """Создать врага для текущего этажа и запустить бой.
 
-        enemy_hp   = 35 + (floor * 5) + (tier * 15)
-        enemy_dmg  = 5  + (tier * 2)  + (floor // 3)
-        enemy_shld = 3  + (tier * 1)
-        is_boss    = (local_step == FLOORS_PER_ACT)
-
-        if is_elite:
-            enemy_hp   = int(enemy_hp   * 1.5)
-            enemy_dmg  = int(enemy_dmg  * 1.4)
-            enemy_shld = int(enemy_shld * 1.5)
-
-        if is_boss:
-            enemy_hp   = int(enemy_hp   * 2.2)
-            enemy_dmg  = int(enemy_dmg  * 1.3)
-            enemy_shld = int(enemy_shld * 1.8)
-            boss_titles = ["Древний Страж Башни", "Верховный Культист Неона",
-                           "Гидра Стихий"]
-            e_name = f"БОСС: {random.choice(boss_titles)} [Ярус {tier + 1}]"
-            enemy_class = BossTitan
-        elif is_elite:
-            prefixes = ["Элитный", "Закалённый", "Древний", "Проклятый Страж"]
-            types    = list(ENEMY_REGISTRY.keys())
-            e_type   = random.choice(types)
-            e_name   = f"{random.choice(prefixes)} {e_type} [Элита, Этаж {floor}]"
-            enemy_class = ENEMY_REGISTRY.get(e_type, Enemy)
-        else:
-            prefixes = ["Дикий", "Проклятый", "Чумной", "Стальной", "Адский"]
-            types    = list(ENEMY_REGISTRY.keys())
-            e_type   = random.choice(types)
-            e_name   = f"{random.choice(prefixes)} {e_type} [Этаж {floor}]"
-            enemy_class = ENEMY_REGISTRY.get(e_type, Enemy)
-
-        enemy = enemy_class(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
-        enemy.base_test_damage = enemy_dmg
-        enemy.base_test_shield = enemy_shld
-        enemy.is_elite         = is_elite
-
-        if is_boss:
-            enemy.shield = enemy_shld * 2
-        elif is_elite:
-            enemy.shield = enemy_shld
-
+        Статы/имя/класс считает EnemySpawner.build_enemy; здесь — только привязка
+        к бою (создание CombatManager и active_combat)."""
+        enemy = build_enemy(self.current_floor, is_elite)
         from managers.CombatManager import CombatManager
         self.active_combat = CombatManager(
             self.player, enemy, self.current_deck, self
         )
 
-    # ------------------------------------------------------------------
-    # НАГРАДЫ
-    # ------------------------------------------------------------------
+    # --- НАГРАДЫ (расчёт -> RewardManager) ---
 
     def distribute_combat_rewards(self):
         if self.current_state != "COMBAT":
@@ -203,65 +141,6 @@ class GameManager:
         else:
             self.stats["monsters_killed"] += 1
 
-        rewards = []
-
-        # --- Золото (Проклятая Корона: золото из наград исчезает) ---
-        has_crown = any(r.name == "Проклятая Корона" for r in self.relics)
-        if not has_crown:
-            gold_drop = random.randint(20, 35) + (self.current_floor * 3)
-            if is_elite:
-                gold_drop = int(gold_drop * 1.5)
-            rewards.append({
-                "type":    "gold",
-                "label":   f"+{gold_drop} монет",
-                "value":   gold_drop,
-                "applied": False,
-            })
-
-        # --- Реликвия (50% обычный бой, 100% элита/босс) ---
-        relic_chance = True if (is_boss or is_elite) else random.randint(1, 2) == 1
-        if relic_chance:
-            if is_boss:
-                rarity = Rarity.RARE
-            elif is_elite:
-                roll = random.random()
-                rarity = Rarity.RARE if roll < 0.25 else Rarity.UNCOMMON
-            else:
-                roll = random.random()
-                if roll < 0.60:
-                    rarity = Rarity.COMMON
-                elif roll < 0.90:
-                    rarity = Rarity.UNCOMMON
-                else:
-                    rarity = Rarity.RARE
-
-            pool = RELIC_POOL.get(rarity, [])
-            if not pool:
-                pool = ALL_RELICS
-
-            current_names    = {r.name for r in self.relics}
-            available_relics = [r for r in pool if r().name not in current_names]
-            if not available_relics:
-                available_relics = [r for r in ALL_RELICS
-                                    if r().name not in current_names]
-
-            if available_relics:
-                new_relic = random.choice(available_relics)()
-                rewards.append({
-                    "type":    "relic",
-                    "label":   f"Артефакт [{rarity.value}]: {new_relic.name}",
-                    "value":   new_relic,
-                    "applied": False,
-                })
-
-        # --- Ключ от сундука (только босс) ---
-        if is_boss:
-            rewards.append({
-                "type":    "key",
-                "label":   "Ключ от сундука",
-                "value":   1,
-                "applied": False,
-            })
-
-        self.pending_rewards = rewards
+        # Расчёт наград (золото/реликвия/ключ) -- в RewardManager.
+        self.pending_rewards = build_rewards(self, is_boss, is_elite)
         self.current_state   = "VICTORY"
