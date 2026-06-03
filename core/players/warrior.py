@@ -28,7 +28,7 @@ class Warrior(Player):
     # ------------------------------------------------------------------
     def on_turn_start_passive(self, combat_manager) -> None:
         carry = int(self.shield * 0.3)
-        self.shield = carry
+        self._passive_shield_carry = carry
         if carry > 0 and combat_manager:
             combat_manager.add_log_message(
                 f" [ВОИН] Железный задел: {carry} щита перенесено на новый ход."

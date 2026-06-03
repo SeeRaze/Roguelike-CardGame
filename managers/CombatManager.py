@@ -27,14 +27,17 @@ class CombatManager:
             self.combat_log.pop(0)
 
     def start_turn_phase(self):
-        """Начало нового хода: подготовка ресурсов игрока."""
         self.enemy.choose_intent()
 
-        # Сбрасываем щит
-        self.player.shield = 0
-        # Пассивка класса -- Воин выставляет 30%, остальные оставляют 0
+        # Пассивка считает carry ДО сброса щита
         self.player.on_turn_start_passive(self)
-        # Сохраняем щит ПОСЛЕ пассивки -- для Железной Воли
+
+        # Сбрасываем щит, затем восстанавливаем carry если есть
+        carry = getattr(self.player, '_passive_shield_carry', 0)
+        self.player._passive_shield_carry = 0
+        self.player.shield = carry
+
+        # Сохраняем для Железной Воли
         self.player._iron_will_shield = self.player.shield
 
         self.player.energy = self.player.max_energy
@@ -42,7 +45,6 @@ class CombatManager:
         bonus = getattr(self.player, "bonus_draw", 0)
         self.deck_manager.draw_cards(5 + bonus)
 
-        # ПАССИВ РАЗБОЙНИКА: снижаем кост случайной карты в руке на 1
         if type(self.player).__name__ == "Rogue" and self.deck_manager.hand:
             import random
             card = random.choice(self.deck_manager.hand)
@@ -54,7 +56,6 @@ class CombatManager:
 
         self.add_log_message(f"--- НАЧАЛО ХОДА {self.turn_count} ---")
 
-        # Хук on_turn_start реликвий -- Железная Воля восстанавливает _iron_will_shield
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
                 relic.on_turn_start(self)
