@@ -83,6 +83,11 @@ class CombatInterface:
                 screen, view.card_desc_font,
                 view.hover.relic_obj, mp
             )
+        # Тултип активной способности
+        ability = getattr(view.gm.player, 'active_ability', None)
+        if ability and getattr(view, 'ability_rect', None) and \
+                view.ability_rect.collidepoint(mp):
+            CombatHUD.draw_ability_tooltip(screen, view.card_desc_font, ability, mp)
         if view.hover.pile_type:
             if view.hover.pile_type == "draw":
                 cards = (view._draw_pile_display

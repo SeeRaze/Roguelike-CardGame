@@ -186,6 +186,13 @@ class CombatHUD:
         border_color = RARITY_COLORS.get(relic.rarity, (150, 150, 150))
         CombatHUD._draw_tooltip(screen, font, lines, mouse_pos,
                                 title=relic.name, border=border_color)
+    # ── ТУЛТИП АКТИВНОЙ СПОСОБНОСТИ ─────────────────────────────────────────
+    @staticmethod
+    def draw_ability_tooltip(screen, font, ability, mouse_pos):
+        lines        = ability.description.split("\n")
+        border_color = (80, 200, 80) if ability.is_ready() else (80, 80, 80)
+        CombatHUD._draw_tooltip(screen, font, lines, mouse_pos,
+                                title=ability.name, border=border_color)
 
     # ── ТУЛТИП СТОПКИ ───────────────────────────────────────────────────────
     @staticmethod
