@@ -44,7 +44,8 @@ class СердцеТитана(Relic):
 
 
 class ГнилойКлык(Relic):
-    """Кровотечение не сбрасывается полностью — уменьшается вдвое."""
+    """Кровотечение не сбрасывается полностью — уменьшается вдвое.
+    Логика уполовинивания — в Creature.tick_statuses (проверка по имени реликвии)."""
 
     def __init__(self):
         super().__init__(
@@ -52,14 +53,6 @@ class ГнилойКлык(Relic):
             "Кровотечение не сбрасывается в конце хода, а уменьшается вдвое.",
             Rarity.RARE,
         )
-        self._intercepted = False
-
-    def on_bleed_tick(self, bleed_dmg, creature, combat_manager):
-        self._intercepted = True
-        return bleed_dmg
-
-    def on_turn_start(self, combat_manager):
-        self._intercepted = False
 
 
 class ПроклятаяКорона(Relic):

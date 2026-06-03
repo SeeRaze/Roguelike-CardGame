@@ -1,5 +1,6 @@
 # _project_map.md
-_Последнее обновление: Сессия 27, Jun 3, 2026_
+_Последнее обновление: Сессия 28, Jun 3, 2026_
+_История изменений по версиям — в `PATCHNOTES.md`._
 
 ## Архитектура
 - `core/` — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py)
@@ -15,16 +16,41 @@ _Последнее обновление: Сессия 27, Jun 3, 2026_
 - Никаких "божественных объектов"
 
 ## Навигация по проекту
-- Читать этот файл ПЕРВЫМ в каждой сессии
-- Большие файлы (GameManager.py, CombatInterface.py, GameView.py) — использовать query_context
-- Остальные файлы читаются за один запрос напрямую
-- Все файлы читать из ветки dev:
-  `https://raw.githubusercontent.com/SeeRaze/Roguelike-CardGame/dev/путь/к/файлу`
+- Читать этот файл ПЕРВЫМ в каждой сессии — он даёт карту систем и «грабли».
+- Файлы читаются напрямую из локальной рабочей копии (репозиторий склонирован, ветка `dev`). Поиск по коду — grep/glob, а не выкачка из GitHub.
+- Перед изменением логики свериться с разделами «Ключевые системы» и «Важные детали и грабли» ниже.
+- Для добавления нового контента — раздел «Как добавить контент».
 
-## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 27)
-main.py, server.py, _project_map.md
+## Игровой цикл и машина состояний (САМОЕ ВАЖНОЕ для навигации)
+Точка входа: `main.py` → `GameView().run()`.
+
+`GameView.run()` — главный цикл (60 FPS):
+```
+while is_running:
+    handle_events()   # pygame-события: QUIT, клики (→ InputHandler), скролл
+    update()          # пересчёт hover-состояния (HoverState), анимации хаба
+    draw()            # отрисовка текущего экрана + pygame.display.flip() (ОДИН раз в конце)
+```
+
+Всё ветвление экранов идёт через `gm.current_state` (строка) и два словаря-диспетчера:
+- **Отрисовка**: `DRAW_HANDLERS` в `ui/GameView.py` — `state → функция отрисовки`.
+- **Клики**: `STATE_HANDLERS` в `ui/InputHandler.py` — `state → обработчик клика`.
+
+Добавить новый экран = одна запись в каждый словарь + функция отрисовки/обработчик.
+
+**Состояния** (`gm.current_state`):
+`MAIN_MENU`, `HUB`, `MAP`, `COMBAT`, `CAMPFIRE`, `SHOP`, `CHEST`, `EVENT`, `VICTORY`, `LEADERBOARD`, `CARD_LIBRARY`.
+
+**Типовые переходы:**
+`MAIN_MENU → HUB → MAP → (COMBAT/SHOP/CHEST/EVENT/CAMPFIRE)` → после боя `COMBAT → VICTORY → MAP` (через `distribute_combat_rewards()` → `pending_rewards`). Смерть игрока → `LEADERBOARD`. Босс пройден → следующий акт (`setup_next_floor`).
+
+`GameManager` — «глобальный мозг»: хранит `current_state`, `player`, `relics`, `current_deck`, прогрессию этажей/карты, `active_combat` (текущий `CombatManager`).
+
+## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
+main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
 
 core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py
+⚠️ ЛЕГАСИ (мёртвый код, не импортируется): core/Card.py, core/Relic.py, core/enemy.py, core/player.py, core/items.py
 
 core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, heal.py
 
@@ -54,7 +80,7 @@ ui/Campfire.py, CardRenderer.py, CombatInterface.py, CardLibraryView.py
 
 ui/EventView.py, GameView.py, HubView.py, InputHandler.py, LeaderboardView.py,
 
-MainMenu.py, MapView.py, Shop.py, VictoryScreen.py
+MainMenu.py, MapView.py, map_icons.py, Shop.py, VictoryScreen.py
 
 
 ## Ключевые системы
@@ -76,6 +102,29 @@ vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire
 - Определяет `is_player_attack`, передаёт в `on_damage_calculated`
 - Пассив Берсерка: бонус = `int((1 - hp/max_hp) * 10)`, применяется между шагом 2 (ярость) и шагом 3 (слабость), только `is_player_attack` и `type(attacker).__name__ == "Berserker"`
 
+### Карты и эффекты (core/cards/)
+Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
+- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`.
+- **Фабрики карт** — функции `create_*()`, сгруппированы по модулям: `basic.py` (strike/defend/heavy_blade/iron_wall), `fire.py`, `water.py`, `poison.py`, `heal.py`, `buff/` (strength/thorns/regen/vampirism), `debuff/` (vulnerable/weak/bleed). Все реэкспортируются из `core/cards/__init__.py`.
+- `card_type` ∈ `"attack"`/`"defend"`/… — используется реликвиями (напр. СвинцовыйНабалдашник ловит первую `attack`).
+- `exile=True` — карта уходит в `exile_pile` после розыгрыша (до конца боя).
+- Превью урона на карте — `EffectCalculator.calculate_damage(..., dry_run=True)` (состояние не меняется).
+
+### Бой: цикл хода (CombatManager)
+`CombatManager.__init__(player, enemy, starting_deck, game_manager=None)` → хуки `on_combat_start` → `start_turn_phase()`.
+- **`start_turn_phase`**: `enemy.choose_intent()` → пассив игрока считает carry щита → `_iron_will_shield = shield`; сброс щита до carry → `energy = max_energy` → добор `5 + bonus_draw` → (Разбойник: случайной карте `temp_cost -= 1`) → хуки реликвий `on_turn_start` → `ability.on_turn_start` (штрафы).
+- **`play_card_by_index`**: проверка энергии (`temp_cost` или `cost`) → `card.apply()` → пассив `on_card_played_passive` → реликвии `on_card_played` → карта в `discard_pile`/`exile_pile`.
+- **`end_turn_phase`**: сброс руки → враг: `shield=0`, `execute_intent()`, `tick_statuses()` → игрок `tick_statuses()` → проверка смерти (`enemy.hp<=0` победа; `player.hp<=0` → запись рекорда + `LEADERBOARD`).
+
+### Колода (DeckManager)
+Пайлы: `draw_pile` ← `hand` → `discard_pile`; `exile_pile` отдельно. `draw_cards(n)` — при пустом доборе перемешивает сброс обратно. `discard_hand()` — сброс руки + чистка `temp_cost`. `reset_deck()` (новый бой) — возвращает изгнанные карты в пул и перемешивает.
+
+### Враги: система намерений (core/enemies/)
+Класс намерения на враге: `enemy.intent` ∈ `IntentAttack/IntentDefend/IntentDebuff/IntentNone` (есть `set_intent(type, value)` + св-ва-совместимости `intent_type`/`intent_value`).
+- `choose_intent()` — переопределяется в подклассах (`cultist.py`, `slime.py`, `boss.py`), задаёт намерение на ход.
+- `execute_intent(player, cm)` — исполняет: attack → `calculate_damage` + `take_damage`; defend → `gain_shield`; debuff → `player.weak += value`.
+- `base_test_damage`/`base_test_shield` — базовые значения, проставляются в `GameManager.spawn_procedural_enemy`.
+
 ### Реликвии — хуки
 `on_combat_start`, `on_turn_start`, `on_damage_calculated(base_dmg, is_player_attack=True)`,
 `on_tick_ignited`, `on_wet_applied`, `on_card_played`, `on_shield_gained(amount, creature, combat_manager=None)`,
@@ -94,10 +143,12 @@ vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire
 UI: `draw_ability_slot` в `hud.py` → `view.ability_rect` (пересчитывается каждый кадр).
 Тултип: `CombatHUD.draw_ability_tooltip(screen, font, ability, mouse_pos)` — вызывается в конце `draw_combat_screen` при наведении.
 
-### Пассивы классов
-- **Warrior**: `on_turn_start` — +1 щит за каждые 2 карты в руке
-- **Mage**: `on_card_played` — если карта стихийная, +1 к соответствующему стаку (ignited/wet/poison)
-- **Druid**: `on_turn_start` — если яд на враге > 0, +1 регенерация себе
+### Пассивы классов (хуки в `core/players/base.py`, переопределяются в подклассах)
+- **Warrior** «Железный задел» (`on_turn_start_passive`, warrior.py:25): переносит 30% текущего щита на новый ход через `_passive_shield_carry`. Считается ДО сброса щита в `start_turn_phase`.
+- **Mage** «Стихийный резонанс» (`on_card_played_passive`, mage.py:26): если разыгранная карта вызвала комбо ПАР (флаг `_steam_combo_triggered`), +1 карта из колоды.
+- **Druid** «Токсичный круговорот» (`on_heal_passive`, druid.py:34): при любом хиле игрока враг получает яд = размеру хила.
+- **Rogue / Berserker**: классовых пассивов НЕТ (только активные способности + спец-логика в `start_turn_phase`/EffectCalculator).
+- Хуки пассивок: `on_turn_start_passive`, `on_card_played_passive`, `on_heal_passive` (база — заглушки).
 
 ### Враги — формулы (актуальные)
 hp = 35 + floor5 + tier15
@@ -121,7 +172,33 @@ shld = 3 + tier*1
 `_draw_node_icon(screen, ntype, cx, cy, r, fill, border, bw)` — геометрические символы:
 - COMBAT: скрещенные мечи | ELITE: корона | CAMPFIRE: костёр
 - SHOP: монета "з" | CHEST: сундук | EVENT: "?" | BOSS: череп
-- ⚠️ MapView.py превышает 150 строк — кандидат на рефакторинг (вынести в `ui/map_icons.py`)
+- ⚠️ ВЫПОЛНЕНО (Сессия 28): иконки вынесены в `ui/map_icons.py` (132 стр.). MapView.py сокращён до 167 строк.
+
+## Как добавить контент (cookbook)
+
+**Новая карта:**
+1. Написать фабрику `create_<name>()` в подходящем модуле `core/cards/` (по стихии/типу: fire/water/poison/heal/buff/debuff/basic), собрав нужные кирпичи-эффекты в `effects=[...]`.
+2. Реэкспортировать её из `core/cards/__init__.py`.
+3. Куда попадёт в игру: стартовая колода класса (`get_<class>_deck()` в `core/players/<class>.py`), и/или пулы магазина/наград/событий. `CardLibraryView` показывает карты, привязанные к классам.
+
+**Новая реликвия:**
+1. Класс-наследник `Relic` в `core/relics/advanced.py` (или starter/elemental), переопределить нужные хуки (см. «Реликвии — хуки»). Передать `rarity`.
+2. Зарегистрировать в `RELIC_POOL[rarity]` в `core/relics/__init__.py` (попадёт в `ALL_RELICS` автоматически).
+3. Активная реликвия → `self.is_active = True` + метод `activate(cm)`; клик ловит `InputHandler._handle_combat`.
+4. ВСЕГДА проверять `is_player_attack` в `on_damage_calculated`; передавать `combat_manager` в `add_status`/`gain_shield`.
+
+**Новый враг:**
+1. Класс-наследник `Enemy` в `core/enemies/`, переопределить `choose_intent()` (через `set_intent(type, value)`). Реэкспорт из `core/enemies/__init__.py`.
+2. Зарегистрировать в `ENEMY_REGISTRY` в `managers/GameManager.py` (имя → класс). Статы считает `spawn_procedural_enemy` по формулам этажа/яруса.
+
+**Новый класс игрока:**
+1. `core/players/<name>.py`: наследник `Player`, задать hp/energy/gold/`starter_deck_factory`, в `__init__` присвоить `self.active_ability`. Переопределить пассив-хуки при необходимости.
+2. Активная способность — класс-наследник `ClassAbility` в `core/players/abilities.py`.
+3. Реэкспорт из `core/players/__init__.py`.
+
+**Новое событие:** функции в `ui/events/` (positive/negative/neutral/special) + данные в `event_data.py`, эффекты в `event_effects.py`.
+
+**Новый экран/состояние:** функция отрисовки + запись в `DRAW_HANDLERS` (GameView) и обработчик + запись в `STATE_HANDLERS` (InputHandler).
 
 ## Реализованные системы (после Сессии 27)
 Все 14 пунктов плана масштабируемости (A–N) ВЫПОЛНЕНЫ.
@@ -163,29 +240,50 @@ shld = 3 + tier*1
 - `_elemental_blocked` проверяется в `Creature.add_status` только если `self is combat_manager.enemy`
 - `RogueAbility._penalty_pending`: `on_turn_start` снимает -1 энергию ПОСЛЕ восстановления
 - `BerserkerAbility`: урон себе напрямую в `hp` (сквозь щит), не через `take_damage`
+- Смерть игрока централизована в `CombatManager.check_player_defeat()` — вызывать после любого нового источника урона игроку в его ход (не только в `end_turn_phase`)
 
 ## Правила работы
-- Никогда не просить у пользователя отдельные файлы — брать из репо через query_context
-- В конце каждой сессии — скидывать полный готовый текст `_project_map.md` для ручной вставки (не фрагменты, не диффы — весь файл целиком)
+- Файлы проекта читаются и правятся напрямую в локальной рабочей копии (ветка `dev`).
+- При изменении логики/контента — синхронно обновлять этот файл (`_project_map.md`): затронутые «Ключевые системы» и «грабли».
+- Заметные изменения (контент, фиксы, фичи) фиксировать записью в `PATCHNOTES.md`.
+- Коммитить/пушить — только по явной просьбе пользователя.
+
+## Аудит Сессии 28 (Jun 3, 2026) — находки
+
+### Баги (по приоритету) — ✅ ИСПРАВЛЕНЫ в Сессии 28
+1. ✅ **СРЕДН — Берсерк «зомби-ход».** Логика смерти игрока вынесена в `CombatManager.check_player_defeat()` (вызывается в `end_turn_phase` И в `InputHandler._handle_combat` после `ability.activate()`). Теперь смерть от собственной способности сразу переводит в `LEADERBOARD`. (Побочно: CombatManager.py разросся до 159 строк — кандидат на разбивку.)
+2. ✅ **НИЗК — `Друид.on_heal_passive`.** Теперь `add_status('poison', healed_amount, combat_manager)` (druid.py:39).
+3. ✅ **НИЗК — мёртвый флаг `_intercepted` в ГнилойКлык.** Удалён флаг и лишние оверрайды `on_bleed_tick`/`on_turn_start` (база возвращает то же); логика уполовинивания осталась в `Creature.tick_statuses`.
+
+### Дизайн-вопросы (не баги)
+- Комбо ПАР не срабатывает, если урон и `wet` в ОДНОЙ карте (эффекты применяются по порядку: DamageEffect считает урон до того, как StatusEffect наложит wet). Возможно намеренно.
+- `Заплатка._applied` — +5 max_hp применяется один раз за объект реликвии (на первом `on_combat_start`), сохраняется между боями. Корректно, но проверить, что реликвия не дублируется в пуле.
+
+### Мёртвый код — легаси корня `core/` (НЕ импортируется нигде, подтверждено grep)
+`core/Card.py`, `core/Relic.py`, `core/enemy.py`, `core/player.py`, `core/items.py` — заменены модульными `core/cards/`, `core/relics/`, `core/enemies/`, `core/players/`. Кандидаты на удаление. (НЕ путать с рабочими `core/Creature.py`, `core/EffectCalculator.py`, `core/StatusRegistry.py`, `core/rarity.py`.)
+
+### Проверено и ОК
+Битых импортов нет. Сигнатуры всех 13 хуков реликвий/способностей совпадают (определение vs вызов). Циклов нет (отложенные импорты в ui/ обоснованы). Динамические атрибуты (`_iron_will_shield`, `temp_cost`, `bonus_draw`, `_elemental_blocked` и пр.) читаются через `getattr` с дефолтом — AttributeError не грозит. Порядок хода, шипы/вампиризм/bleed, dry_run в EffectCalculator — корректны.
+
+### Инфраструктура (Сессия 28)
+- Добавлен `.github/workflows/ci.yml` — CI на GitHub Actions (lint ruff + compileall + import-проверка + BalanceSimulator). Запуск на push/PR в dev/main. Pygame в CI НЕ ставится (ui/ проверяется компиляцией).
+- Добавлен `requirements.txt` (pygame, pillow, requests).
+- Исправлен мёртвый недостижимый код в `VampireDamageEffect.execute` (core/cards/base.py) — ловился линтером CI.
 
 ## Задачи для будущих сессий
 
-### Сессия 28 — Приоритет 1:
+### Приоритет 1:
 1. **Инвентарь реликвий в бою** — реликвии не помещаются на полосе, нужен отдельный UI (свёрнутая панель / скролл / отдельный экран по кнопке)
 
-### Сессия 28 — Приоритет 2 (аудит и рефакторинг):
-2. MapView.py: вынести `_draw_node_icon` в `ui/map_icons.py`
-3. Проверить все файлы на превышение 150 строк
-4. Общий аудит зависимостей и модульности
+### Приоритет 2 (рефакторинг):
+2. Удалить мёртвые легаси-файлы в `core/` (5 шт., см. аудит)
+3. Файлы >150 строк (ГОСТ): HubView.py (386), CombatInterface.py (370), CardRenderer.py (357), Shop.py (273), GameView.py (271), advanced.py (269), hud.py (252), abilities.py (248), VictoryScreen.py (226), CombatManager.py (159) — кандидаты на разбивку.
 
 ### Отложено (нужны мульти-враги):
 - `on_kill` хук — реликвии-заглушки:
   - Трофейный Клык (UNCOMMON, +1 Сила после убийства)
   - Берсерк-Медальон (RARE, +1 Энергия после убийства)
 
-### Отложено (инфраструктура не готова):
-- Механика элитных врагов на карте — **ВЫПОЛНЕНО в Сессии 27**
-
 ## Статус
 Сессия 27 завершена (Jun 3, 2026).
-Следующая: Сессия 28 — инвентарь реликвий в бою + аудит/рефакторинг.
+Сессия 28: настроен GitHub CLI + CI, проведён аудит зависимостей/логики, карта синхронизирована с кодом. Следующее — инвентарь реликвий + фиксы из аудита.

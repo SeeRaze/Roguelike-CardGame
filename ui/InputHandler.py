@@ -24,6 +24,8 @@ def _handle_combat(view, mouse_pos):
         ability = getattr(view.gm.active_combat.player, 'active_ability', None)
         if ability and ability.is_ready():
             ability.activate(view.gm.active_combat)
+            # Способность может убить игрока в свой ход (Берсерк бьёт себя)
+            view.gm.active_combat.check_player_defeat()
         return
 
     if view.end_turn_rect.collidepoint(mouse_pos):

@@ -129,23 +129,32 @@ class CombatManager:
             self.turn_count += 1
             self.start_turn_phase()
 
-        if self.player.hp <= 0:
-            self.player.hp = 0
-            print("[СИСТЕМА] Здоровье игрока упало до 0!")
+        self.check_player_defeat()
 
-            current_floor = self.gm.current_floor if self.gm else 1
-            kills_count = (
-                self.gm.stats["monsters_killed"] + self.gm.stats["bosses_killed"]
-                if self.gm else 0
-            )
-            max_dmg = self.gm.stats["max_damage_dealt"] if self.gm else 0
+    def check_player_defeat(self) -> bool:
+        """Проверка смерти игрока и запуск конца игры.
+        Вызывается в конце хода И после активной способности
+        (Берсерк бьёт себя сквозь щит и может умереть в свой ход)."""
+        if self.player.hp > 0:
+            return False
 
-            print("[СЕТЬ] Отправляем рекорд напрямую в Google...")
-            send_run_record(
-                max_floor=current_floor, kills=kills_count, max_damage=max_dmg
-            )
+        self.player.hp = 0
+        print("[СИСТЕМА] Здоровье игрока упало до 0!")
 
-            if self.gm:
-                from ui.LeaderboardView import LeaderboardView
-                LeaderboardView.load_data()
-                self.gm.current_state = "LEADERBOARD"
+        current_floor = self.gm.current_floor if self.gm else 1
+        kills_count = (
+            self.gm.stats["monsters_killed"] + self.gm.stats["bosses_killed"]
+            if self.gm else 0
+        )
+        max_dmg = self.gm.stats["max_damage_dealt"] if self.gm else 0
+
+        print("[СЕТЬ] Отправляем рекорд напрямую в Google...")
+        send_run_record(
+            max_floor=current_floor, kills=kills_count, max_damage=max_dmg
+        )
+
+        if self.gm:
+            from ui.LeaderboardView import LeaderboardView
+            LeaderboardView.load_data()
+            self.gm.current_state = "LEADERBOARD"
+        return True

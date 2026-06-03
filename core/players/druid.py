@@ -36,7 +36,7 @@ class Druid(Player):
             return
         enemy = getattr(combat_manager, 'enemy', None)
         if enemy and enemy.hp > 0:
-            enemy.add_status('poison', healed_amount)
+            enemy.add_status('poison', healed_amount, combat_manager)
             combat_manager.add_log_message(
                 f" [ДРУИД] Токсичный круговорот: враг получает "
                 f"+{healed_amount} яда!"
