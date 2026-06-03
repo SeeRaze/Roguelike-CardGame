@@ -61,8 +61,8 @@ def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
         desc_str   = desc_str.replace("N", str(val))
         title_surf = font_title.render(title_str, True, (255, 220, 80))
         desc_lines = [
-            font_desc.render(l, True, (210, 210, 210))
-            for l in desc_str.split("\n")
+            font_desc.render(line, True, (210, 210, 210))
+            for line in desc_str.split("\n")
         ]
         block_w = max(
             title_surf.get_width(),

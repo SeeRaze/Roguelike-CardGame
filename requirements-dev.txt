@@ -1,0 +1,6 @@
+# Зависимости для разработки и тестов.
+# Установка: pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+
+pytest          # фреймворк автотестов (запуск: pytest)
+ruff            # линтер (тот же набор, что в CI)

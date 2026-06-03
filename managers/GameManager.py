@@ -14,7 +14,7 @@ class GameManager:
     def __init__(self):
         try:
             self.player_name = os.getlogin()
-        except:
+        except Exception:
             self.player_name = "Искатель"
 
         print(f"--- GameManager: Авторизован пользователь ОС: {self.player_name} ---")

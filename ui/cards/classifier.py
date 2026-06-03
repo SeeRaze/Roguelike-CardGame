@@ -28,17 +28,30 @@ def classify_card(card) -> str:
         for e in effects
     )
 
-    if has_vampire:   return "vampire"
-    if has_bleed:     return "bleed"
-    if has_poison:    return "poison"
-    if has_ignited:   return "fire"
-    if has_wet:       return "water"
-    if has_regen:     return "regen"
-    if has_heal:      return "heal"
-    if has_buff:      return "buff"
-    if has_debuff:    return "debuff"
-    if has_shield and not has_damage: return "shield"
-    if has_damage and not has_shield and not has_debuff: return "attack_pure"
-    if has_damage:    return "attack_mixed"
-    if has_shield:    return "shield"
+    if has_vampire:
+        return "vampire"
+    if has_bleed:
+        return "bleed"
+    if has_poison:
+        return "poison"
+    if has_ignited:
+        return "fire"
+    if has_wet:
+        return "water"
+    if has_regen:
+        return "regen"
+    if has_heal:
+        return "heal"
+    if has_buff:
+        return "buff"
+    if has_debuff:
+        return "debuff"
+    if has_shield and not has_damage:
+        return "shield"
+    if has_damage and not has_shield and not has_debuff:
+        return "attack_pure"
+    if has_damage:
+        return "attack_mixed"
+    if has_shield:
+        return "shield"
     return "default"

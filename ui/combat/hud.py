@@ -247,7 +247,7 @@ class CombatHUD:
         line_h       = font.get_linesize() + 2
         title_h      = (tf.get_linesize() + 6) if title else 0
 
-        max_w = max((font.size(l)[0] for l in lines), default=60)
+        max_w = max((font.size(line)[0] for line in lines), default=60)
         if title:
             max_w = max(max_w, tf.size(title)[0])
         box_w = max_w + pad_x * 2
