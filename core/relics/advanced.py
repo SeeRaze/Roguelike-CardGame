@@ -216,3 +216,66 @@ class ЗаточенныйОсколок(Relic):
             self._used_this_combat = True
             return base_dmg + 3
         return base_dmg
+class ШипастаяБроня(Relic):
+    """При получении щита -- враг получает 1 Кровотечение."""
+
+    def __init__(self):
+        super().__init__(
+            "Шипастая Броня",
+            "Каждый раз, когда вы получаете щит,\nвраг получает 1 Кровотечение.",
+            Rarity.UNCOMMON,
+        )
+
+    def on_shield_gained(self, amount, creature, combat_manager=None):
+        if combat_manager is None:
+            return
+        combat_manager.enemy.add_status("bleed", 1, combat_manager)
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': враг получает Кровотечение 1!"
+        )
+
+
+class ЖелезнаяВоля(Relic):
+    """АКТИВНАЯ. Один раз за бой: щит не сбрасывается в начале следующего хода."""
+
+    def __init__(self):
+        super().__init__(
+            "Железная Воля",
+            "АКТИВНАЯ. Один раз за бой:\nщит не сбрасывается в начале следующего хода.",
+            Rarity.RARE,
+        )
+        self.is_active    = True   # флаг: это активная реликвия
+        self._used        = False  # использована в этом бою
+        self._shield_hold = False  # щит заморожен на следующий ход
+
+    def on_combat_start(self, combat_manager):
+        self._used        = False
+        self._shield_hold = False
+
+    def activate(self, combat_manager):
+        """Вызывается из InputHandler при клике на реликвию."""
+        if self._used:
+            combat_manager.add_log_message(
+                f"[Реликвия] '{self.name}': уже использована в этом бою!"
+            )
+            return False
+        self._used        = True
+        self._shield_hold = True
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': щит сохранится в следующем ходу!"
+        )
+        return True
+
+    def on_turn_start(self, combat_manager):
+        """Перехватываем сброс щита -- если флаг активен, восстанавливаем."""
+        if self._shield_hold:
+            # Щит уже сброшен в start_turn_phase до вызова хука.
+            # Сохраняем значение до сброса через отдельный атрибут.
+            saved = getattr(combat_manager.player, '_iron_will_shield', 0)
+            if saved > 0:
+                combat_manager.player.shield = saved
+                combat_manager.add_log_message(
+                    f"[Реликвия] '{self.name}': щит {saved} сохранён!"
+                )
+            self._shield_hold = False
+            combat_manager.player._iron_will_shield = 0

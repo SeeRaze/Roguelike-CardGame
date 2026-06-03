@@ -29,8 +29,12 @@ class CombatManager:
     def start_turn_phase(self):
         """Начало нового хода: подготовка ресурсов игрока."""
         self.enemy.choose_intent()
+
+        # Сохраняем щит ДО сброса -- для Железной Воли
+        self.player._iron_will_shield = self.player.shield
         self.player.shield = 0
         self.player.energy = self.player.max_energy
+
         bonus = getattr(self.player, "bonus_draw", 0)
         self.deck_manager.draw_cards(5 + bonus)
 
@@ -45,6 +49,11 @@ class CombatManager:
             )
 
         self.add_log_message(f"--- НАЧАЛО ХОДА {self.turn_count} ---")
+
+        # Хук on_turn_start -- ПОСЛЕ сброса щита, чтобы Железная Воля могла восстановить
+        if self.gm and hasattr(self.gm, 'relics'):
+            for relic in self.gm.relics:
+                relic.on_turn_start(self)
 
     def play_card_by_index(self, card_index):
         """Разыгрывание карты по её порядковому номеру в руке."""

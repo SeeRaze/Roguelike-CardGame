@@ -1,428 +1,316 @@
-# \# \_project\_map.md
+# \# \_project\_map.md — Roguelike-CardGame
 
-# \# Актуально на Jun 3, 2026 -- после Сессии 22
-
-# 
-
-# \## АРХИТЕКТУРА
+# > Последнее обновление: Сессия 23, Jun 3, 2026
 
 # 
 
-# \- core/ -- вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py)
+# \## Архитектура
 
-# \- ui/ -- вся отрисовка (CardRenderer.py, CombatInterface.py, GameView.py, HubView.py, MainMenu.py и др.)
+# \- `core/` — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py)
 
-# \- managers/ -- CombatManager, DeckManager, GameManager, MapGenerator, network\_manager
+# \- `ui/` — вся отрисовка (CardRenderer.py, CombatInterface.py, GameView.py, HubView.py, MainMenu.py и др.)
+
+# \- `managers/` — CombatManager, DeckManager, GameManager, MapGenerator, network\_manager
 
 # \- Разрешение: строго 1920x1080 Full HD
 
-# \- \*\*Ветка разработки: dev\*\* (main -- стабильная, dev -- активная работа)
+# \- \*\*Ветка разработки: dev\*\* (main — стабильная, dev — активная работа)
 
 # 
 
-# \## ЖЕЛЕЗНЫЕ ГОСТЫ
-
-# 
+# \## Железные ГОСТы
 
 # \- Лимит файла: 150 строк (золотой стандарт)
 
-# \- Если файл разрастается -- рефакторинг и разбивка на модули
-
-# \- Модульность и логичные зависимости -- главный принцип
+# \- Модульность и логичные зависимости — главный принцип
 
 # \- Никаких "божественных объектов"
 
 # 
 
-# \## НАВИГАЦИЯ
-
-# 
+# \## Навигация
 
 # \- Читать этот файл ПЕРВЫМ в каждой сессии
 
-# \- Большие файлы (GameManager.py, CombatInterface.py, GameView.py) -- использовать query\_context
+# \- Большие файлы (GameManager.py, CombatInterface.py, GameView.py) — query\_context
 
-# \- Все файлы читать из ветки dev: https://raw.githubusercontent.com/SeeRaze/Roguelike-CardGame/dev/путь/к/файлу
-
-# 
-
-# \## ПОЛНЫЙ СПИСОК ФАЙЛОВ (после Сессии 22)
+# \- Все файлы из ветки dev: `https://raw.githubusercontent.com/SeeRaze/Roguelike-CardGame/dev/путь/к/файлу`
 
 # 
+
+# \## Полный список файлов (после Сессии 23)
 
 # main.py, server.py, \_project\_map.md
 
-# core/rarity.py
+# 
 
-# core/Creature.py
+# core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py
 
-# core/EffectCalculator.py, core/StatusRegistry.py
+# 
 
-# core/cards/\_\_init\_\_.py, base.py, basic.py, fire.py, poison.py, water.py
+# core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, heal.py
 
-# core/cards/heal.py
+# 
 
-# core/cards/buff/\_\_init\_\_.py, strength.py, thorns.py, regen.py, vampirism.py
+# core/cards/buff/init.py, strength.py, thorns.py, regen.py, vampirism.py
 
-# core/cards/debuff/\_\_init\_\_.py, vulnerable.py, weak.py, bleed.py
+# 
 
-# core/enemies/\_\_init\_\_.py, base.py, cultist.py, slime.py, boss.py
+# core/cards/debuff/init.py, vulnerable.py, weak.py, bleed.py
 
-# core/players/\_\_init\_\_.py, base.py, mage.py, rogue.py, warrior.py, druid.py, berserker.py
+# 
 
-# core/relics/\_\_init\_\_.py, base.py, starter.py, elemental.py, advanced.py
+# core/enemies/init.py, base.py, cultist.py, slime.py, boss.py
+
+# 
+
+# core/players/init.py, base.py, mage.py, rogue.py, warrior.py, druid.py, berserker.py
+
+# 
+
+# core/relics/init.py, base.py, starter.py, elemental.py, advanced.py
+
+# 
 
 # managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py, MapGenerator.py, network\_manager.py
 
-# ui/chest/\_\_init\_\_.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
+# 
 
-# ui/combat/\_\_init\_\_.py, hud.py
+# ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
-# ui/events/\_\_init\_\_.py, event\_data.py, event\_effects.py, positive.py, negative.py, neutral.py, special.py
+# 
 
-# ui/Campfire.py, CardRenderer.py, CombatInterface.py
+# ui/combat/init.py, hud.py
 
-# ui/CardLibraryView.py
+# 
+
+# ui/events/init.py, event\_data.py, event\_effects.py, positive.py, negative.py, neutral.py, special.py
+
+# 
+
+# ui/Campfire.py, CardRenderer.py, CombatInterface.py, CardLibraryView.py
+
+# 
 
 # ui/EventView.py, GameView.py, HubView.py, InputHandler.py, LeaderboardView.py, MainMenu.py, MapView.py, Shop.py
+
+# 
 
 # ui/VictoryScreen.py
 
 # 
 
-# \## КЛЮЧЕВЫЕ СИСТЕМЫ
+# 
+
+# \## Ключевые системы
 
 # 
 
-# \*\*Creature.py\*\* -- базовый класс. hp, shield, self.statuses={} через \_\_getattr\_\_/\_\_setattr\_\_.
+# \### Creature.py
 
-# \- take\_damage(amount, attacker=None, combat\_manager=None)
+# Базовый класс. `hp`, `shield`, `self.statuses={}` через `\_\_getattr\_\_`/`\_\_setattr\_\_`.
 
-# \- heal(amount, combat\_manager=None)
+# \- `take\_damage(amount, attacker=None, combat\_manager=None)`
 
-# 
+# \- `heal(amount, combat\_manager=None)`
 
-# \*\*StatusRegistry.py\*\* -- единый реестр 10 статусов:
-
-# vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire
+# \- `gain\_shield(amount, combat\_manager=None)` — с хуком `on\_shield\_gained`
 
 # 
 
-# \*\*EffectCalculator.py\*\* -- единая точка боевой математики.
+# \### StatusRegistry.py
 
-# \- dry\_run=True для превью
-
-# \- Обновляет gm.stats\["max\_damage\_dealt"]
-
-# \- Порядок: реликвии → ярость → пассив Берсерка → слабость → уязвимость → стихийное комбо
-
-# \- Пассив Берсерка: бонус = int((1 - hp/max\_hp) \* 10), только is\_player\_attack + type=="Berserker"
+# Единый реестр всех 10 статусов: `vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire`
 
 # 
 
-# \*\*Реликвии -- хуки:\*\*
+# \### EffectCalculator.py
 
-# on\_combat\_start, on\_turn\_start, on\_damage\_calculated(base\_dmg, is\_player\_attack=True),
+# Единая точка боевой математики. `dry\_run=True` для превью. Обновляет `gm.stats\["max\_damage\_dealt"]`.
 
-# on\_tick\_ignited, on\_wet\_applied, on\_card\_played, on\_shield\_gained (заглушка),
-
-# on\_kill (заглушка), on\_combat\_end, on\_bleed\_tick, on\_heal, on\_chest\_opened
+# Пассив Берсерка: `бонус = int((1 - hp/max\_hp) \* 10)`, только `is\_player\_attack` и `type(attacker).\_\_name\_\_ == "Berserker"`.
 
 # 
 
-# \*\*Лидерборд\*\* -- Google Apps Script, threading.Thread daemon=True
+# \### Хуки реликвий
+
+# `on\_combat\_start`, `on\_turn\_start`, `on\_damage\_calculated(base\_dmg, is\_player\_attack=True)`,
+
+# `on\_tick\_ignited`, `on\_wet\_applied`, `on\_card\_played`,
+
+# `on\_shield\_gained(amount, creature, combat\_manager=None)`,
+
+# `on\_kill` (заглушка — до мульти-врагов),
+
+# `on\_combat\_end`, `on\_bleed\_tick`, `on\_heal`, `on\_chest\_opened`
 
 # 
 
-# \## ПЕРСОНАЖИ (5 классов)
+# `on\_turn\_start` вызывается в `CombatManager.start\_turn\_phase` ПОСЛЕ сброса щита.
 
 # 
 
-# |
+# \### CombatManager
 
-# &#x20;Класс     
+# \- `\_\_init\_\_(player, enemy, starting\_deck, game\_manager=None)`
 
-# |
+# \- `start\_turn\_phase`: сохраняет `player.\_iron\_will\_shield` ДО сброса щита, затем вызывает `on\_turn\_start`
 
-# &#x20;HP 
-
-# |
-
-# &#x20;Энергия 
-
-# |
-
-# &#x20;Фишка                                   
-
-# |
-
-# |
-
-# \-----------
-
-# |
-
-# \----
-
-# |
-
-# \---------
-
-# |
-
-# \------------------------------------------
-
-# |
-
-# |
-
-# &#x20;Warrior   
-
-# |
-
-# &#x20;80 
-
-# |
-
-# &#x20;3       
-
-# |
-
-# &#x20;Щиты, шипы, тяжёлый урон                
-
-# |
-
-# |
-
-# &#x20;Rogue     
-
-# |
-
-# &#x20;65 
-
-# |
-
-# &#x20;4       
-
-# |
-
-# &#x20;Серии ударов, каждый ход -1 кост         
-
-# |
-
-# |
-
-# &#x20;Mage      
-
-# |
-
-# &#x20;55 
-
-# |
-
-# &#x20;3       
-
-# |
-
-# &#x20;Стихийные комбо огонь+вода               
-
-# |
-
-# |
-
-# &#x20;Druid     
-
-# |
-
-# &#x20;70 
-
-# |
-
-# &#x20;3       
-
-# |
-
-# &#x20;Реген, хил, медленный яд                 
-
-# |
-
-# |
-
-# &#x20;Berserker 
-
-# |
-
-# &#x20;60 
-
-# |
-
-# &#x20;3       
-
-# |
-
-# &#x20;Пассив: чем меньше HP -- тем больше урон 
-
-# |
+# \- Пассив Разбойника: `temp\_cost = max(0, original - 1)` на случайную карту в руке
 
 # 
 
-# \## МЕХАНИКА РАЗБОЙНИКА (temp\_cost)
+# \### Персонажи
+
+# Warrior (HP80, E3), Rogue (HP65, E4), Mage (HP55, E3), Druid (HP70, E3), Berserker (HP60, E3)
 
 # 
 
-# \- start\_turn\_phase: случайная карта в руке получает temp\_cost = max(0, cost-1)
+# Пассивки реализованы только у:
 
-# \- play\_card\_by\_index: читает getattr(card, 'temp\_cost', card.cost)
+# \- \*\*Берсерк\*\*: бонус урона от недостающего HP
 
-# \- После разыгрывания: del card.temp\_cost
-
-# \- discard\_hand: удаляет temp\_cost у всех карт перед сбросом
+# \- \*\*Разбойник\*\*: temp\_cost -1 на случайную карту в руке
 
 # 
 
-# \## ВРАГИ (тестовый режим)
+# Warrior, Mage, Druid — пассивки запланированы (Сессия 24+)
 
 # 
 
-# \- hp = 20 + floor×3 + tier×10
+# \### Враги
 
-# \- dmg = 3 + tier×1
-
-# \- shld = 2
-
-# \- Босс: hp×2.2, dmg×1.3, shld×1.8, shield=shld×2
+# Cultist, SlimeAndGoblins, BossTitan
 
 # 
 
-# \## РЕЛИКВИИ (17 штук)
+# Формулы (тестовый режим):
+
+# \- `hp = 20 + floor×3 + tier×10`, `dmg = 3 + tier×1`, `shld = 2`
+
+# \- Босс: `hp×2.2`, `dmg×1.3`, `shld×1.8`, `shield=shld×2`
 
 # 
 
-# COMMON: LuckyClover, SpikedBracelet, ТочильныйКамень, СтараяПиявка, СчастливаяМонетка, ЗасохшийКлевер, Заплатка, ЗаточенныйОсколок
-
-# UNCOMMON: ДревнееОгниво, НамокшаяРукавица, ОкровавленныйШприц, ФлаконСЖелчью, СвинцовыйНабалдашник
-
-# RARE: ЭнергоЯдро, СердцеТитана, ГнилойКлык
-
-# LEGENDARY: ПроклятаяКорона
+# \## Реликвии (19 итого)
 
 # 
 
-# \## ИСПРАВЛЕНО В СЕССИИ 22
+# | Редкость | Реликвии |
+
+# |---|---|
+
+# | COMMON | LuckyClover, SpikedBracelet, ТочильныйКамень, СтараяПиявка, СчастливаяМонетка, ЗасохшийКлевер, Заплатка, ЗаточенныйОсколок |
+
+# | UNCOMMON | ДревнееОгниво, НамокшаяРукавица, ОкровавленныйШприц, ФлаконСЖелчью, СвинцовыйНабалдашник, \*\*ШипастаяБроня\*\* |
+
+# | RARE | ЭнергоЯдро, СердцеТитана, ГнилойКлык, \*\*ЖелезнаяВоля\*\* |
+
+# | LEGENDARY | ПроклятаяКорона |
 
 # 
 
-# \[BUG-01] Дублирование наград после боя (двойной артефакт / золото / ключ):
+# \*\*ШипастаяБроня\*\* (UNCOMMON): `on\_shield\_gained` → враг получает +1 Кровотечение
 
-# \- Причина: distribute\_combat\_rewards() вызывался при каждом клике пока enemy.hp <= 0
-
-# \- Фикс 1 (InputHandler.py): guard `if view.gm.current\_state == "COMBAT"` перед вызовом
-
-# \- Фикс 2 (GameManager.py): первая строка метода -- `if self.current\_state != "COMBAT": return`
+# \*\*ЖелезнаяВоля\*\* (RARE, АКТИВНАЯ): `is\_active=True`, `activate()` из InputHandler при клике. Один раз за бой — щит не сбрасывается в начале следующего хода. UI: `\[A]` префикс, золотой/серый по состоянию.
 
 # 
 
-# \## ВАЖНЫЕ ДЕТАЛИ
+# \## Изменения по сессиям
 
 # 
 
-# \- on\_damage\_calculated(base\_dmg, is\_player\_attack=True) -- ВСЕГДА проверять флаг в реликвиях
+# \### Сессия 23
 
-# \- bleed: триггер в take\_damage при amount>0; сброс =0 (без ГнилогоКлыка) или //=2 (с ним)
+# \- `CardRenderer`: `display\_cost = getattr(card, 'temp\_cost', card.cost)`, `COLOR\_COST\_DISC = (80,220,80)`
 
-# \- vampire: триггер в take\_damage при amount>0 и attacker.vampire>0; хил max(1, amount//2); vampire //= 2
+# \- `ПроклятаяКорона`: gold skip в `distribute\_combat\_rewards`
 
-# \- VampireDamageEffect: DEPRECATED stub в base.py, не использовать
+# \- `Creature.gain\_shield`: новая сигнатура `(amount, combat\_manager=None)` + хук `on\_shield\_gained`
 
-# \- VampireBuffEffect: живёт в core/cards/buff/vampirism.py
+# \- `ShieldEffect.execute`: передаёт `combat\_manager` в `gain\_shield`
 
-# \- distribute\_combat\_rewards() → pending\_rewards → VICTORY
+# \- `SpikedBracelet`: передаёт `combat\_manager` в `gain\_shield`
 
-# \- ПроклятаяКорона: gold reward пропуск -- НЕ реализован (отложено)
+# \- `CombatManager.start\_turn\_phase`: сохраняет `\_iron\_will\_shield` + вызывает `on\_turn\_start`
 
-# \- ui/chest/shared.py: draw\_card\_row возвращает (card, rect) или None -- не ломать контракт
+# \- Добавлены реликвии: ШипастаяБроня, ЖелезнаяВоля
 
-# \- CardRenderer.draw сигнатура: (surface, card, x, y, font\_title, font\_desc, is\_hovered=False, player=None, enemy=None) -- НЕ Rect!
+# \- `InputHandler.\_handle\_combat`: клик по активной реликвии → `relic.activate()`
 
-# \- \_EXTRA\_KEYWORDS -- в CardRenderer.py, НЕ в StatusRegistry
-
-# \- draw\_pile\_rect и discard\_pile\_rect -- атрибуты GameView, не CombatInterface
-
-# \- \_draw\_pile\_display кешируется в GameView по \[id(c) for c in dm.draw\_pile]
+# \- `hud.draw\_relics`: активные реликвии с `\[A]` префиксом и состоянием готовности
 
 # 
 
-# \## ВАЖНЫЕ ГРАБЛИ
+# \### Сессия 22
+
+# \- BUG-01: дублирование наград — guard в InputHandler + первая строка distribute\_combat\_rewards
 
 # 
 
-# \- Отступы Python сбиваются при копировании из чата -- всегда проверять
+# \### Сессия 17
 
-# \- view.view.gm -- двойной view это баг
+# \- UI: Campfire/Shop EventView-стиль, FORGE/REMOVE full-screen, MainMenu тёмно-синяя тема
 
-# \- Pygame не поддерживает эмодзи в SysFont
+# \- Тултипы карт: Shop, Campfire, сундуки
 
-# \- pygame.display.flip() -- один раз в конце GameView.draw()
-
-# \- EventView.py -- НЕ класс, только функции
-
-# \- self.relics (не self.player\_relics!) в GameManager
-
-# \- tick\_statuses принимает combat\_manager=None -- всегда передавать self из CombatManager
-
-# \- spawn\_procedural\_enemy -- МЕТОД GameManager, не импортировать из core.enemies
-
-# \- Все файлы читать из ветки DEV, не main
-
-# \- CombatManager.\_\_init\_\_ сигнатура: (player, enemy, starting\_deck, game\_manager=None)
-
-# \- RARITY\_COLORS импортировать из core.rarity
-
-# \- on\_wet\_applied -- через Creature.add\_status, НЕ напрямую
-
-# \- bonus\_draw -- getattr с дефолтом 0
-
-# \- ui/chest/ -- маленькая c: from ui.chest import ...
-
-# \- VictoryScreen.\_show\_modal -- классовая переменная, сбрасывается в \_proceed()
-
-# \- play\_card\_by\_index был вложен сам в себя (дубль) -- исправлено в Сессии 21
-
-# \- distribute\_combat\_rewards вызывался многократно при кликах -- исправлено в Сессии 22
+# \- Исправлен баг скролла CARD\_LIBRARY
 
 # 
 
-# \## ПЛАН СЕССИИ 23
+# \## Важные грабли
+
+# \- `gain\_shield` без `combat\_manager` → `on\_shield\_gained` не сработает
+
+# \- Pygame не поддерживает эмодзи в SysFont → текстовые маркеры (`\[A]`)
+
+# \- `view.view.gm` — двойной view это баг
+
+# \- `pygame.display.flip()` — один раз в конце `GameView.draw()`
+
+# \- `EventView.py` — НЕ класс, только функции
+
+# \- `self.relics` (не `self.player\_relics`!) в GameManager
+
+# \- `tick\_statuses` принимает `combat\_manager=None` — всегда передавать `self` из CombatManager
+
+# \- `spawn\_procedural\_enemy` — МЕТОД GameManager, не импортировать из `core.enemies`
+
+# \- `CombatManager.\_\_init\_\_`: `(player, enemy, starting\_deck, game\_manager=None)`
+
+# \- `RARITY\_COLORS` импортировать из `core.rarity`
+
+# \- `on\_wet\_applied` — через `Creature.add\_status`, НЕ напрямую
+
+# \- `ui/chest/` — маленькая c: `from ui.chest import ...`
+
+# \- `VictoryScreen.\_show\_modal` — классовая переменная, сбрасывается в `\_proceed()`
+
+# \- `CardRenderer.draw(player=None)` — карта всегда доступна (`can\_afford=True`)
+
+# \- `\_EXTRA\_KEYWORDS` — модульная переменная в `CardRenderer.py`, НЕ в StatusRegistry
+
+# \- `draw\_pile\_rect` и `discard\_pile\_rect` — атрибуты GameView, не CombatInterface
+
+# \- `VampireDamageEffect` — DEPRECATED stub, не использовать
+
+# \- `random.shuffle` в тултипе стопки — НЕ вызывать каждый кадр
 
 # 
 
-# \*\*Приоритет 1 -- аудит после расширения классов:\*\*
+# \## Правила работы
 
-# 1\. Проверить все импорты стартовых дек (druid, berserker) в core/cards/\_\_init\_\_.py
+# \- Никогда не просить у пользователя отдельные файлы — брать из репо напрямую
 
-# 2\. Проверить HubView -- 5 кнопок с gap=260, start\_x=100: 100+4×260=1140px, влезает
-
-# 3\. CardRenderer -- отображать temp\_cost вместо cost (подсветить зелёным если дешевле)
+# \- В конце каждой сессии — полный готовый текст `\_project\_map.md` для ручной вставки
 
 # 
 
-# \*\*Приоритет 2 -- новый контент:\*\*
+# \## План Сессии 24
 
-# 4\. ПроклятаяКорона: пропуск gold reward в distribute\_combat\_rewards
+# 1\. Тестирование ЖелезнойВоли и ШипастойБрони
 
-# 5\. Хуки on\_shield\_gained, on\_kill -- подключить если нужны реликвии
+# 2\. Пассивные врождённые механики: Warrior, Mage, Druid
 
-# 6\. Балансировка врагов и карт по результатам тестирования
-
-# 
-
-# \## СТАТУС
-
-# 
-
-# Сессия 22 завершена (Jun 3, 2026).
-
-# Исправлен баг дублирования наград: двойной guard в InputHandler.py и GameManager.py.
-
-# Следующая стадия: аудит импортов стартовых дек + отображение temp\_cost в CardRenderer.
+# 3\. Балансировка по результатам тестирования
 

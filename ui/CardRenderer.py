@@ -18,35 +18,19 @@ _EXTRA_KEYWORDS = {
 }
 
 # ─── Палитра карт ────────────────────────────────────────────────────────────
-# Каждый класс: (bg_color, border_color)
-# bg используется как тонтированный фон карты, border — рамка.
-
 _C = {
-    # Чистая атака (DamageEffect only)
     "attack_pure":  ((50, 20, 20),  (220, 60,  60)),
-    # Кровотечение — тёмно-бордовый (отличается от чистой атаки)
     "bleed":        ((45, 10, 15),  (160, 30,  55)),
-    # Яд — тёмно-зелёный
     "poison":       ((15, 40, 15),  (50,  180, 80)),
-    # Огонь/Горение — оранжево-жёлтый
     "fire":         ((50, 30, 10),  (230, 140, 30)),
-    # Вода/Мокрый — синий
     "water":        ((15, 30, 55),  (52,  152, 219)),
-    # Вампиризм — тёмно-пурпурный
     "vampire":      ((40, 15, 40),  (180, 60,  200)),
-    # Прямое лечение — светло-зелёный
     "heal":         ((15, 45, 25),  (80,  220, 120)),
-    # Регенерация — изумрудный (темнее хила)
     "regen":        ((10, 40, 35),  (30,  180, 140)),
-    # Щит — стальной синий
     "shield":       ((15, 25, 50),  (70,  130, 220)),
-    # Баффы (strength/thorns) — янтарный/золотой
     "buff":         ((45, 35, 10),  (210, 170, 40)),
-    # Дебаффы (vulnerable/weak) — фиолетовый
     "debuff":       ((35, 15, 45),  (155, 89,  182)),
-    # Смешанные атаки с доп. эффектом — тёмно-красный (мягче чистой атаки)
     "attack_mixed": ((45, 20, 20),  (200, 80,  80)),
-    # Дефолт
     "default":      ((30, 30, 38),  (90,  120, 180)),
 }
 
@@ -70,7 +54,6 @@ def _classify_card(card):
         for e in effects
     )
 
-    # Приоритет: специфичные эффекты важнее общих
     if has_vampire:   return "vampire"
     if has_bleed:     return "bleed"
     if has_poison:    return "poison"
@@ -92,6 +75,7 @@ class CardRenderer:
     COLOR_DMG      = (46,  204, 113)
     COLOR_GRAY     = (200, 200, 200)
     COLOR_COST_LOW = (160, 40,  40)
+    COLOR_COST_DISC = (80, 220, 80)   # зелёный -- скидка Разбойника
     _DMG_MARKER    = "§"
 
     @staticmethod
@@ -107,15 +91,18 @@ class CardRenderer:
         width, height = 180, 250
         rect = pygame.Rect(x, y, width, height)
 
+        # temp_cost: механика Разбойника (-1 к стоимости случайной карты)
+        display_cost = getattr(card, 'temp_cost', card.cost)
+        is_discounted = display_cost < card.cost
+
         can_afford = (
             player is None
             or not hasattr(player, 'energy')
-            or card.cost <= player.energy
+            or display_cost <= player.energy
         )
 
         bg_color, border_color = CardRenderer.get_card_colors(card)
 
-        # При ховере слегка осветляем фон
         if is_hovered:
             bg_color = tuple(min(255, c + 20) for c in bg_color)
 
@@ -124,8 +111,14 @@ class CardRenderer:
         pygame.draw.rect(surface, bg_color, rect, border_radius=10)
         pygame.draw.rect(surface, border_color, rect, border_thickness, border_radius=10)
 
-        cost_color = CardRenderer.COLOR_COST_LOW if not can_afford else border_color
-        cost_surf  = font_title.render(str(card.cost), True, cost_color)
+        if is_discounted:
+            cost_color = CardRenderer.COLOR_COST_DISC
+        elif not can_afford:
+            cost_color = CardRenderer.COLOR_COST_LOW
+        else:
+            cost_color = border_color
+
+        cost_surf = font_title.render(str(display_cost), True, cost_color)
         surface.blit(cost_surf, (rect.x + 14, rect.y + 12))
 
         CardRenderer.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
@@ -266,10 +259,6 @@ class CardRenderer:
 
     @staticmethod
     def _get_card_keywords(card) -> list[tuple[str, int]]:
-        """
-        Возвращает список (status_key, value) для тултипа карты.
-        Псевдо-ключи: 'heal', 'vampire' — не статусы, но показываются в тултипе.
-        """
         seen     = set()
         keywords = []
         for effect in card.effects:
@@ -302,10 +291,6 @@ class CardRenderer:
 
     @staticmethod
     def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
-        """
-        Рисует окошко с расшифровкой ключевых слов карты.
-        Появляется справа от карты (или слева если нет места).
-        """
         keywords = CardRenderer._get_card_keywords(card)
         if not keywords:
             return

@@ -185,14 +185,16 @@ class GameManager:
 
         rewards = []
 
-        # --- Золото ---
-        gold_drop = random.randint(20, 35) + (self.current_floor * 3)
-        rewards.append({
-            "type":    "gold",
-            "label":   f"+{gold_drop} монет",
-            "value":   gold_drop,
-            "applied": False,
-        })
+        # --- Золото (Проклятая Корона: золото из наград исчезает) ---
+        has_crown = any(r.name == "Проклятая Корона" for r in self.relics)
+        if not has_crown:
+            gold_drop = random.randint(20, 35) + (self.current_floor * 3)
+            rewards.append({
+                "type":    "gold",
+                "label":   f"+{gold_drop} монет",
+                "value":   gold_drop,
+                "applied": False,
+            })
 
         # --- Реликвия (50% шанс) ---
         if random.randint(1, 2) == 1:

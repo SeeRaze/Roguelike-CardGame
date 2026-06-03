@@ -11,6 +11,13 @@ def _handle_combat(view, mouse_pos):
             view.gm.distribute_combat_rewards()
         return
 
+    # Клик по активной реликвии
+    for rect, relic in getattr(view, 'relic_rects', []):
+        if rect.collidepoint(mouse_pos):
+            if getattr(relic, 'is_active', False):
+                relic.activate(view.gm.active_combat)
+            return
+
     if view.end_turn_rect.collidepoint(mouse_pos):
         view.gm.active_combat.end_turn_phase()
         return

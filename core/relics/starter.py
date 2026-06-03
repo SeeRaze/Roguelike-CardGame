@@ -11,7 +11,7 @@ class SpikedBracelet(Relic):
     def __init__(self): 
         super().__init__("Шипастый Браслет", "Вы начинаете каждый бой с 10 единицами Щита.")
     def on_combat_start(self, combat_manager):
-        combat_manager.player.gain_shield(10)
+        combat_manager.player.gain_shield(10, combat_manager)  # ← добавить
         combat_manager.add_log_message(f"[Реликвия] '{self.name}' дает вам 10 Щита!")
 
 class ТочильныйКамень(Relic):

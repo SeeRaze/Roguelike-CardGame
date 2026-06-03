@@ -57,10 +57,16 @@ class Creature:
                     relic.on_heal(healed, self)
         return healed
 
-    def gain_shield(self, amount):
+    def gain_shield(self, amount, combat_manager=None):
         self.shield += amount
         print(f"[{self.name}] получает +{amount} к щиту. "
-              f"Текущий щит: {self.shield}")
+            f"Текущий щит: {self.shield}")
+        # Хук on_shield_gained
+        if amount > 0 and combat_manager:
+            gm = getattr(combat_manager, 'gm', None)
+            if gm:
+                for relic in gm.relics:
+                    relic.on_shield_gained(amount, self, combat_manager)
 
     def take_damage(self, amount, attacker=None, combat_manager=None):
         print(f"[{self.name}] атакован на {amount} урона. "
