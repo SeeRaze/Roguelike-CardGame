@@ -293,18 +293,17 @@ class CombatInterface:
         dr    = view.discard_pile_rect
         btn_w = 220
         btn_h = 52
-        # над рубашкой сброса, правый край совпадает
         btn   = pygame.Rect(dr.right - btn_w, dr.top - btn_h - 12, btn_w, btn_h)
         view.end_turn_rect = btn
 
-        hover = view.hover.end_turn
-        bg    = (70, 70, 120) if hover else (40, 40, 75)
+        # Hover считаем напрямую -- не зависим от InputHandler
+        hover        = btn.collidepoint(pygame.mouse.get_pos())
+        bg           = (70, 70, 120) if hover else (40, 40, 75)
         border_color = (200, 200, 255) if hover else _PANEL_BORDER
 
         pygame.draw.rect(screen, bg, btn, border_radius=12)
         pygame.draw.rect(screen, border_color, btn, 2, border_radius=12)
 
-        # Подсветка -- тонкий внутренний glow при hover
         if hover:
             glow = btn.inflate(-4, -4)
             pygame.draw.rect(screen, (100, 100, 180), glow, 1, border_radius=10)
