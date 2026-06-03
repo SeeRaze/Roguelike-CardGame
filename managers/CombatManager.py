@@ -30,9 +30,13 @@ class CombatManager:
         """Начало нового хода: подготовка ресурсов игрока."""
         self.enemy.choose_intent()
 
-        # Сохраняем щит ДО сброса -- для Железной Воли
-        self.player._iron_will_shield = self.player.shield
+        # Сбрасываем щит
         self.player.shield = 0
+        # Пассивка класса -- Воин выставляет 30%, остальные оставляют 0
+        self.player.on_turn_start_passive(self)
+        # Сохраняем щит ПОСЛЕ пассивки -- для Железной Воли
+        self.player._iron_will_shield = self.player.shield
+
         self.player.energy = self.player.max_energy
 
         bonus = getattr(self.player, "bonus_draw", 0)
@@ -50,7 +54,7 @@ class CombatManager:
 
         self.add_log_message(f"--- НАЧАЛО ХОДА {self.turn_count} ---")
 
-        # Хук on_turn_start -- ПОСЛЕ сброса щита, чтобы Железная Воля могла восстановить
+        # Хук on_turn_start реликвий -- Железная Воля восстанавливает _iron_will_shield
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
                 relic.on_turn_start(self)
@@ -70,9 +74,14 @@ class CombatManager:
         self.player.use_energy(effective_cost)
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
+        # Сбрасываем флаг комбо перед apply -- EffectCalculator выставит его если сработает
+        self._steam_combo_triggered = False
         selected_card.apply(self.player, self.enemy, self)
 
-        # Хук on_card_played
+        # Хук классовой пассивки (Маг: Стихийный резонанс и др.)
+        self.player.on_card_played_passive(selected_card, self)
+
+        # Хук on_card_played реликвий
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
                 relic.on_card_played(selected_card, self)

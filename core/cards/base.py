@@ -58,7 +58,7 @@ class ShieldEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         shield_amount = self.upgrade_val if is_upgraded else self.base_val
-        player.gain_shield(shield_amount)
+        player.gain_shield(shield_amount, combat_manager)  # ← добавить
         if combat_manager:
             combat_manager.add_log_message(
                 f" -> Вы получаете +{shield_amount} щита."

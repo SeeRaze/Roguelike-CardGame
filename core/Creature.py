@@ -49,18 +49,23 @@ class Creature:
         self.hp += healed
         print(f"[{self.name}] восстанавливает {healed} HP. "
               f"Текущее HP: {self.hp}/{self.max_hp}")
-        # Хук on_heal — реликвии могут реагировать на хил
+
         if healed > 0 and combat_manager:
             gm = getattr(combat_manager, 'gm', None)
+            # Хук on_heal -- реликвии реагируют на хил
             if gm:
                 for relic in gm.relics:
                     relic.on_heal(healed, self)
+            # Хук классовой пассивки -- только для игрока (Druid: Токсичный круговорот)
+            if hasattr(self, 'on_heal_passive'):
+                self.on_heal_passive(healed, combat_manager)
+
         return healed
 
     def gain_shield(self, amount, combat_manager=None):
         self.shield += amount
         print(f"[{self.name}] получает +{amount} к щиту. "
-            f"Текущий щит: {self.shield}")
+              f"Текущий щит: {self.shield}")
         # Хук on_shield_gained
         if amount > 0 and combat_manager:
             gm = getattr(combat_manager, 'gm', None)
@@ -86,7 +91,7 @@ class Creature:
                 f"{self.statuses['thorns']} урона на {attacker.name}!")
             attacker.hp = max(attacker.hp - self.statuses['thorns'], 0)
 
-        # Вампиризм атакующего — триггер при любом уроне > 0
+        # Вампиризм атакующего -- триггер при любом уроне > 0
         if amount > 0 and attacker is not None:
             vamp = attacker.statuses.get('vampire', 0)
             if vamp > 0:
@@ -99,7 +104,7 @@ class Creature:
                         f"Вампиризм: {vamp} → {vamp // 2}."
                     )
 
-        # Кровотечение — с хуком on_bleed_tick
+        # Кровотечение -- с хуком on_bleed_tick
         bleed = self.statuses.get('bleed', 0)
         if bleed > 0 and amount > 0:
             bleed_dmg = bleed
@@ -156,7 +161,7 @@ class Creature:
             if s['regen'] == 0:
                 print(f" [Статус] Регенерация на {self.name} иссякла.")
 
-        # Кровотечение — сброс с учётом реликвий
+        # Кровотечение -- сброс с учётом реликвий
         if s.get('bleed', 0) > 0:
             gm = getattr(combat_manager, 'gm', None) if combat_manager else None
             has_gniloy_klyk = gm and any(

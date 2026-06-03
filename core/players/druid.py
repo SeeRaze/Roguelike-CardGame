@@ -6,6 +6,7 @@ from core.cards import (
     create_poison_stab, create_toxic_cloud,
 )
 
+
 def get_druid_deck():
     return [
         create_strike(), create_strike(),
@@ -18,6 +19,7 @@ def get_druid_deck():
         create_toxic_cloud(),   # тяжёлый яд
     ]
 
+
 class Druid(Player):
     def __init__(self):
         super().__init__(
@@ -27,3 +29,19 @@ class Druid(Player):
             gold=100,
             starter_deck_factory=get_druid_deck,
         )
+
+    # ------------------------------------------------------------------
+    # Пассивка «Токсичный круговорот»
+    # При любом хиле игрока -- враг получает яд, равный восстановленному HP.
+    # Вызывается из Creature.heal после хука on_heal реликвий.
+    # ------------------------------------------------------------------
+    def on_heal_passive(self, healed_amount: int, combat_manager) -> None:
+        if not combat_manager or healed_amount <= 0:
+            return
+        enemy = getattr(combat_manager, 'enemy', None)
+        if enemy and enemy.hp > 0:
+            enemy.add_status('poison', healed_amount)
+            combat_manager.add_log_message(
+                f" [ДРУИД] Токсичный круговорот: враг получает "
+                f"+{healed_amount} яда!"
+            )

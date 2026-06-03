@@ -10,7 +10,7 @@ class EffectCalculator:
             player = getattr(combat_manager, 'player', None)
         is_player_attack = (player is not None and attacker is player)
 
-        # 1. ТРИГГЕР РЕЛИКВИЙ — только для атак игрока
+        # 1. ТРИГГЕР РЕЛИКВИЙ -- только для атак игрока
         if game_manager and hasattr(game_manager, 'relics'):
             for relic in game_manager.relics:
                 base_damage = relic.on_damage_calculated(
@@ -53,6 +53,8 @@ class EffectCalculator:
                 target.ignited = max(0, target.ignited - 1)
                 if combat_manager:
                     combat_manager.add_log_message("[!!! КОМБО: ПАР (х2.0) !!!]")
+                    # Флаг для пассивки Мага «Стихийный резонанс»
+                    combat_manager._steam_combo_triggered = True
 
         if not dry_run and game_manager and hasattr(game_manager, 'stats'):
             if final_damage > game_manager.stats.get("max_damage_dealt", 0):
