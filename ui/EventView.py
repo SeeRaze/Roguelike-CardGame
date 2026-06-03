@@ -63,10 +63,14 @@ def draw_screen(view):
 
         reward_card = getattr(view.gm, "event_result_card", None)
         if reward_card is not None:
-            card_w, card_h = 160, 220
-            card_rect = pygame.Rect(W // 2 - card_w // 2, y + 80, card_w, card_h)
-            CardRenderer.draw(screen, reward_card, card_rect)
-            cont_y = card_rect.bottom + 20
+            card_w, card_h = 180, 250
+            card_x = W // 2 - card_w // 2
+            card_y = y + 80
+            font_title = pygame.font.SysFont("Arial", 15, bold=True)
+            font_desc  = pygame.font.SysFont("Arial", 13)
+            CardRenderer.draw(screen, reward_card, card_x, card_y,
+                              font_title, font_desc)
+            cont_y = card_y + card_h + 20
         else:
             cont_y = y + 100
 
