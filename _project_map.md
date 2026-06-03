@@ -4,7 +4,7 @@ _История изменений по версиям — в `PATCHNOTES.md`._
 
 ## Архитектура
 - `core/` — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py)
-- `ui/` — вся отрисовка. Пакеты: `cards/` (CardRenderer), `combat/` (CombatInterface+HUD), `hub/` (HubView), `chest/`, `events/`; модули: GameView.py, MainMenu.py, MapView.py, Shop.py и др.
+- `ui/` — вся отрисовка. Пакеты: `cards/` (CardRenderer), `combat/` (CombatInterface+HUD), `hub/` (HubView), `shop/` (Shop), `victory/` (VictoryScreen), `library/` (CardLibraryView), `chest/`, `events/`; модули: GameView.py (+`draw_dispatchers.py`, `hover_state.py`), MainMenu.py, MapView.py, LeaderboardView.py, Campfire.py.
 - `managers/` — CombatManager, DeckManager, GameManager, MapGenerator, network_manager, EnemySpawner, RewardManager
 - Разрешение: строго 1920×1080 Full HD
 - **Ветка разработки: dev** (main — стабильная, dev — активная работа)
@@ -38,10 +38,11 @@ while is_running:
 ```
 
 Всё ветвление экранов идёт через `gm.current_state` (строка) и два словаря-диспетчера:
-- **Отрисовка**: `DRAW_HANDLERS` в `ui/GameView.py` — `state → функция отрисовки`.
+- **Отрисовка**: `DRAW_HANDLERS` в `ui/draw_dispatchers.py` — `state → функция отрисовки`.
 - **Клики**: `STATE_HANDLERS` в `ui/InputHandler.py` — `state → обработчик клика`.
 
 Добавить новый экран = одна запись в каждый словарь + функция отрисовки/обработчик.
+Боевой hover-расчёт — `ui/combat/hover.py` (`update_combat_hover(view)`), зовётся из `GameView.update`.
 
 **Состояния** (`gm.current_state`):
 `MAIN_MENU`, `HUB`, `MAP`, `COMBAT`, `CAMPFIRE`, `SHOP`, `CHEST`, `EVENT`, `VICTORY`, `LEADERBOARD`, `CARD_LIBRARY`.
@@ -79,20 +80,24 @@ managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py,
      MapGenerator.py, network_manager.py, EnemySpawner.py, RewardManager.py
 ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
-ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hud.py
+ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hover.py, hud.py
 
 ui/cards/init.py, renderer.py, classifier.py, description.py, keywords.py, data.py
 
 ui/hub/init.py, base.py, selectors.py, deck.py, data.py
 
+ui/shop/init.py, base.py, main_view.py, remove_view.py, data.py
+
+ui/victory/init.py, base.py, rewards_view.py, modal.py, data.py
+
+ui/library/init.py, base.py, data.py
+
 ui/events/init.py, event_data.py, event_effects.py, positive.py, negative.py,
 
       neutral.py, special.py
-ui/Campfire.py, CardLibraryView.py
+ui/Campfire.py, EventView.py, GameView.py, draw_dispatchers.py, hover_state.py,
 
-ui/EventView.py, GameView.py, InputHandler.py, LeaderboardView.py,
-
-MainMenu.py, MapView.py, map_icons.py, Shop.py, VictoryScreen.py
+InputHandler.py, LeaderboardView.py, MainMenu.py, MapView.py, map_icons.py
 
 
 ## Ключевые системы
@@ -239,7 +244,10 @@ shld = 3 + tier*1
 - `ЖелезнаяВоля`: `is_active=True`, `activate()` вызывается из InputHandler при клике
 - `end_turn_rect` пересчитывается каждый кадр в `_draw_end_turn_btn`
 - Hover кнопки: прямая проверка `pygame.mouse.get_pos()`, НЕ через `view.hover`
-- `VictoryScreen._show_modal` — классовая переменная, сбрасывается в `_proceed()`
+- `VictoryScreen` — в `ui/victory/` (импорт `from ui.victory import VictoryScreen`); `_show_modal` — классовая переменная, сбрасывается в `_proceed()`. Награды-рендер в `rewards_view.py`, модалка в `modal.py`
+- `Shop` — в `ui/shop/` (импорт `from ui.shop import Shop`); состояние-машина MAIN/REMOVE, пул карт/цены в `data.py`
+- `CardLibraryView` — в `ui/library/` (импорт `from ui.library import CardLibraryView`); списки карт по классам в `data.py` (растут с контентом)
+- `HoverState` — в `ui/hover_state.py`; `DRAW_HANDLERS` — в `ui/draw_dispatchers.py` (не в GameView)
 - `random.shuffle` в тултипе стопки — НЕ вызывать каждый кадр
 - `CombatManager.__init__(player, enemy, starting_deck, game_manager=None)`
 - `RARITY_COLORS` импортировать из `core.rarity`
@@ -289,13 +297,15 @@ shld = 3 + tier*1
 ### Приоритет 1:
 1. **Инвентарь реликвий в бою** — реликвии не помещаются на полосе, нужен отдельный UI (свёрнутая панель / скролл / отдельный экран по кнопке)
 
-### Приоритет 2 (рефакторинг):
-2. Файлы >150 строк — остаток (Stage 3 плана рефакторинга UI):
-   - **Stage 3**: Shop.py (273) → `ui/shop/`, GameView.py (271), VictoryScreen.py (226) → `ui/victory/`, MapView.py (167) → `ui/map/`, CardLibraryView.py (167) → `ui/library/`
-   - Оставлено намеренно: Creature.py (184, цельный), combat/hud.py (252, чистый UI-хелпер), CombatManager.py (159, оркестратор), combat/panels.py (157, render-файл под мягким потолком 220).
-   - ✅ Stage 1 (Сессия 29): abilities.py→пакет, relics/advanced.py→пакет (по теме), GameManager god-object разобран (EnemySpawner + RewardManager, 266→145).
-   - ✅ Stage 2 (Сессия 29): HubView→`ui/hub/`, CombatInterface→`ui/combat/` (+мёртвый дубль `draw_ability_slot` удалён), CardRenderer→`ui/cards/`. ГОСТ UI — структурный (см. «Железные ГОСТы»).
-   - 🧹 Долг: ~64 предсуществующих неиспользуемых импорта (ruff F401) по проекту — не в CI-наборе; разово почистить `ruff --select F401 --fix`.
+### Приоритет 2 (рефакторинг) — ✅ ВЫПОЛНЕНО в Сессии 29
+Все три стадии плана рефакторинга крупных файлов завершены:
+- ✅ **Stage 1** (контент-ядро): abilities.py→пакет, relics/advanced.py→пакет (по теме), GameManager god-object разобран (EnemySpawner + RewardManager, 266→145).
+- ✅ **Stage 2** (крупный UI): HubView→`ui/hub/`, CombatInterface→`ui/combat/` (+мёртвый дубль `draw_ability_slot` удалён), CardRenderer→`ui/cards/`.
+- ✅ **Stage 3** (остальной UI): Shop→`ui/shop/`, GameView разнесён (`draw_dispatchers`/`hover_state`/`combat/hover`, 271→140, мёртвый `_draw_placeholder` удалён), VictoryScreen→`ui/victory/`, CardLibraryView→`ui/library/`.
+
+Оставлено намеренно (UI-render под мягким потолком 220 / цельные оркестраторы): `MapView.py` (167, цельный render, делегирует в `map_icons.py`), `core/Creature.py` (184), `ui/combat/hud.py` (252), `managers/CombatManager.py` (159), `ui/combat/panels.py` (157).
+
+🧹 Остаточный долг: ~64 предсуществующих неиспользуемых импорта (ruff F401) по проекту — не в CI-наборе; разово почистить `ruff --select F401 --fix`.
 
 ### Отложено (нужны мульти-враги):
 - `on_kill` хук — реликвии-заглушки:
@@ -308,4 +318,5 @@ shld = 3 + tier*1
 Сессия 29 (Jun 4, 2026): рефакторинг крупных файлов.
 - Stage 1 (контент-ядро): `core/players/abilities.py`→пакет (1 файл/способность), `core/relics/advanced.py`→пакет по теме, god-object `GameManager` разобран (`EnemySpawner`+`RewardManager`, 266→145).
 - Stage 2 (крупный UI): `HubView`→`ui/hub/`, `CombatInterface`→`ui/combat/` (+удалён мёртвый дубль `draw_ability_slot`), `CardRenderer`→`ui/cards/`. Введён дифференцированный ГОСТ: логика — жёстко 150, UI — структурно по швам с мягким потолком ~220.
-- Публичные точки входа сохранены через реэкспорт. CI зелёный локально (+рантайм-импорт UI через SDL dummy). Следующее — Stage 3 (Shop/GameView/VictoryScreen/MapView/CardLibraryView).
+- Stage 3 (остальной UI): `Shop`→`ui/shop/`, `GameView` разнесён (`draw_dispatchers`/`hover_state`/`combat/hover`, 271→140, удалён мёртвый `_draw_placeholder`), `VictoryScreen`→`ui/victory/`, `CardLibraryView`→`ui/library/`. `MapView` оставлен (167, цельный render).
+- Публичные точки входа сохранены через реэкспорт. CI зелёный (Stage 1+2 на сервере, run 26915968445) + рантайм-импорт всего UI через SDL dummy. **Рефакторинг крупных файлов завершён.**

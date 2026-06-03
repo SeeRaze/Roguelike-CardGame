@@ -1,7 +1,7 @@
 import pygame
 import random
 from ui.chest import Chest
-from ui.Shop import Shop
+from ui.shop import Shop
 from ui.Campfire import Campfire
 
 
@@ -61,12 +61,12 @@ def _handle_event(view, mouse_pos):
 
 
 def _handle_victory(view, mouse_pos):
-    from ui.VictoryScreen import VictoryScreen
+    from ui.victory import VictoryScreen
     VictoryScreen.handle_clicks(view, mouse_pos)
 
 
 def _handle_card_library(view, mouse_pos):
-    from ui.CardLibraryView import CardLibraryView
+    from ui.library import CardLibraryView
     CardLibraryView.handle_click(view, mouse_pos)
 
 
@@ -112,7 +112,7 @@ class InputHandler:
         state = view.gm.current_state
 
         if state == "CARD_LIBRARY":
-            from ui.CardLibraryView import CardLibraryView
+            from ui.library import CardLibraryView
             cards = CardLibraryView._get_cards()
             CardLibraryView.handle_scroll(direction, len(cards))
 

@@ -101,7 +101,7 @@ class MainMenu:
             if hasattr(view, 'btn_menu_play') and view.btn_menu_play.collidepoint(mouse_pos):
                 view.gm.current_state = "HUB"
             elif hasattr(view, 'btn_menu_cards') and view.btn_menu_cards.collidepoint(mouse_pos):
-                from ui.CardLibraryView import CardLibraryView
+                from ui.library import CardLibraryView
                 CardLibraryView.reset()
                 view.gm.current_state = "CARD_LIBRARY"
             elif hasattr(view, 'btn_menu_exit') and view.btn_menu_exit.collidepoint(mouse_pos):

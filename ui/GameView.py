@@ -1,86 +1,14 @@
 import pygame
 import sys
 import random as _rnd
-from dataclasses import dataclass, field
-from typing import Optional
 from managers.GameManager import GameManager
 from ui.MainMenu import MainMenu
-from ui.combat import CombatInterface
 from ui.InputHandler import InputHandler
-from ui.Campfire import Campfire
-from ui.Shop import Shop
 from ui.MapView import MapView
-from ui.LeaderboardView import LeaderboardView
 from ui.cards import CardRenderer
-from ui.chest import Chest
-from ui.VictoryScreen import VictoryScreen
-from ui.CardLibraryView import CardLibraryView
-
-@dataclass
-class HoverState:
-    """Всё hover-состояние за один кадр. Сбрасывается в update()."""
-    card_index:   int              = -1
-    card_rect:    Optional[object] = None
-    card_obj:     Optional[object] = None
-    status_key:   Optional[str]    = None
-    status_val:   int              = 0
-    end_turn:     bool             = False
-    map_col:      Optional[int]    = None
-    relic_obj:    Optional[object] = None
-    pile_type:    Optional[str]    = None  # "draw" | "discard" | None
-
-    def reset(self):
-        self.card_index  = -1
-        self.card_rect   = None
-        self.card_obj    = None
-        self.status_key  = None
-        self.status_val  = 0
-        self.end_turn    = False
-        self.map_col     = None
-        self.relic_obj   = None
-        self.pile_type   = None
-
-
-# Диспетчер отрисовки: состояние -> функция.
-# Добавить новый экран = один импорт + одна строка здесь.
-def _draw_main_menu(view):    MainMenu.draw_menu(view)
-def _draw_hub(view):          MainMenu.draw_hub(view)
-def _draw_map(view):          MapView.draw_map(view)
-def _draw_campfire(view):     Campfire.draw_screen(view)
-def _draw_shop(view):         Shop.draw_screen(view)
-def _draw_leaderboard(view):  LeaderboardView.draw_screen(view)
-def _draw_chest(view):        Chest.draw_screen(view)
-def _draw_victory(view):      VictoryScreen.draw_screen(view)
-def _draw_card_library(view): CardLibraryView.draw_screen(view)
-
-def _draw_event(view):
-    from ui.EventView import draw_screen as draw_event
-    draw_event(view)
-
-def _draw_combat(view):
-    CombatInterface.draw_combat_screen(view)
-    if view.hover.card_obj and view.hover.card_rect:
-        CardRenderer.draw_card_keyword_tooltip(
-            view.screen,
-            view.card_font,
-            view.card_desc_font,
-            view.hover.card_obj,
-            view.hover.card_rect,
-        )
-
-DRAW_HANDLERS = {
-    "MAIN_MENU":    _draw_main_menu,
-    "HUB":          _draw_hub,
-    "MAP":          _draw_map,
-    "COMBAT":       _draw_combat,
-    "CAMPFIRE":     _draw_campfire,
-    "SHOP":         _draw_shop,
-    "LEADERBOARD":  _draw_leaderboard,
-    "CHEST":        _draw_chest,
-    "EVENT":        _draw_event,
-    "VICTORY":      _draw_victory,
-    "CARD_LIBRARY": _draw_card_library,
-}
+from ui.hover_state import HoverState
+from ui.draw_dispatchers import DRAW_HANDLERS
+from ui.combat.hover import update_combat_hover
 
 
 class GameView:
@@ -187,51 +115,7 @@ class GameView:
         self.hover.reset()
 
         if self.gm.current_state == "COMBAT" and self.gm.active_combat:
-            mouse_pos = pygame.mouse.get_pos()
-            dm = self.gm.active_combat.deck_manager
-            hand_size = len(dm.hand)
-
-            # Hover по картам в руке
-            for index in range(hand_size):
-                card_x = self.calculate_card_x(index, hand_size)
-                card_rect = pygame.Rect(
-                    card_x, self.base_y, self.card_width, self.card_height
-                )
-                if card_rect.collidepoint(mouse_pos):
-                    self.hover.card_index = index
-                    self.hover.card_rect  = card_rect
-                    self.hover.card_obj   = dm.hand[index]
-                    break
-
-            # Hover по бейджам статусов
-            for rect, key, val in self.enemy_badge_rects:
-                if rect.collidepoint(mouse_pos):
-                    self.hover.status_key = key
-                    self.hover.status_val = val
-                    break
-            if not self.hover.status_key:
-                for rect, key, val in self.player_badge_rects:
-                    if rect.collidepoint(mouse_pos):
-                        self.hover.status_key = key
-                        self.hover.status_val = val
-                        break
-
-            # Hover по реликвиям
-            for rect, relic in self.relic_rects:
-                if rect.collidepoint(mouse_pos):
-                    self.hover.relic_obj = relic
-                    break
-
-            # Обновляем кеш добора если состав изменился
-            current_ids = [id(c) for c in dm.draw_pile]
-            if current_ids != self._draw_pile_ids:
-                self._refresh_draw_pile_display(dm.draw_pile)
-
-            # Hover по стопкам
-            if self.draw_pile_rect.collidepoint(mouse_pos):
-                self.hover.pile_type = "draw"
-            elif self.discard_pile_rect.collidepoint(mouse_pos):
-                self.hover.pile_type = "discard"
+            update_combat_hover(self)
 
         if self.gm.current_state == "HUB":
             dt = self.clock.get_time() / 1000.0
@@ -255,18 +139,3 @@ class GameView:
         if handler:
             handler(self)
         pygame.display.flip()
-
-    def _draw_placeholder(self, state, title, subtitle):
-        self.screen.fill((20, 20, 30))
-        self.draw_text(title,    self.main_font, (255, 220, 60),  760, 480)
-        self.draw_text(subtitle, self.ui_font,   (180, 180, 180), 820, 530)
-        btn = pygame.Rect(760, 620, 400, 70)
-        pygame.draw.rect(self.screen, (60, 60, 80), btn)
-        pygame.draw.rect(self.screen, (255, 255, 255), btn, 2)
-        self.draw_text("Продолжить ->", self.card_font, (255, 255, 255), 870, 643)
-        mouse = pygame.mouse.get_pos()
-        if btn.collidepoint(mouse):
-            for event in pygame.event.get(pygame.MOUSEBUTTONDOWN):
-                if event.button == 1:
-                    self.gm.current_floor += 1
-                    self.gm.setup_next_floor()
