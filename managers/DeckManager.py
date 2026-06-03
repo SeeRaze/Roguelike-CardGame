@@ -33,8 +33,10 @@ class DeckManager:
         print("--- Менеджер Колоды: Все карты собраны в добор и перемешаны! ---")
 
     def draw_cards(self, amount):
-        """Безопасный добор карт с защитой от бесконечных циклов."""
+        """Безопасный добор карт с защитой от бесконечных циклов.
+        Возвращает количество реально добраных карт."""
         print(f"--- Менеджер Колоды: Пытаемся добрать карт: {amount} ---")
+        drawn = 0
 
         for _ in range(amount):
             if not self.draw_pile:
@@ -50,7 +52,10 @@ class DeckManager:
             if self.draw_pile:
                 card = self.draw_pile.pop()
                 self.hand.append(card)
+                drawn += 1
                 print(f" Взяли в руку карту: {card.name}")
+
+        return drawn
 
     def discard_hand(self):
         """Сброс всех карт из руки в конце хода."""

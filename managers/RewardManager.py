@@ -22,11 +22,18 @@ def _roll_relic_rarity(is_boss: bool, is_elite: bool) -> Rarity:
 
 def _pick_relic(gm, rarity: Rarity):
     """Выбрать новую (ещё не имеющуюся) реликвию заданной редкости."""
-    pool = RELIC_POOL.get(rarity, []) or ALL_RELICS
+    # Берём пул под нужную редкость; если пуст — смотрим все реликвии этой редкости
+    pool = RELIC_POOL.get(rarity, [])
+    if not pool:
+        pool = [r for r in ALL_RELICS if r().rarity == rarity]
+
     current_names    = {r.name for r in gm.relics}
     available_relics = [r for r in pool if r().name not in current_names]
+
+    # Фоллбэк: если в пуле нужной редкости ничего не осталось — ищем среди ВСЕХ
     if not available_relics:
         available_relics = [r for r in ALL_RELICS if r().name not in current_names]
+
     if not available_relics:
         return None
     return random.choice(available_relics)()

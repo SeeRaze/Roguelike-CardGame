@@ -1,8 +1,9 @@
 from core.relics.base import Relic
+from core.rarity import Rarity
 
 class ЭнергоЯдро(Relic):
     def __init__(self):
-        super().__init__("Энерго-Ядро", "Увеличивает максимальную энергию на +1.")
+        super().__init__("Энерго-Ядро", "Увеличивает максимальную энергию на +1.", Rarity.RARE)
         self._applied = False
 
     def on_combat_start(self, combat_manager):
@@ -15,7 +16,7 @@ class ЭнергоЯдро(Relic):
 
 class ДревнееОгниво(Relic):
     def __init__(self):
-        super().__init__("Древнее Огниво", "Каждый тик Горения наносит +2 урона.")
+        super().__init__("Древнее Огниво", "Каждый тик Горения наносит +2 урона.", Rarity.UNCOMMON)
 
     def on_tick_ignited(self, creature):
         return 2
@@ -23,7 +24,7 @@ class ДревнееОгниво(Relic):
 
 class НамокшаяРукавица(Relic):
     def __init__(self):
-        super().__init__("Намокшая Рукавица", "При наложении 'Мокрый' на врага -- +4 Щита.")
+        super().__init__("Намокшая Рукавица", "При наложении 'Мокрый' на врага -- +4 Щита.", Rarity.UNCOMMON)
 
     def on_wet_applied(self, combat_manager):
         combat_manager.player.gain_shield(4, combat_manager)  # ← фикс
