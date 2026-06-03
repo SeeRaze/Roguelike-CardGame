@@ -1,7 +1,7 @@
 # core/cards/debuff/bleed.py
 # Карты, накладывающие статус кровотечения на врага.
 
-from core.cards.base import Card, DamageEffect, StatusEffect
+from core.cards.base import Card, DamageEffect
 from core.rarity import Rarity
 
 

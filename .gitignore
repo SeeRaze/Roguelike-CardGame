@@ -186,3 +186,6 @@ cython_debug/
 .cursorindexingignore
 dumper.py
 .vscode/settings.json
+
+# Локальные файлы разработки (дизайн, идеи)
+Идеи.xlsx

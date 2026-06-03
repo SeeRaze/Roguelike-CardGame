@@ -1,4 +1,4 @@
-from core.cards.base import Card, StatusEffect
+from core.cards.base import Card
 
 class BuffEffect:
     """Эффект наложения пассивного баффа на игрока."""

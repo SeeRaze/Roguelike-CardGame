@@ -2,8 +2,7 @@ from core.players.base import Player
 from core.players.abilities import DruidAbility
 from core.cards import (
     create_strike, create_defend,
-    create_bandage, create_second_wind,
-    create_regenerate, create_vitality,
+    create_bandage, create_regenerate, create_vitality,
     create_poison_stab, create_toxic_cloud,
 )
 
