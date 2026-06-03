@@ -26,7 +26,7 @@ class Relic:
         self.name        = name
         self.description = description
         self.rarity      = rarity
-        self.is_active   = False  # переопределить в активных реликвиях
+        self.is_active   = False
 
     # --- Пассивные хуки ---
     def on_combat_start(self, combat_manager):          pass
@@ -38,7 +38,7 @@ class Relic:
     def on_card_played(self, card, combat_manager):     pass
     def on_shield_gained(self, amount, creature, combat_manager=None): pass
     def on_kill(self, enemy, combat_manager):           pass
-    def on_combat_end(self, player):                    pass
+    def on_combat_end(self, player, combat_manager=None): pass
     def on_bleed_tick(self, bleed_dmg, creature,
                       combat_manager):                  return bleed_dmg
     def on_heal(self, healed_amount, creature):         pass
@@ -48,6 +48,5 @@ class Relic:
     # --- Активный хук (только для is_active=True) ---
     def activate(self, combat_manager) -> bool:
         """Вызывается из InputHandler при клике на активную реликвию.
-        Возвращает True если активация прошла успешно, False иначе.
-        Переопределить в подклассах с is_active=True."""
+        Возвращает True если активация прошла успешно, False иначе."""
         return False

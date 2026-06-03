@@ -42,12 +42,11 @@ class CombatManager:
         self.player.on_turn_start_passive(self)
 
         # Сбрасываем щит, восстанавливаем carry
+        self.player._iron_will_shield = self.player.shield
         carry = getattr(self.player, '_passive_shield_carry', 0)
         self.player._passive_shield_carry = 0
         self.player.shield = carry
 
-        # Сохраняем для ЖелезнойВоли
-        self.player._iron_will_shield = self.player.shield
 
         self.player.energy = self.player.max_energy
 

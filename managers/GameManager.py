@@ -97,10 +97,12 @@ class GameManager:
             row = (self.current_floor - 1) % FLOORS_PER_ACT
             self.player_path.append((row, col))
 
-        self.current_state = chosen_room_type
+        is_elite = (chosen_room_type == "ELITE")
+
+        # ELITE — это подтип COMBAT, состояние всегда "COMBAT"
+        self.current_state = "COMBAT" if is_elite else chosen_room_type
 
         if self.current_state == "COMBAT":
-            is_elite = (chosen_room_type == "ELITE")
             self.spawn_procedural_enemy(is_elite=is_elite)
 
     def get_available_nodes(self):
@@ -184,9 +186,9 @@ class GameManager:
         for key in ("weak", "vulnerable", "wet", "ignited", "strength"):
             self.player.statuses[key] = 0
 
-        # Хук on_combat_end — реликвии реагируют на конец боя
+        # Хук on_combat_end — передаём active_combat для полного доступа
         for relic in self.relics:
-            relic.on_combat_end(self.player)
+            relic.on_combat_end(self.player, self.active_combat)
 
         if self.current_floor > self.stats["max_floor"]:
             self.stats["max_floor"] = self.current_floor

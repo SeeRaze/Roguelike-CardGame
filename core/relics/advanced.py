@@ -32,12 +32,15 @@ class СердцеТитана(Relic):
             Rarity.RARE,
         )
 
-    def on_combat_end(self, player):
+    def on_combat_end(self, player, combat_manager=None):
         missing = player.max_hp - player.hp
         if missing > 0:
             heal_amount = max(1, int(missing * 0.20))
-            player.heal(heal_amount)
-            print(f"[Реликвия] '{self.name}': восстановлено {heal_amount} HP!")
+            player.heal(heal_amount, combat_manager)
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f"[Реликвия] '{self.name}': восстановлено {heal_amount} HP!"
+                )
 
 
 class ГнилойКлык(Relic):
@@ -245,13 +248,11 @@ class ЖелезнаяВоля(Relic):
         self._shield_hold = False
 
     def activate(self, combat_manager) -> bool:
-        """Вызывается из InputHandler при клике на реликвию."""
         if self._used:
             combat_manager.add_log_message(
                 f"[Реликвия] '{self.name}': уже использована в этом бою!"
             )
             return False
-        # Нет смысла активировать без щита -- предупреждаем игрока
         if combat_manager.player.shield <= 0:
             combat_manager.add_log_message(
                 f"[Реликвия] '{self.name}': нет щита для сохранения!"
@@ -265,7 +266,6 @@ class ЖелезнаяВоля(Relic):
         return True
 
     def on_turn_start(self, combat_manager):
-        """Восстанавливаем щит если флаг активен."""
         if self._shield_hold:
             saved = getattr(combat_manager.player, '_iron_will_shield', 0)
             if saved > 0:
