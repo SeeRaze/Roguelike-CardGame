@@ -33,23 +33,6 @@ class VampireDamageEffect:
         # Старая логика — больше не используется в картах
         pass
 
-        final_dmg = EffectCalculator.calculate_damage(
-            player, enemy, base, gm_ref, combat_manager
-        )
-        enemy.take_damage(final_dmg, attacker=player,
-                          combat_manager=combat_manager)
-
-        heal_amount = max(1, final_dmg // 2)
-        healed = player.heal(heal_amount, combat_manager)  # <-- передаём cm
-
-        if combat_manager:
-            combat_manager.add_log_message(
-                f" -> {enemy.name} получает {final_dmg} урона."
-            )
-            combat_manager.add_log_message(
-                f" [ВАМПИР] Вы восстанавливаете {healed} HP."
-            )
-
 
 class ShieldEffect:
     def __init__(self, base_val, upgrade_val):

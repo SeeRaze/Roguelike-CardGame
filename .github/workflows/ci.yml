@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+# Логика игры (core/, managers/) не зависит от Pygame — гоняем её headless.
+# Pygame нужен только для ui/, поэтому его НЕ ставим: ui/ проверяем через
+# compileall (компиляция без импорта), а боевую логику — реальным прогоном.
+env:
+  PYTHONUTF8: "1"          # вывод русского текста на раннере без UnicodeError
+  PYTHONIOENCODING: "utf-8"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff requests
+
+      # Только реальные ошибки (синтаксис, неопределённые имена) — без шума по стилю.
+      - name: Lint (critical errors only)
+        run: ruff check --select E9,F63,F7,F82 --exclude node_modules .
+
+      # Полная проверка синтаксиса всего проекта, включая ui/ (без запуска Pygame).
+      - name: Compile all sources
+        run: python -m compileall -q core managers ui main.py server.py
+
+      # Цепочка импортов core/ + managers/ должна собираться без Pygame.
+      - name: Import logic layer
+        run: python -c "import managers.GameManager; print('logic imports OK')"
+
+      # Функциональный smoke-тест: 1500 симулированных боёв (Warrior/Rogue/Mage).
+      - name: Balance simulation smoke test
+        run: python -m managers.BalanceSimulator
