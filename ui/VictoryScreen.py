@@ -1,4 +1,5 @@
 import pygame
+from ui.combat.hud import CombatHUD
 
 _BG         = (15, 20, 15)
 _GOLD_C     = (255, 215, 0)
@@ -27,14 +28,13 @@ class VictoryScreen:
     _claim_all_rect = None
     _continue_rect  = None
 
-    # Модальное окно подтверждения
-    _show_modal  = False
-    _modal_yes   = None
-    _modal_no    = None
+    # Для тултипа реликвии: (rect, relic) или None
+    _hovered_relic  = None
 
-    # ------------------------------------------------------------------ #
-    #  ОТРИСОВКА                                                           #
-    # ------------------------------------------------------------------ #
+    _show_modal = False
+    _modal_yes  = None
+    _modal_no   = None
+
     @classmethod
     def draw_screen(cls, view):
         screen  = view.screen
@@ -56,7 +56,9 @@ class VictoryScreen:
         screen.blit(sub, (W // 2 - sub.get_width() // 2, 115))
 
         # Список наград
-        cls._claim_rects = []
+        cls._claim_rects   = []
+        cls._hovered_relic = None   # сбрасываем каждый кадр
+
         panel_w = 700
         panel_x = W // 2 - panel_w // 2
         row_h   = 80
@@ -78,8 +80,19 @@ class VictoryScreen:
                         (panel_x + 16, row_y + row_h // 2 - 20))
 
             label_color = _WHITE if not reward["applied"] else _GRAY
-            screen.blit(body_font.render(reward["label"], True, label_color),
-                        (panel_x + 130, row_y + row_h // 2 - 14))
+            label_surf  = body_font.render(reward["label"], True, label_color)
+            label_x     = panel_x + 130
+            label_y     = row_y + row_h // 2 - 14
+            screen.blit(label_surf, (label_x, label_y))
+
+            # Сохраняем rect реликвии для тултипа
+            if reward["type"] == "relic" and not reward["applied"]:
+                relic_rect = pygame.Rect(
+                    label_x, label_y,
+                    label_surf.get_width(), label_surf.get_height()
+                )
+                if relic_rect.collidepoint(mouse):
+                    cls._hovered_relic = (relic_rect, reward["value"])
 
             btn_rect = pygame.Rect(panel_x + panel_w - 160, row_y + 14, 140, 44)
             if reward["applied"]:
@@ -123,29 +136,30 @@ class VictoryScreen:
         if cls._show_modal:
             cls._draw_modal(screen, W, H, body_font, small_font, mouse)
 
+        # Тултип реликвии -- самым последним, поверх всего
+        if cls._hovered_relic and not cls._show_modal:
+            _, relic = cls._hovered_relic
+            CombatHUD.draw_relic_tooltip(screen, small_font, relic, mouse)
+
     @classmethod
     def _draw_modal(cls, screen, W, H, body_font, small_font, mouse):
-        # Затемнение фона
         overlay = pygame.Surface((W, H), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         screen.blit(overlay, (0, 0))
 
-        # Окно
-        mw, mh  = 480, 220
-        mx      = W // 2 - mw // 2
-        my      = H // 2 - mh // 2
-        modal   = pygame.Rect(mx, my, mw, mh)
+        mw, mh = 480, 220
+        mx     = W // 2 - mw // 2
+        my     = H // 2 - mh // 2
+        modal  = pygame.Rect(mx, my, mw, mh)
         pygame.draw.rect(screen, _MODAL_BG, modal, border_radius=12)
         pygame.draw.rect(screen, (180, 180, 100), modal, 2, border_radius=12)
 
-        # Текст
         q_surf = body_font.render("Пропустить награду?", True, _GOLD_C)
         screen.blit(q_surf, (mx + mw // 2 - q_surf.get_width() // 2, my + 40))
 
         hint = small_font.render("Неполученные награды будут потеряны", True, _GRAY)
         screen.blit(hint, (mx + mw // 2 - hint.get_width() // 2, my + 85))
 
-        # Кнопка "Да"
         cls._modal_yes = pygame.Rect(mx + 60, my + 135, 160, 50)
         hov_yes = cls._modal_yes.collidepoint(mouse)
         pygame.draw.rect(screen, _BTN_YES_H if hov_yes else _BTN_YES,
@@ -155,7 +169,6 @@ class VictoryScreen:
         screen.blit(yes_lbl, (cls._modal_yes.centerx - yes_lbl.get_width() // 2,
                                cls._modal_yes.centery - yes_lbl.get_height() // 2))
 
-        # Кнопка "Нет"
         cls._modal_no = pygame.Rect(mx + 260, my + 135, 160, 50)
         hov_no = cls._modal_no.collidepoint(mouse)
         pygame.draw.rect(screen, _BTN_NO_H if hov_no else _BTN_NO,
@@ -165,12 +178,8 @@ class VictoryScreen:
         screen.blit(no_lbl, (cls._modal_no.centerx - no_lbl.get_width() // 2,
                               cls._modal_no.centery - no_lbl.get_height() // 2))
 
-    # ------------------------------------------------------------------ #
-    #  КЛИКИ                                                               #
-    # ------------------------------------------------------------------ #
     @classmethod
     def handle_clicks(cls, view, mouse_pos):
-        # Если модалка открыта — обрабатываем только её
         if cls._show_modal:
             if cls._modal_yes and cls._modal_yes.collidepoint(mouse_pos):
                 cls._show_modal = False
@@ -195,13 +204,10 @@ class VictoryScreen:
         if cls._continue_rect and cls._continue_rect.collidepoint(mouse_pos):
             has_unclaimed = any(not r["applied"] for r in rewards)
             if has_unclaimed:
-                cls._show_modal = True   # открываем модалку
+                cls._show_modal = True
             else:
-                cls._proceed(view)       # всё забрано — сразу идём дальше
+                cls._proceed(view)
 
-    # ------------------------------------------------------------------ #
-    #  ВНУТРЕННИЕ МЕТОДЫ                                                   #
-    # ------------------------------------------------------------------ #
     @staticmethod
     def _apply_reward(gm, reward):
         if reward["type"] == "gold":

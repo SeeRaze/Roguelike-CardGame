@@ -2,12 +2,23 @@ import pygame
 import sys
 from ui.HubView import HubView
 
+
 class MainMenu:
-    """Главное меню и делегирование в HubView."""
+    """Главное меню -- тёмно-синяя тема, стиль EventView."""
 
     is_play_hovered  = False
     is_exit_hovered  = False
     is_cards_hovered = False
+
+    _BG_COLOR        = (10,  10,  20)
+    _PANEL_COLOR     = (20,  20,  40)
+    _BTN_COLOR       = (40,  40,  75)
+    _BTN_HOVER_COLOR = (70,  70, 120)
+    _BTN_BORDER      = (160, 160, 255)
+    _TITLE_COLOR     = (255, 220,  60)
+    _SUBTITLE_COLOR  = (130, 130, 160)
+    _EXIT_COLOR      = (180,  60,  60)
+    _EXIT_HOVER      = (220,  80,  80)
 
     _hub: HubView = None
 
@@ -19,43 +30,66 @@ class MainMenu:
 
     @classmethod
     def reset(cls):
-        """Сбрасывает синглтон HubView при рестарте забега."""
         cls._hub = None
 
     @staticmethod
     def draw_menu(view):
-        view.screen.fill((15, 15, 20))
+        M         = MainMenu
+        screen    = view.screen
+        W, H      = screen.get_size()
         mouse_pos = pygame.mouse.get_pos()
+        screen.fill(M._BG_COLOR)
 
-        view.draw_text("ROGUELIKE CARD GAME", view.main_font,
-                       (240, 240, 70), 100, 200)
-        view.draw_text("Pre-Alpha Edition v0.3", view.card_desc_font,
-                       (150, 150, 150), 100, 250)
+        title_font    = pygame.font.SysFont("Arial", 56, bold=True)
+        subtitle_font = pygame.font.SysFont("Arial", 24)
+        btn_font      = pygame.font.SysFont("Arial", 28, bold=True)
+
+        # Центральная панель
+        panel = pygame.Rect(W // 2 - 340, H // 2 - 320, 680, 640)
+        pygame.draw.rect(screen, M._PANEL_COLOR, panel, border_radius=18)
+        pygame.draw.rect(screen, M._BTN_BORDER,  panel, 2, border_radius=18)
+
+        # Заголовок
+        title = title_font.render("ROGUELIKE CARD GAME", True, M._TITLE_COLOR)
+        screen.blit(title, (W // 2 - title.get_width() // 2, H // 2 - 270))
+
+        sub = subtitle_font.render("Pre-Alpha Edition v0.3", True, M._SUBTITLE_COLOR)
+        screen.blit(sub, (W // 2 - sub.get_width() // 2, H // 2 - 200))
+
+        # Разделитель
+        pygame.draw.line(screen, M._BTN_BORDER,
+                         (W // 2 - 260, H // 2 - 160),
+                         (W // 2 + 260, H // 2 - 160), 1)
 
         # Кнопка ВОЙТИ В ЛАГЕРЬ
-        view.btn_menu_play = pygame.Rect(100, 350, 350, 70)
+        view.btn_menu_play = pygame.Rect(W // 2 - 260, H // 2 - 130, 520, 72)
         MainMenu.is_play_hovered = view.btn_menu_play.collidepoint(mouse_pos)
-        play_color = (90, 90, 95) if MainMenu.is_play_hovered else (60, 60, 60)
-        pygame.draw.rect(view.screen, play_color, view.btn_menu_play)
-        pygame.draw.rect(view.screen, (255, 255, 255), view.btn_menu_play, 2)
-        view.draw_text("ВОЙТИ В ЛАГЕРЬ", view.card_font,
-                       (255, 255, 255), 170, 372)
+        col = M._BTN_HOVER_COLOR if MainMenu.is_play_hovered else M._BTN_COLOR
+        pygame.draw.rect(screen, col, view.btn_menu_play, border_radius=12)
+        pygame.draw.rect(screen, M._BTN_BORDER, view.btn_menu_play, 2, border_radius=12)
+        lbl = btn_font.render("ВОЙТИ В ЛАГЕРЬ", True, (255, 255, 255))
+        screen.blit(lbl, (view.btn_menu_play.centerx - lbl.get_width() // 2,
+                           view.btn_menu_play.centery - lbl.get_height() // 2))
 
         # Кнопка КАРТЫ
-        view.btn_menu_cards = pygame.Rect(100, 450, 350, 70)
+        view.btn_menu_cards = pygame.Rect(W // 2 - 260, H // 2 - 30, 520, 72)
         MainMenu.is_cards_hovered = view.btn_menu_cards.collidepoint(mouse_pos)
-        cards_color = (60, 90, 60) if MainMenu.is_cards_hovered else (40, 60, 40)
-        pygame.draw.rect(view.screen, cards_color, view.btn_menu_cards)
-        pygame.draw.rect(view.screen, (255, 255, 255), view.btn_menu_cards, 2)
-        view.draw_text("КАРТЫ", view.card_font, (255, 255, 255), 240, 472)
+        col = M._BTN_HOVER_COLOR if MainMenu.is_cards_hovered else M._BTN_COLOR
+        pygame.draw.rect(screen, col, view.btn_menu_cards, border_radius=12)
+        pygame.draw.rect(screen, M._BTN_BORDER, view.btn_menu_cards, 2, border_radius=12)
+        lbl = btn_font.render("БИБЛИОТЕКА КАРТ", True, (255, 255, 255))
+        screen.blit(lbl, (view.btn_menu_cards.centerx - lbl.get_width() // 2,
+                           view.btn_menu_cards.centery - lbl.get_height() // 2))
 
         # Кнопка ВЫХОД
-        view.btn_menu_exit = pygame.Rect(100, 550, 350, 70)
+        view.btn_menu_exit = pygame.Rect(W // 2 - 260, H // 2 + 70, 520, 72)
         MainMenu.is_exit_hovered = view.btn_menu_exit.collidepoint(mouse_pos)
-        exit_color = (90, 60, 60) if MainMenu.is_exit_hovered else (60, 40, 40)
-        pygame.draw.rect(view.screen, exit_color, view.btn_menu_exit)
-        pygame.draw.rect(view.screen, (255, 255, 255), view.btn_menu_exit, 2)
-        view.draw_text("ВЫХОД", view.card_font, (255, 255, 255), 230, 572)
+        col = (100, 35, 35) if MainMenu.is_exit_hovered else (60, 20, 20)
+        pygame.draw.rect(screen, col, view.btn_menu_exit, border_radius=12)
+        pygame.draw.rect(screen, M._EXIT_COLOR, view.btn_menu_exit, 2, border_radius=12)
+        lbl = btn_font.render("ВЫХОД", True, M._EXIT_COLOR)
+        screen.blit(lbl, (view.btn_menu_exit.centerx - lbl.get_width() // 2,
+                           view.btn_menu_exit.centery - lbl.get_height() // 2))
 
     @staticmethod
     def draw_hub(view):

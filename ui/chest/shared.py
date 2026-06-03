@@ -1,7 +1,6 @@
 import pygame
 
 
-# ─── Цвета (импортируются из base через параметры, либо дублируем минимум) ───
 _BTN_COLOR   = (40,  40,  60)
 _BTN_HOVER   = (70,  70, 100)
 _BTN_BORDER  = (255, 255, 255)
@@ -12,15 +11,18 @@ CARD_H = 250
 
 
 def draw_card_row(view, screen, cards, card_font, desc_font, cy=300):
+    """Рисует ряд карт. Возвращает (card, rect) для hovered карты или None."""
     from ui.CardRenderer import CardRenderer
     gm      = view.gm
     count   = len(cards)
     if count == 0:
-        return
+        return None
     spacing = 220
     total_w = count * spacing
     start_x = 960 - total_w // 2 + spacing // 2 - CARD_W // 2
     mouse   = pygame.mouse.get_pos()
+
+    hovered_card_data = None
 
     for i, card in enumerate(cards):
         cx   = start_x + i * spacing
@@ -40,6 +42,11 @@ def draw_card_row(view, screen, cards, card_font, desc_font, cy=300):
             player=gm.player,
             enemy=None,
         )
+
+        if is_hovered:
+            hovered_card_data = (card, rect)
+
+    return hovered_card_data
 
 
 def draw_take_skip_buttons(view, screen, card_font):

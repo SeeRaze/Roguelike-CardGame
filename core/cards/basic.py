@@ -11,3 +11,4 @@ def create_heavy_blade():
 
 def create_iron_wall():
     return Card("Железная Стена", 2, "defense", "Непробиваемый барьер на 12 (18) щита.", [ShieldEffect(12, 18)])
+

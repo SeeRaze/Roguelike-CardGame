@@ -1,5 +1,3 @@
-# ui/Shop.py
-
 import pygame
 import random
 from core.cards import (create_strike, create_defend, create_heavy_blade, create_iron_wall,
@@ -14,18 +12,28 @@ from core.cards.debuff.bleed import create_lacerate, create_hemorrhage, create_o
 
 
 class Shop:
-    """Графический экран Магазина Торговца под Full HD с ховерами и просторной сеткой."""
+    """Экран Магазина -- тёмно-зелёная/золотая тема, стиль EventView."""
     sub_state          = "MAIN"
     item_1             = None
     item_2             = None
     showcase_generated = False
+    is_remove_hovered  = False
+    is_leave_hovered   = False
 
-    is_remove_hovered = False
-    is_leave_hovered  = False
+    _BG_COLOR        = (10,  15,  10)
+    _PANEL_COLOR     = (18,  28,  18)
+    _BTN_COLOR       = (30,  55,  30)
+    _BTN_HOVER_COLOR = (55,  100, 55)
+    _BTN_BORDER      = (140, 200, 100)
+    _TITLE_COLOR     = (255, 220, 60)
+    _TEXT_COLOR      = (200, 210, 190)
+    _GOLD_COLOR      = (255, 215, 0)
+    _RED_COLOR       = (220, 80,  60)
+    _GRAY_COLOR      = (120, 120, 120)
+    _SOLD_COLOR      = (40,  50,  40)
 
     @staticmethod
     def reset():
-        """Сбрасывает состояние магазина. Вызывать при старте нового забега."""
         Shop.sub_state          = "MAIN"
         Shop.item_1             = None
         Shop.item_2             = None
@@ -35,126 +43,185 @@ class Shop:
 
     @staticmethod
     def get_card_price(floor: int) -> int:
-        """Цена карты растёт с этажом."""
         return 35 + floor * 3
 
     @staticmethod
     def generate_showcase():
-        """Генерирует две уникальные случайные карты для витрины."""
         all_cards_pool = [
             create_strike, create_defend, create_heavy_blade, create_iron_wall,
             create_bash, create_neutralize, create_intimidate,
             create_ignite, create_fire_breath,
             create_splash, create_rain_cloud,
             create_poison_stab, create_toxic_cloud, create_acid_shield,
-            # heal
             create_bandage, create_second_wind, create_elixir,
-            # regen
             create_regenerate, create_vitality, create_triage,
-            # vampirism
             create_drain, create_blood_feast, create_life_tap,
-            # bleed
             create_lacerate, create_hemorrhage, create_open_wound,
         ]
-        showcase_classes = random.sample(all_cards_pool, 2)
-        Shop.item_1 = showcase_classes[0]()
-        Shop.item_2 = showcase_classes[1]()
+        picks = random.sample(all_cards_pool, 2)
+        Shop.item_1 = picks[0]()
+        Shop.item_2 = picks[1]()
         Shop.showcase_generated = True
 
     @staticmethod
     def draw_screen(view):
-        WHITE  = (255, 255, 255)
-        YELLOW = (240, 240, 70)
-        GRAY   = (150, 150, 150)
-        RED    = (240, 70, 70)
-
-        view.screen.fill((20, 20, 25))
+        S         = Shop
+        screen    = view.screen
+        W, H      = screen.get_size()
         mouse_pos = pygame.mouse.get_pos()
+        screen.fill(S._BG_COLOR)
 
         if not Shop.showcase_generated:
             Shop.generate_showcase()
 
+        title_font = pygame.font.SysFont("Arial", 42, bold=True)
+        text_font  = pygame.font.SysFont("Arial", 26)
+        btn_font   = pygame.font.SysFont("Arial", 24, bold=True)
+        price_font = pygame.font.SysFont("Arial", 22, bold=True)
+
         if Shop.sub_state == "MAIN":
-            view.draw_text(f"=== ЭТАЖ {view.gm.current_floor}: ЛАВКА ТОРГОВЦА ===",
-                           view.main_font, WHITE, 100, 50)
-            view.draw_text(f"Ваше золото: {view.gm.player_gold} монет",
-                           view.main_font, YELLOW, 100, 100)
-            view.draw_text("Кликните по карте, чтобы купить её:",
-                           view.ui_font, GRAY, 100, 150)
+            panel = pygame.Rect(W // 2 - 560, 40, 1120, 960)
+            pygame.draw.rect(screen, S._PANEL_COLOR, panel, border_radius=16)
+            pygame.draw.rect(screen, S._BTN_BORDER,  panel, 2, border_radius=16)
+
+            title = title_font.render(
+                f"ЭТАЖ {view.gm.current_floor}: ЛАВКА ТОРГОВЦА", True, S._TITLE_COLOR)
+            screen.blit(title, (W // 2 - title.get_width() // 2, 70))
+
+            gold_surf = text_font.render(
+                f"Золото: {view.gm.player_gold} монет", True, S._GOLD_COLOR)
+            screen.blit(gold_surf, (W // 2 - gold_surf.get_width() // 2, 135))
 
             card_price = Shop.get_card_price(view.gm.current_floor)
+            card_w = view.card_width
+            card_h = view.card_height
+            gap    = 80
+            total_cards_w = card_w * 2 + gap
+            card1_x = W // 2 - total_cards_w // 2
+            card2_x = card1_x + card_w + gap
+            cards_y = 210
+
+            _hovered_card_data = None
 
             # Карта 1
-            view.shop_item_1_rect = pygame.Rect(100, 220, view.card_width, view.card_height)
+            view.shop_item_1_rect = pygame.Rect(card1_x, cards_y, card_w, card_h)
             if Shop.item_1:
-                is_hovered = view.shop_item_1_rect.collidepoint(mouse_pos)
-                draw_y = view.shop_item_1_rect.y - 20 if is_hovered else view.shop_item_1_rect.y
-                view.draw_card_by_data(Shop.item_1, view.shop_item_1_rect.x, draw_y)
-                view.draw_text(f"{card_price} з.", view.card_font, YELLOW,
-                               view.shop_item_1_rect.x + 55, draw_y + view.card_height - 35)
+                is_hov = view.shop_item_1_rect.collidepoint(mouse_pos)
+                if is_hov:
+                    _hovered_card_data = (Shop.item_1, view.shop_item_1_rect)
+                draw_y = cards_y - 15 if is_hov else cards_y
+                view.draw_card_by_data(Shop.item_1, card1_x, draw_y)
+                p = price_font.render(f"{card_price} з.", True, S._GOLD_COLOR)
+                screen.blit(p, (card1_x + card_w // 2 - p.get_width() // 2,
+                                draw_y + card_h + 10))
             else:
-                pygame.draw.rect(view.screen, (30, 30, 35), view.shop_item_1_rect)
-                view.draw_text("[ПРОДАНО]", view.card_font, GRAY,
-                               view.shop_item_1_rect.x + 35, view.shop_item_1_rect.y + 110)
+                r = pygame.Rect(card1_x, cards_y, card_w, card_h)
+                pygame.draw.rect(screen, S._SOLD_COLOR, r, border_radius=8)
+                pygame.draw.rect(screen, S._GRAY_COLOR, r, 1, border_radius=8)
+                lbl = text_font.render("[ПРОДАНО]", True, S._GRAY_COLOR)
+                screen.blit(lbl, (r.centerx - lbl.get_width() // 2,
+                                r.centery - lbl.get_height() // 2))
 
             # Карта 2
-            view.shop_item_2_rect = pygame.Rect(320, 220, view.card_width, view.card_height)
+            view.shop_item_2_rect = pygame.Rect(card2_x, cards_y, card_w, card_h)
             if Shop.item_2:
-                is_hovered = view.shop_item_2_rect.collidepoint(mouse_pos)
-                draw_y = view.shop_item_2_rect.y - 20 if is_hovered else view.shop_item_2_rect.y
-                view.draw_card_by_data(Shop.item_2, view.shop_item_2_rect.x, draw_y)
-                view.draw_text(f"{card_price} з.", view.card_font, YELLOW,
-                               view.shop_item_2_rect.x + 55, draw_y + view.card_height - 35)
+                is_hov = view.shop_item_2_rect.collidepoint(mouse_pos)
+                if is_hov:
+                    _hovered_card_data = (Shop.item_2, view.shop_item_2_rect)
+                draw_y = cards_y - 15 if is_hov else cards_y
+                view.draw_card_by_data(Shop.item_2, card2_x, draw_y)
+                p = price_font.render(f"{card_price} з.", True, S._GOLD_COLOR)
+                screen.blit(p, (card2_x + card_w // 2 - p.get_width() // 2,
+                                draw_y + card_h + 10))
             else:
-                pygame.draw.rect(view.screen, (30, 30, 35), view.shop_item_2_rect)
-                view.draw_text("[ПРОДАНО]", view.card_font, GRAY,
-                               view.shop_item_2_rect.x + 35, view.shop_item_2_rect.y + 110)
+                r = pygame.Rect(card2_x, cards_y, card_w, card_h)
+                pygame.draw.rect(screen, S._SOLD_COLOR, r, border_radius=8)
+                pygame.draw.rect(screen, S._GRAY_COLOR, r, 1, border_radius=8)
+                lbl = text_font.render("[ПРОДАНО]", True, S._GRAY_COLOR)
+                screen.blit(lbl, (r.centerx - lbl.get_width() // 2,
+                                r.centery - lbl.get_height() // 2))
 
-            # Кнопка сжигания
-            view.btn_shop_remove_rect = pygame.Rect(100, 520, 400, 70)
+            sep_y = cards_y + card_h + 70
+            pygame.draw.line(screen, S._BTN_BORDER,
+                            (W // 2 - 460, sep_y), (W // 2 + 460, sep_y), 1)
+
+            view.btn_shop_remove_rect = pygame.Rect(W // 2 - 320, sep_y + 24, 640, 72)
             Shop.is_remove_hovered = view.btn_shop_remove_rect.collidepoint(mouse_pos)
-            remove_color = (90, 90, 95) if Shop.is_remove_hovered else (60, 60, 60)
-            pygame.draw.rect(view.screen, remove_color, view.btn_shop_remove_rect)
-            pygame.draw.rect(view.screen, WHITE, view.btn_shop_remove_rect, 2)
-            view.draw_text(
-                f"СЖЕЧЬ КАРТУ (Цена: {view.gm.get_removal_price()} з.)",
-                view.card_font, RED,
-                view.btn_shop_remove_rect.x + 25, view.btn_shop_remove_rect.y + 22
-            )
+            col = (80, 35, 25) if Shop.is_remove_hovered else (50, 20, 15)
+            pygame.draw.rect(screen, col, view.btn_shop_remove_rect, border_radius=12)
+            pygame.draw.rect(screen, S._RED_COLOR, view.btn_shop_remove_rect, 2, border_radius=12)
+            lbl = btn_font.render(
+                f"СЖЕЧЬ КАРТУ  ({view.gm.get_removal_price()} з.)", True, S._RED_COLOR)
+            screen.blit(lbl, (view.btn_shop_remove_rect.centerx - lbl.get_width() // 2,
+                            view.btn_shop_remove_rect.centery - lbl.get_height() // 2))
 
-            # Кнопка выхода
-            view.btn_shop_leave_rect = pygame.Rect(100, 610, 400, 70)
+            view.btn_shop_leave_rect = pygame.Rect(W // 2 - 320, sep_y + 116, 640, 72)
             Shop.is_leave_hovered = view.btn_shop_leave_rect.collidepoint(mouse_pos)
-            leave_color = (65, 65, 70) if Shop.is_leave_hovered else (40, 40, 45)
-            pygame.draw.rect(view.screen, leave_color, view.btn_shop_leave_rect)
-            pygame.draw.rect(view.screen, WHITE, view.btn_shop_leave_rect, 2)
-            view.draw_text("ПОКИНУТЬ МАГАЗИН", view.card_font, WHITE,
-                           view.btn_shop_leave_rect.x + 100, view.btn_shop_leave_rect.y + 22)
+            col = S._BTN_HOVER_COLOR if Shop.is_leave_hovered else S._BTN_COLOR
+            pygame.draw.rect(screen, col, view.btn_shop_leave_rect, border_radius=12)
+            pygame.draw.rect(screen, S._BTN_BORDER, view.btn_shop_leave_rect, 2, border_radius=12)
+            lbl = btn_font.render("ПОКИНУТЬ МАГАЗИН", True, (255, 255, 255))
+            screen.blit(lbl, (view.btn_shop_leave_rect.centerx - lbl.get_width() // 2,
+                            view.btn_shop_leave_rect.centery - lbl.get_height() // 2))
+
+            # Тултип карты -- последним, поверх всего
+            if _hovered_card_data:
+                card, rect = _hovered_card_data
+                from ui.CardRenderer import CardRenderer
+                CardRenderer.draw_card_keyword_tooltip(
+                    screen, view.card_font, view.card_desc_font, card, rect
+                )
 
         elif Shop.sub_state == "REMOVE":
-            view.draw_text("=== УТИЛИЗАЦИЯ: ВЫБЕРИТЕ КАРТУ ДЛЯ УНИЧТОЖЕНИЯ ===",
-                           view.main_font, RED, 100, 50)
-            view.draw_text("Крутите колесико мыши для прокрутки колоды:",
-                           view.ui_font, WHITE, 100, 95)
+            panel = pygame.Rect(40, 20, W - 80, H - 40)
+            pygame.draw.rect(screen, S._PANEL_COLOR, panel, border_radius=16)
+            pygame.draw.rect(screen, S._BTN_BORDER,  panel, 2, border_radius=16)
 
-            clip_rect = pygame.Rect(50, 150, 1820, 850)
-            view.screen.set_clip(clip_rect)
+            title = title_font.render("УТИЛИЗАЦИЯ: ВЫБЕРИТЕ КАРТУ", True, S._RED_COLOR)
+            screen.blit(title, (W // 2 - title.get_width() // 2, 45))
 
+            hint = text_font.render(
+                "Кликните по карте для уничтожения  |  Колесо мыши -- прокрутка",
+                True, S._TEXT_COLOR)
+            screen.blit(hint, (W // 2 - hint.get_width() // 2, 110))
+
+            cards_per_row = 7
+            card_w    = view.card_width
+            card_h    = view.card_height
+            spacing_x = card_w + 24
+            spacing_y = card_h + 36
+            total_w   = cards_per_row * spacing_x - 24
+            start_x   = W // 2 - total_w // 2
+            start_y   = 165
+
+            clip_rect = pygame.Rect(60, start_y, W - 120, H - start_y - 30)
+            screen.set_clip(clip_rect)
+
+            _hovered_card_data = None
             view.shop_remove_card_rects = []
-            cards_per_row = 4
 
             for index, card in enumerate(view.gm.current_deck):
-                row = index // cards_per_row
-                col = index % cards_per_row
-                card_x = 100 + col * 220
-                card_y = 170 + row * 280 - view.scroll_y
-                card_rect = pygame.Rect(card_x, card_y, view.card_width, view.card_height)
+                row    = index // cards_per_row
+                col    = index % cards_per_row
+                card_x = start_x + col * spacing_x
+                card_y = start_y + 10 + row * spacing_y - view.scroll_y
+                card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
                 view.shop_remove_card_rects.append((card_rect, index))
-                is_hovered = card_rect.collidepoint(mouse_pos)
-                draw_y = card_y - 10 if is_hovered else card_y
+                is_hov = card_rect.collidepoint(mouse_pos)
+                if is_hov:
+                    _hovered_card_data = (card, card_rect)
+                draw_y = card_y - 10 if is_hov else card_y
                 view.draw_card_by_data(card, card_x, draw_y)
 
-            view.screen.set_clip(None)
+            screen.set_clip(None)
+
+            # Тултип поверх clip -- последним
+            if _hovered_card_data:
+                card, rect = _hovered_card_data
+                from ui.CardRenderer import CardRenderer
+                CardRenderer.draw_card_keyword_tooltip(
+                    screen, view.card_font, view.card_desc_font, card, rect
+                )
 
     @staticmethod
     def handle_clicks(view, mouse_pos):
@@ -165,8 +232,7 @@ class Shop:
                     and view.shop_item_1_rect.collidepoint(mouse_pos):
                 if view.gm.player_gold >= card_price:
                     view.gm.player_gold -= card_price
-                    view.gm.add_card(Shop.item_1)  # ИСПРАВЛЕНО: было current_deck.append()
-                    print(f"Куплена карта: {Shop.item_1.name}")
+                    view.gm.add_card(Shop.item_1)
                     Shop.item_1 = None
                 else:
                     print("[!] Не хватает золота!")
@@ -175,8 +241,7 @@ class Shop:
                     and view.shop_item_2_rect.collidepoint(mouse_pos):
                 if view.gm.player_gold >= card_price:
                     view.gm.player_gold -= card_price
-                    view.gm.add_card(Shop.item_2)  # ИСПРАВЛЕНО: было current_deck.append()
-                    print(f"Куплена карта: {Shop.item_2.name}")
+                    view.gm.add_card(Shop.item_2)
                     Shop.item_2 = None
                 else:
                     print("[!] Не хватает золота!")
@@ -204,7 +269,6 @@ class Shop:
                         removed = view.gm.current_deck.pop(index)
                         view.gm.player_gold -= view.gm.get_removal_price()
                         view.gm.removal_count += 1
-                        print(f"Карта '{removed.name}' сожжена. "
-                              f"Следующее сжигание: {view.gm.get_removal_price()} з.")
+                        print(f"Карта '{removed.name}' сожжена.")
                         Shop.sub_state = "MAIN"
                         break

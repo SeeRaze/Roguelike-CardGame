@@ -28,7 +28,7 @@ def draw_locked(view, screen, sub_font, card_font, desc_font, small_font):
         )
         screen.blit(msg, (960 - msg.get_width() // 2, 320))
         draw_leave_button(view, screen, card_font)
-        return
+        return None   # ← нет карт -- нет тултипа
 
     hint = "Выбери одну карту (4 на выбор):" if not gm.chest_opened else "Карта добавлена в колоду!"
     h = sub_font.render(hint, True, _TEXT_COLOR)
@@ -41,12 +41,14 @@ def draw_locked(view, screen, sub_font, card_font, desc_font, small_font):
         )
         screen.blit(g, (960 - g.get_width() // 2, 200))
 
-    draw_card_row(view, screen, cards, card_font, desc_font, cy=270)
+    hovered_card_data = draw_card_row(view, screen, cards, card_font, desc_font, cy=270)
 
     if not gm.chest_opened:
         draw_take_skip_buttons(view, screen, card_font)
     else:
         draw_continue_button(view, screen, card_font)
+
+    return hovered_card_data   # ← передаём наверх в base.py
 
 
 def clicks_locked(view, mouse_pos):

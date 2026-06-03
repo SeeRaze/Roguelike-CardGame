@@ -40,9 +40,13 @@ def _handle_chest(view, mouse_pos):
 def _handle_event(view, mouse_pos):
     from ui.EventView import handle_clicks as event_clicks
     event_clicks(view, mouse_pos)
+
+
 def _handle_victory(view, mouse_pos):
     from ui.VictoryScreen import VictoryScreen
     VictoryScreen.handle_clicks(view, mouse_pos)
+
+
 def _handle_card_library(view, mouse_pos):
     from ui.CardLibraryView import CardLibraryView
     CardLibraryView.handle_click(view, mouse_pos)
@@ -64,17 +68,14 @@ def _handle_leaderboard(view, mouse_pos):
         print("[СИСТЕМА] Рестарт завершён. Возврат в главное меню.")
 
 
-
-# Диспетчер: состояние -> обработчик.
-# Добавить новый экран = одна строка здесь.
 STATE_HANDLERS = {
-    "COMBAT":      _handle_combat,
-    "CAMPFIRE":    _handle_campfire,
-    "SHOP":        _handle_shop,
-    "CHEST":       _handle_chest,
-    "EVENT":       _handle_event,
-    "LEADERBOARD": _handle_leaderboard,
-    "VICTORY":     _handle_victory,
+    "COMBAT":       _handle_combat,
+    "CAMPFIRE":     _handle_campfire,
+    "SHOP":         _handle_shop,
+    "CHEST":        _handle_chest,
+    "EVENT":        _handle_event,
+    "LEADERBOARD":  _handle_leaderboard,
+    "VICTORY":      _handle_victory,
     "CARD_LIBRARY": _handle_card_library,
 }
 
@@ -90,17 +91,14 @@ class InputHandler:
 
     @staticmethod
     def process_scroll(view, event_button):
-        if view.gm.current_state in ["CAMPFIRE", "SHOP"]:
-            if event_button == 4:
-                view.scroll_y = max(view.scroll_y - 30, 0)
-            elif event_button == 5:
-                view.scroll_y = min(view.scroll_y + 30, 600)
-                if view.gm.current_state == "CARD_LIBRARY":
-                    from ui.CardLibraryView import CardLibraryView
-                    direction = 1 if event_button == 5 else -1
-                    cards = CardLibraryView._get_cards()
-                    CardLibraryView.handle_scroll(direction, len(cards))
-    @classmethod
-    def _handle_card_library(cls, view, mouse_pos):
-        from ui.CardLibraryView import CardLibraryView
-        CardLibraryView.handle_click(view, mouse_pos)
+        direction = -1 if event_button == 4 else 1   # 4 = вверх, 5 = вниз
+
+        state = view.gm.current_state
+
+        if state == "CARD_LIBRARY":
+            from ui.CardLibraryView import CardLibraryView
+            cards = CardLibraryView._get_cards()
+            CardLibraryView.handle_scroll(direction, len(cards))
+
+        elif state in ("CAMPFIRE", "SHOP"):
+            view.scroll_y = max(0, view.scroll_y + direction * 60)

@@ -3,6 +3,7 @@ from ui.chest.data   import pick_chest_type, generate_chest_cards, generate_curs
 from ui.chest.common import draw_common, clicks_common
 from ui.chest.locked import draw_locked, clicks_locked
 from ui.chest.cursed import draw_cursed, clicks_cursed
+from ui.CardRenderer import CardRenderer
 import random
 
 
@@ -62,12 +63,21 @@ class Chest:
         t = main_font.render(title_text, True, title_color)
         screen.blit(t, (960 - t.get_width() // 2, 60))
 
+        # draw_* возвращают (card, rect) если карта под курсором, иначе None
+        hovered_card_data = None
         if chest_type == "common":
-            draw_common(view, screen, sub_font, card_font, desc_font, small_font)
+            hovered_card_data = draw_common(view, screen, sub_font, card_font, desc_font, small_font)
         elif chest_type == "locked":
-            draw_locked(view, screen, sub_font, card_font, desc_font, small_font)
+            hovered_card_data = draw_locked(view, screen, sub_font, card_font, desc_font, small_font)
         elif chest_type == "cursed":
             draw_cursed(view, screen, sub_font, card_font, desc_font)
+
+        # Тултип карты -- самым последним, поверх всего
+        if hovered_card_data:
+            card, rect = hovered_card_data
+            CardRenderer.draw_card_keyword_tooltip(
+                screen, card_font, desc_font, card, rect
+            )
 
     @staticmethod
     def handle_clicks(view, mouse_pos):
