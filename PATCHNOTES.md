@@ -10,6 +10,21 @@
 
 ## Сессия 29 — 4 июня 2026
 
+### 🔧 Изменено (рефакторинг — Stage 2: крупный UI)
+- **`ui/HubView.py` (386) → пакет `ui/hub/`.** Разбит по швам: `data` (палитра + CLASS_INFO +
+  геометрия), `selectors` (карточки классов), `deck` (анимированная стопка), `base` (состояние +
+  оркестрация + клики). Импорт `from ui.hub import HubView`.
+- **`ui/CombatInterface.py` (370) → пакет `ui/combat/`** (рядом с существующим `hud.py`):
+  `layout` (палитра+геометрия), `panels` (релик-бар + панели игрока/врага + лог), `bottom`
+  (рука/стопки/кнопка хода), `interface` (оркестратор + тултипы). Импорт `from ui.combat import CombatInterface`.
+  Попутно удалён мёртвый дубль `CombatInterface.draw_ability_slot` (реальный — в `CombatHUD`).
+- **`ui/CardRenderer.py` (357) → пакет `ui/cards/`.** Фасад `CardRenderer` в `renderer.py`,
+  внутренности: `classifier` (тип карты), `description` (заголовок + умное описание),
+  `keywords` (тултип-глоссарий), `data` (палитра/цвета). Все ~8 импортёров переведены на
+  `from ui.cards import CardRenderer`.
+- **Введён дифференцированный ГОСТ размера файла:** логика (`core/`,`managers/`) — жёстко 150;
+  UI — деление по смыслу (data/rendering/handlers как `ui/chest/`), мягкий потолок рендер-файла ~220.
+
 ### 🔧 Изменено (рефакторинг — Stage 1: контент-ядро)
 - **`core/players/abilities.py` (248 стр.) → пакет `core/players/abilities/`.** По одному файлу
   на способность (`warrior`/`rogue`/`mage`/`druid`/`berserker`), реэкспорт через `__init__.py`.
@@ -35,8 +50,7 @@
   cookbook («Новая реликвия»/«Новый враг»), раздел техдолга (Stage 2/3 рефакторинга UI).
 
 ### 🔎 Известные проблемы / технический долг
-- Остаток >150 строк — крупный UI (Stage 2: HubView/CombatInterface/CardRenderer; Stage 3:
-  Shop/GameView/VictoryScreen/MapView/CardLibraryView).
+- Остаток >150 строк — Stage 3 рефакторинга UI: Shop, GameView, VictoryScreen, MapView, CardLibraryView.
 - ~64 предсуществующих неиспользуемых импорта (`ruff F401`) по проекту — вне CI-набора; разовая чистка.
 
 ---

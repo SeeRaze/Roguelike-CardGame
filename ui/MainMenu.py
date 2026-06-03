@@ -1,6 +1,6 @@
 import pygame
 import sys
-from ui.HubView import HubView
+from ui.hub import HubView
 
 
 class MainMenu:

@@ -3,7 +3,7 @@ from ui.chest.data   import pick_chest_type, generate_chest_cards, generate_curs
 from ui.chest.common import draw_common, clicks_common
 from ui.chest.locked import draw_locked, clicks_locked
 from ui.chest.cursed import draw_cursed, clicks_cursed
-from ui.CardRenderer import CardRenderer
+from ui.cards import CardRenderer
 import random
 
 

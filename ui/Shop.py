@@ -167,7 +167,7 @@ class Shop:
             # Тултип карты -- последним, поверх всего
             if _hovered_card_data:
                 card, rect = _hovered_card_data
-                from ui.CardRenderer import CardRenderer
+                from ui.cards import CardRenderer
                 CardRenderer.draw_card_keyword_tooltip(
                     screen, view.card_font, view.card_desc_font, card, rect
                 )
@@ -218,7 +218,7 @@ class Shop:
             # Тултип поверх clip -- последним
             if _hovered_card_data:
                 card, rect = _hovered_card_data
-                from ui.CardRenderer import CardRenderer
+                from ui.cards import CardRenderer
                 CardRenderer.draw_card_keyword_tooltip(
                     screen, view.card_font, view.card_desc_font, card, rect
                 )

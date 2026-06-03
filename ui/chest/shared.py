@@ -12,7 +12,7 @@ CARD_H = 250
 
 def draw_card_row(view, screen, cards, card_font, desc_font, cy=300):
     """Рисует ряд карт. Возвращает (card, rect) для hovered карты или None."""
-    from ui.CardRenderer import CardRenderer
+    from ui.cards import CardRenderer
     gm      = view.gm
     count   = len(cards)
     if count == 0:

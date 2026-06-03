@@ -1,7 +1,7 @@
 import pygame
 from ui.events.event_data    import get_random_event
 from ui.events.event_effects import apply_option
-from ui.CardRenderer import CardRenderer
+from ui.cards import CardRenderer
 
 _current_event = None
 _option_rects  = []

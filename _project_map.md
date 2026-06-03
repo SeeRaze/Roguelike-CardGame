@@ -4,16 +4,21 @@ _История изменений по версиям — в `PATCHNOTES.md`._
 
 ## Архитектура
 - `core/` — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py)
-- `ui/` — вся отрисовка (CardRenderer.py, CombatInterface.py, GameView.py, HubView.py, MainMenu.py и др.)
-- `managers/` — CombatManager, DeckManager, GameManager, MapGenerator, network_manager
+- `ui/` — вся отрисовка. Пакеты: `cards/` (CardRenderer), `combat/` (CombatInterface+HUD), `hub/` (HubView), `chest/`, `events/`; модули: GameView.py, MainMenu.py, MapView.py, Shop.py и др.
+- `managers/` — CombatManager, DeckManager, GameManager, MapGenerator, network_manager, EnemySpawner, RewardManager
 - Разрешение: строго 1920×1080 Full HD
 - **Ветка разработки: dev** (main — стабильная, dev — активная работа)
 
 ## Железные ГОСТы
-- Лимит файла: 150 строк (золотой стандарт)
-- Если файл разрастается — рефакторинг и разбивка на модули
-- Модульность и логичные зависимости — главный принцип
-- Никаких "божественных объектов"
+- **Логика (`core/`, `managers/`): жёсткий лимит 150 строк.** Хороший прокси «файл не делает
+  лишнего». Разрастается — выносим ответственность в модуль (см. Сессию 29: god-object → модули).
+- **UI (`ui/`): делим ПО СМЫСЛУ, а не по строкам.** Эталон — `ui/chest/`:
+  `data` (константы/пулы, без pygame) · `rendering`/`shared` (функции `draw_*`) ·
+  `handlers` (клики) · `base`/`__init__` (оркестратор + реэкспорт). 150 строк — *триггер
+  посмотреть*, не жёсткий гейт; у файла-оркестратора/рендера мягкий потолок ~200–220.
+  Резать только по реальному шву (данные ↔ отрисовка ↔ клики), НИКОГДА — ради цифры.
+- Модульность и логичные зависимости — главный принцип. Никаких «божественных объектов».
+- Публичные точки входа сохраняем через реэкспорт в `__init__.py` (импортёры не трогаем).
 
 ## Навигация по проекту
 - Читать этот файл ПЕРВЫМ в каждой сессии — он даёт карту систем и «грабли».
@@ -74,14 +79,18 @@ managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py,
      MapGenerator.py, network_manager.py, EnemySpawner.py, RewardManager.py
 ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
-ui/combat/init.py, hud.py
+ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hud.py
+
+ui/cards/init.py, renderer.py, classifier.py, description.py, keywords.py, data.py
+
+ui/hub/init.py, base.py, selectors.py, deck.py, data.py
 
 ui/events/init.py, event_data.py, event_effects.py, positive.py, negative.py,
 
       neutral.py, special.py
-ui/Campfire.py, CardRenderer.py, CombatInterface.py, CardLibraryView.py
+ui/Campfire.py, CardLibraryView.py
 
-ui/EventView.py, GameView.py, HubView.py, InputHandler.py, LeaderboardView.py,
+ui/EventView.py, GameView.py, InputHandler.py, LeaderboardView.py,
 
 MainMenu.py, MapView.py, map_icons.py, Shop.py, VictoryScreen.py
 
@@ -221,8 +230,10 @@ shld = 3 + tier*1
 - `distribute_combat_rewards()` → `pending_rewards` → VICTORY
 - `CardLibraryView`: карты привязаны к классам, NEW_CARDS упразднён
 - `ui/chest/shared.py`: `draw_card_row` возвращает `(card, rect)` или `None`
-- `CardRenderer.draw` сигнатура: `(surface, card, x, y, font_title, font_desc, is_hovered=False, player=None, enemy=None)` — НЕ Rect!
-- `_EXTRA_KEYWORDS` — модульная переменная в `CardRenderer.py`, НЕ в StatusRegistry
+- `CardRenderer` — фасад в `ui/cards/renderer.py` (импорт `from ui.cards import CardRenderer`). Внутренности: `classifier`/`description`/`keywords`/`data`. Сигнатура `draw`: `(surface, card, x, y, font_title, font_desc, is_hovered=False, player=None, enemy=None)` — НЕ Rect!
+- `_EXTRA_KEYWORDS` и палитра карт `_C` — в `ui/cards/data.py`, НЕ в StatusRegistry
+- `CombatInterface` — фасад в `ui/combat/interface.py` (импорт `from ui.combat import CombatInterface`); панели в `panels.py`, низ экрана в `bottom.py`, константы в `layout.py`, HUD-хелперы в `hud.py`
+- `HubView` — в `ui/hub/` (импорт `from ui.hub import HubView`); CLASS_INFO+геометрия в `data.py`
 - `draw_pile_rect` и `discard_pile_rect` — атрибуты GameView, не CombatInterface
 - `temp_cost` на карте — временный атрибут Разбойника, живёт только в руке
 - `ЖелезнаяВоля`: `is_active=True`, `activate()` вызывается из InputHandler при клике
@@ -279,11 +290,11 @@ shld = 3 + tier*1
 1. **Инвентарь реликвий в бою** — реликвии не помещаются на полосе, нужен отдельный UI (свёрнутая панель / скролл / отдельный экран по кнопке)
 
 ### Приоритет 2 (рефакторинг):
-2. Файлы >150 строк (ГОСТ) — остаток после Сессии 29 (UI, Stage 2/3 плана рефакторинга):
-   - **Stage 2**: HubView.py (386) → `ui/hub/`, CombatInterface.py (370) → `ui/combat/`, CardRenderer.py (357) → `ui/cards/`
+2. Файлы >150 строк — остаток (Stage 3 плана рефакторинга UI):
    - **Stage 3**: Shop.py (273) → `ui/shop/`, GameView.py (271), VictoryScreen.py (226) → `ui/victory/`, MapView.py (167) → `ui/map/`, CardLibraryView.py (167) → `ui/library/`
-   - Оставлено намеренно: Creature.py (184, цельный), hud.py (252, чистый UI-хелпер), CombatManager.py (159, оркестратор).
-   - ✅ Сделано в Сессии 29: abilities.py→пакет, relics/advanced.py→пакет (по теме), GameManager god-object разобран (EnemySpawner + RewardManager, 266→145).
+   - Оставлено намеренно: Creature.py (184, цельный), combat/hud.py (252, чистый UI-хелпер), CombatManager.py (159, оркестратор), combat/panels.py (157, render-файл под мягким потолком 220).
+   - ✅ Stage 1 (Сессия 29): abilities.py→пакет, relics/advanced.py→пакет (по теме), GameManager god-object разобран (EnemySpawner + RewardManager, 266→145).
+   - ✅ Stage 2 (Сессия 29): HubView→`ui/hub/`, CombatInterface→`ui/combat/` (+мёртвый дубль `draw_ability_slot` удалён), CardRenderer→`ui/cards/`. ГОСТ UI — структурный (см. «Железные ГОСТы»).
    - 🧹 Долг: ~64 предсуществующих неиспользуемых импорта (ruff F401) по проекту — не в CI-наборе; разово почистить `ruff --select F401 --fix`.
 
 ### Отложено (нужны мульти-враги):
@@ -294,4 +305,7 @@ shld = 3 + tier*1
 ## Статус
 Сессия 27 завершена (Jun 3, 2026).
 Сессия 28: настроен GitHub CLI + CI, проведён аудит зависимостей/логики, карта синхронизирована с кодом.
-Сессия 29 (Jun 4, 2026): рефакторинг крупных файлов, Stage 1 (контент-ядро). Раздроблены `core/players/abilities.py`→пакет (1 файл/способность), `core/relics/advanced.py`→пакет по теме, разобран god-object `GameManager` (вынесены `EnemySpawner`+`RewardManager`, 266→145 строк). Публичные точки входа сохранены через реэкспорт. Все проверки CI зелёные локально. Следующее — Stage 2 (крупный UI: HubView/CombatInterface/CardRenderer).
+Сессия 29 (Jun 4, 2026): рефакторинг крупных файлов.
+- Stage 1 (контент-ядро): `core/players/abilities.py`→пакет (1 файл/способность), `core/relics/advanced.py`→пакет по теме, god-object `GameManager` разобран (`EnemySpawner`+`RewardManager`, 266→145).
+- Stage 2 (крупный UI): `HubView`→`ui/hub/`, `CombatInterface`→`ui/combat/` (+удалён мёртвый дубль `draw_ability_slot`), `CardRenderer`→`ui/cards/`. Введён дифференцированный ГОСТ: логика — жёстко 150, UI — структурно по швам с мягким потолком ~220.
+- Публичные точки входа сохранены через реэкспорт. CI зелёный локально (+рантайм-импорт UI через SDL dummy). Следующее — Stage 3 (Shop/GameView/VictoryScreen/MapView/CardLibraryView).

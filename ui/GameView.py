@@ -5,13 +5,13 @@ from dataclasses import dataclass, field
 from typing import Optional
 from managers.GameManager import GameManager
 from ui.MainMenu import MainMenu
-from ui.CombatInterface import CombatInterface
+from ui.combat import CombatInterface
 from ui.InputHandler import InputHandler
 from ui.Campfire import Campfire
 from ui.Shop import Shop
 from ui.MapView import MapView
 from ui.LeaderboardView import LeaderboardView
-from ui.CardRenderer import CardRenderer
+from ui.cards import CardRenderer
 from ui.chest import Chest
 from ui.VictoryScreen import VictoryScreen
 from ui.CardLibraryView import CardLibraryView

@@ -10,7 +10,7 @@ from core.cards import (
     create_drain, create_blood_feast, create_life_tap,
     create_lacerate, create_hemorrhage, create_open_wound,
 )
-from ui.CardRenderer import CardRenderer
+from ui.cards import CardRenderer
 
 WARRIOR_CARDS = [
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
