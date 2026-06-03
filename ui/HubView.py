@@ -6,30 +6,48 @@ from ui.CardRenderer import CardRenderer
 # ──────────────────────────────────────────────
 CLASS_INFO = {
     "Warrior": {
-        "label":  "ВОИН",          # БАГ 2: убраны эмодзи — pygame SysFont их не рендерит
+        "label":  "ВОИН",
         "color":  (200, 80,  80),
         "desc": [
             "HP: 80  |  Энергия: 3",
-            "Тяжёлая броня и мощные удары.",
+            "Щиты, шипы, тяжёлый урон.",
             "Стартует с Тяжёлым Клинком.",
         ],
     },
     "Rogue": {
-        "label":  "РАЗБОЙНИК",     # БАГ 2
+        "label":  "РАЗБОЙНИК",
         "color":  (160, 100, 220),
         "desc": [
-            "HP: 65  |  Энергия: 3",
-            "Яд и быстрые атаки.",
-            "Стартует с Нейтрализацией.",
+            "HP: 65  |  Энергия: 4",
+            "Серии быстрых ударов, кровь.",
+            "Каждый ход: 1 карта дешевле.",
         ],
     },
     "Mage": {
-        "label":  "МАГ",           # БАГ 2
+        "label":  "МАГ",
         "color":  (80,  160, 220),
         "desc": [
             "HP: 55  |  Энергия: 3",
-            "Стихийные комбо ПАР.",
+            "Стихийные комбо: огонь+вода.",
             "Стартует с Поджогом и Всплеском.",
+        ],
+    },
+    "Druid": {
+        "label":  "ДРУИД",
+        "color":  (60,  180, 80),
+        "desc": [
+            "HP: 70  |  Энергия: 3",
+            "Реген, хил и медленный яд.",
+            "Стартует с Перевязкой и Регеном.",
+        ],
+    },
+    "Berserker": {
+        "label":  "БЕРСЕРК",
+        "color":  (220, 60,  40),
+        "desc": [
+            "HP: 60  |  Энергия: 3",
+            "Чем меньше HP -- тем больше урон.",
+            "Стартует с Тяжёлым Клинком x2.",
         ],
     },
 }
@@ -226,8 +244,14 @@ class HubView:
 
     @staticmethod
     def _select_class(gm, cls_name: str):
-        from core.players import Warrior, Rogue, Mage
-        CLASS_MAP = {"Warrior": Warrior, "Rogue": Rogue, "Mage": Mage}
+        from core.players import Warrior, Rogue, Mage, Druid, Berserker
+        CLASS_MAP = {
+            "Warrior":   Warrior,
+            "Rogue":     Rogue,
+            "Mage":      Mage,
+            "Druid":     Druid,
+            "Berserker": Berserker,
+        }
         if cls_name not in CLASS_MAP:
             return
         if type(gm.player).__name__ == cls_name:

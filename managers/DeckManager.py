@@ -54,6 +54,9 @@ class DeckManager:
 
     def discard_hand(self):
         """Сброс всех карт из руки в конце хода."""
+        for card in self.hand:
+            if hasattr(card, 'temp_cost'):
+                del card.temp_cost          # сбрасываем скидку Разбойника
         self.discard_pile.extend(self.hand)
         self.hand.clear()
         print("--- Менеджер Колоды: Все карты из руки отправлены в сброс! ---")

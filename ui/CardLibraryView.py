@@ -5,7 +5,6 @@ from core.cards import (
     create_poison_stab, create_toxic_cloud, create_acid_shield,
     create_bash, create_neutralize, create_intimidate,
     create_flex, create_battle_cry, create_thorn_armor,
-    # Новые механики
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
     create_drain, create_blood_feast, create_life_tap,
@@ -15,41 +14,57 @@ from ui.CardRenderer import CardRenderer
 
 WARRIOR_CARDS = [
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
-    create_bash, create_flex, create_battle_cry, create_thorn_armor,
-]
-ROGUE_CARDS = [
-    create_strike, create_defend, create_neutralize,
-    create_intimidate, create_poison_stab, create_toxic_cloud, create_acid_shield,
-]
-MAGE_CARDS = [
-    create_strike, create_defend, create_ignite, create_fire_breath,
-    create_splash, create_rain_cloud,
+    create_flex, create_battle_cry, create_thorn_armor, create_bash,
 ]
 
-# Новые карты без привязки к классу — только в "Все"
-NEW_CARDS = [
+ROGUE_CARDS = [
+    create_strike, create_defend,
+    create_neutralize, create_intimidate,
+    create_lacerate, create_hemorrhage, create_open_wound,
+    create_drain, create_blood_feast,
+]
+
+MAGE_CARDS = [
+    create_strike, create_defend,
+    create_ignite, create_fire_breath,
+    create_splash, create_rain_cloud,
+    create_bash, create_acid_shield,
+]
+
+DRUID_CARDS = [
+    create_strike, create_defend,
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
-    create_drain, create_blood_feast, create_life_tap,
-    create_lacerate, create_hemorrhage, create_open_wound,
+    create_poison_stab, create_toxic_cloud,
+]
+
+BERSERKER_CARDS = [
+    create_strike, create_defend,
+    create_heavy_blade, create_iron_wall,
+    create_flex, create_battle_cry,
+    create_life_tap,                    # вампиризм -- балансировать на грани
+    create_lacerate,                    # кровь -- давление
 ]
 
 ALL_CARDS = list({f.__name__: f for f in
-    WARRIOR_CARDS + ROGUE_CARDS + MAGE_CARDS + NEW_CARDS}.values())
+    WARRIOR_CARDS + ROGUE_CARDS + MAGE_CARDS +
+    DRUID_CARDS + BERSERKER_CARDS}.values())
 
 TABS = [
     ("Все",       ALL_CARDS),
     ("Воин",      WARRIOR_CARDS),
     ("Разбойник", ROGUE_CARDS),
     ("Маг",       MAGE_CARDS),
+    ("Друид",     DRUID_CARDS),
+    ("Берсерк",   BERSERKER_CARDS),
 ]
 
 CARD_W, CARD_H = 180, 250
-COLS       = 8
-GAP_X      = 20
-GAP_Y      = 30
-START_X    = 60
-START_Y    = 200
+COLS    = 8
+GAP_X   = 20
+GAP_Y   = 30
+START_X = 60
+START_Y = 200
 
 
 class CardLibraryView:
@@ -74,7 +89,6 @@ class CardLibraryView:
         mouse = pygame.mouse.get_pos()
         cls._hovered_card = None
 
-        # Заголовок
         pygame.draw.line(view.screen, (60, 60, 80), (0, 80), (1920, 80), 2)
         view.draw_text("БИБЛИОТЕКА КАРТ", view.main_font, (240, 200, 60), 760, 90)
 
@@ -84,24 +98,23 @@ class CardLibraryView:
         pygame.draw.rect(view.screen, (200, 200, 200), cls._btn_back, 2, border_radius=8)
         view.draw_text("<  Назад", view.card_font, (255, 255, 255), 42, 35)
 
-        # Вкладки
+        # Вкладки -- 6 штук, шаг 155 чтобы влезли
         cls._tab_rects = []
-        tx = 250
+        tx = 220
         for i, (label, _) in enumerate(TABS):
-            rect = pygame.Rect(tx, 18, 160, 46)
+            rect = pygame.Rect(tx, 18, 150, 46)
             cls._tab_rects.append(rect)
             active  = (i == cls._active_tab)
             hovered = rect.collidepoint(mouse)
             bg = (60, 100, 160) if active else ((70, 70, 80) if hovered else (40, 40, 50))
             pygame.draw.rect(view.screen, bg, rect, border_radius=8)
             pygame.draw.rect(view.screen, (200, 200, 200), rect, 2, border_radius=8)
-            view.draw_text(label, view.card_font, (255, 255, 255), tx + 20, 30)
-            tx += 175
+            view.draw_text(label, view.card_font, (255, 255, 255), tx + 15, 30)
+            tx += 160
 
-        # Разделитель
         pygame.draw.line(view.screen, (60, 60, 80), (0, 80), (1920, 80), 2)
 
-        # Карты (с клиппингом чтобы не вылезали под шапку)
+        # Карты
         cards = cls._get_cards()
         clip_rect = pygame.Rect(0, 90, 1920, 1080 - 90)
         view.screen.set_clip(clip_rect)
@@ -132,7 +145,6 @@ class CardLibraryView:
                 view.screen, view.card_font, view.card_desc_font, card, rect,
             )
 
-        # Счётчик карт
         view.draw_text(
             f"Карт: {len(cards)}", view.card_desc_font,
             (140, 140, 140), 1800, 30,

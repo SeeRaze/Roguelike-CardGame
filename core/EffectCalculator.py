@@ -24,6 +24,17 @@ class EffectCalculator:
                       f"+{attacker.strength} к урону!")
             base_damage += attacker.strength
 
+        # 2b. ПАССИВ БЕРСЕРКА: бонус урона от недостатка HP
+        if is_player_attack and type(attacker).__name__ == "Berserker":
+            if attacker.max_hp > 0:
+                missing = 1.0 - attacker.hp / attacker.max_hp
+                rage_bonus = int(missing * 10)
+                if rage_bonus > 0:
+                    base_damage += rage_bonus
+                    if not dry_run:
+                        print(f" [БЕРСЕРК] Ярость крови: +{rage_bonus} к урону "
+                              f"({attacker.hp}/{attacker.max_hp} HP)")
+
         # 3. Слабость атакующего
         if attacker.weak > 0:
             base_damage = int(base_damage * 0.75)
