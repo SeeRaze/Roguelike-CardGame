@@ -1,4 +1,5 @@
 import pygame
+import random as _rnd
 from core.StatusRegistry import STATUSES
 from core.rarity import RARITY_COLORS
 
@@ -65,7 +66,7 @@ class CombatHUD:
     def draw_relics(screen, font, relics, x, y):
         """
         Рисует реликвии в ряд начиная с (x, y).
-        Каждая реликвия — прямоугольник с рамкой цвета редкости.
+        Каждая реликвия -- прямоугольник с рамкой цвета редкости.
         Возвращает список [(rect, relic)] для hover-проверки.
         """
         relic_rects = []
@@ -139,7 +140,7 @@ class CombatHUD:
         max_w  = max((font.size(l)[0] for l in lines), default=100)
         max_w  = max(max_w, font.size(relic.name)[0])
         box_w  = max_w + pad_x * 2
-        box_h  = len(lines) * line_h + pad_y * 2 + line_h + 4  # +строка под заголовок
+        box_h  = len(lines) * line_h + pad_y * 2 + line_h + 4
 
         tip_x = mouse_pos[0] + 16
         tip_y = mouse_pos[1] + 16
@@ -154,11 +155,53 @@ class CombatHUD:
         pygame.draw.rect(screen, (20, 20, 25), bg_rect, border_radius=6)
         pygame.draw.rect(screen, border_color, bg_rect, 2, border_radius=6)
 
-        # Заголовок цветом редкости
         name_surf = font.render(relic.name, True, border_color)
         screen.blit(name_surf, (tip_x + pad_x, tip_y + pad_y))
 
-        # Описание
         for i, line in enumerate(lines):
             surf = font.render(line, True, (200, 200, 200))
             screen.blit(surf, (tip_x + pad_x, tip_y + pad_y + line_h + 4 + i * line_h))
+
+    @staticmethod
+    def draw_pile_tooltip(screen, font_title, font_desc, cards, title, mouse_pos):
+        """
+        Рисует тултип со списком карт стопки рядом с курсором.
+        cards -- список объектов Card в порядке отображения.
+        Вызывается последним -- поверх всего остального.
+        """
+        if not cards:
+            lines = ["(пусто)"]
+        else:
+            lines = [f"  {c.name}" for c in cards]
+
+        pad_x, pad_y = 12, 8
+        line_h  = font_desc.get_linesize() + 2
+        title_h = font_title.get_linesize() + 4
+
+        all_widths = [font_desc.size(l)[0] for l in lines]
+        all_widths.append(font_title.size(title)[0])
+        box_w = max(all_widths) + pad_x * 2
+        box_h = title_h + len(lines) * line_h + pad_y * 2
+
+        # Всплывает вверх над стопкой, не перекрывает руку
+        tip_x = mouse_pos[0] + 16
+        tip_y = mouse_pos[1] - box_h - 10
+
+        screen_w, screen_h = screen.get_size()
+        if tip_x + box_w > screen_w - 10:
+            tip_x = mouse_pos[0] - box_w - 10
+        if tip_y < 10:
+            tip_y = mouse_pos[1] + 16
+
+        bg_rect = pygame.Rect(tip_x, tip_y, box_w, box_h)
+        pygame.draw.rect(screen, (20, 20, 25), bg_rect, border_radius=6)
+        pygame.draw.rect(screen, (180, 180, 180), bg_rect, 1, border_radius=6)
+
+        # Заголовок
+        title_surf = font_title.render(title, True, (240, 220, 80))
+        screen.blit(title_surf, (tip_x + pad_x, tip_y + pad_y))
+
+        # Список карт
+        for i, line in enumerate(lines):
+            surf = font_desc.render(line, True, (200, 200, 200))
+            screen.blit(surf, (tip_x + pad_x, tip_y + pad_y + title_h + i * line_h))

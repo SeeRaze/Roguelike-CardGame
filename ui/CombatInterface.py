@@ -107,21 +107,24 @@ class CombatInterface:
 
         view.draw_text("=" * 100, view.ui_font, WHITE, 100, 570)
 
-        # 3. ДИНАМИЧЕСКИЙ ВЕЕР КАРТ
-        hand_size = len(dm.hand)
-        view.draw_text(
-            f"Колода: {len(dm.draw_pile)} шт.", view.main_font, YELLOW, 100, 600
+        # 3. СТОПКИ КАРТ (добор слева, сброс справа)
+        CombatInterface._draw_pile(
+            view.screen, view.card_font, view.card_desc_font,
+            view.draw_pile_rect, len(dm.draw_pile), "ДОБОР", YELLOW
         )
-        view.draw_text(
-            f"Сброс: {len(dm.discard_pile)} шт.", view.main_font, GRAY, 1600, 600
+        CombatInterface._draw_pile(
+            view.screen, view.card_font, view.card_desc_font,
+            view.discard_pile_rect, len(dm.discard_pile), "СБРОС", GRAY
         )
 
+        # 4. ДИНАМИЧЕСКИЙ ВЕЕР КАРТ
+        hand_size = len(dm.hand)
         for index, card in enumerate(dm.hand):
             card_x = view.calculate_card_x(index, hand_size)
             card_y = view.base_y - 40 if index == view.hover.card_index else view.base_y
             view.draw_card_by_data(card, card_x, card_y, enemy=enemy, player=player)
 
-        # 4. КНОПКА КОНЦА ХОДА
+        # 5. КНОПКА КОНЦА ХОДА
         btn_color = (90, 90, 95) if view.hover.end_turn else (60, 60, 60)
         pygame.draw.rect(view.screen, btn_color, view.end_turn_rect)
         pygame.draw.rect(view.screen, WHITE, view.end_turn_rect, 2)
@@ -130,7 +133,7 @@ class CombatInterface:
             view.end_turn_rect.x + 45, view.end_turn_rect.y + 18
         )
 
-        # 5. БОЕВОЙ ЛОГ
+        # 6. БОЕВОЙ ЛОГ
         log_x, log_y = 1400, 70
         log_rect = pygame.Rect(log_x - 15, log_y - 15, 420, 220)
         pygame.draw.rect(view.screen, (20, 20, 20), log_rect)
@@ -142,7 +145,7 @@ class CombatInterface:
                 log_x, log_y + 35 + log_index * 26
             )
 
-        # 6. ТУЛТИП СТАТУСА -- рисуется поверх всего
+        # 7. ТУЛТИП СТАТУСА -- рисуется поверх всего
         if view.hover.status_key:
             CombatHUD.draw_status_tooltip(
                 view.screen, view.card_desc_font,
@@ -150,10 +153,54 @@ class CombatInterface:
                 pygame.mouse.get_pos()
             )
 
-        # 7. ТУЛТИП РЕЛИКВИИ -- рисуется самым последним
+        # 8. ТУЛТИП РЕЛИКВИИ
         if view.hover.relic_obj:
             CombatHUD.draw_relic_tooltip(
                 view.screen, view.card_desc_font,
                 view.hover.relic_obj,
                 pygame.mouse.get_pos()
             )
+
+        # 9. ТУЛТИП СТОПКИ -- рисуется самым последним
+        if view.hover.pile_type:
+            if view.hover.pile_type == "draw":
+                # reveal_draw_order=True -- флаг для будущей реликвии
+                if getattr(view.gm, 'reveal_draw_order', False):
+                    cards = dm.draw_pile.copy()
+                else:
+                    cards = view._draw_pile_display
+                title = f"ДОБОР ({len(dm.draw_pile)})"
+            else:
+                # Сброс: последний сброшенный -- первым в списке
+                cards = list(reversed(dm.discard_pile))
+                title = f"СБРОС ({len(dm.discard_pile)})"
+            CombatHUD.draw_pile_tooltip(
+                view.screen, view.card_font, view.card_desc_font,
+                cards, title, pygame.mouse.get_pos()
+            )
+
+    @staticmethod
+    def _draw_pile(screen, font_title, font_desc, rect, count, label, color):
+        """Рисует рубашку стопки карт с числом карт по центру."""
+        # Фон
+        pygame.draw.rect(screen, (35, 35, 50), rect, border_radius=8)
+        pygame.draw.rect(screen, color, rect, 2, border_radius=8)
+
+        # Узор рубашки -- сетка
+        inner = rect.inflate(-12, -12)
+        pygame.draw.rect(screen, (50, 50, 70), inner, border_radius=4)
+        for i in range(inner.left + 8, inner.right, 16):
+            pygame.draw.line(screen, (60, 60, 80), (i, inner.top), (i, inner.bottom))
+        for j in range(inner.top + 8, inner.bottom, 16):
+            pygame.draw.line(screen, (60, 60, 80), (inner.left, j), (inner.right, j))
+
+        # Число карт по центру
+        count_surf = font_title.render(str(count), True, (240, 240, 240))
+        cx = rect.centerx - count_surf.get_width() // 2
+        cy = rect.centery - count_surf.get_height() // 2
+        screen.blit(count_surf, (cx, cy))
+
+        # Подпись под стопкой
+        label_surf = font_desc.render(label, True, color)
+        lx = rect.centerx - label_surf.get_width() // 2
+        screen.blit(label_surf, (lx, rect.bottom + 6))

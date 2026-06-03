@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random as _rnd
 from dataclasses import dataclass, field
 from typing import Optional
 from managers.GameManager import GameManager
@@ -25,7 +26,8 @@ class HoverState:
     status_val:   int              = 0
     end_turn:     bool             = False
     map_col:      Optional[int]    = None
-    relic_obj:    Optional[object] = None  # реликвия под курсором
+    relic_obj:    Optional[object] = None
+    pile_type:    Optional[str]    = None  # "draw" | "discard" | None
 
     def reset(self):
         self.card_index  = -1
@@ -36,18 +38,19 @@ class HoverState:
         self.end_turn    = False
         self.map_col     = None
         self.relic_obj   = None
+        self.pile_type   = None
 
 
 # Диспетчер отрисовки: состояние -> функция.
 # Добавить новый экран = один импорт + одна строка здесь.
-def _draw_main_menu(view):   MainMenu.draw_menu(view)
-def _draw_hub(view):         MainMenu.draw_hub(view)
-def _draw_map(view):         MapView.draw_map(view)
-def _draw_campfire(view):    Campfire.draw_screen(view)
-def _draw_shop(view):        Shop.draw_screen(view)
-def _draw_leaderboard(view): LeaderboardView.draw_screen(view)
-def _draw_chest(view):       Chest.draw_screen(view)
-def _draw_victory(view):     VictoryScreen.draw_screen(view)
+def _draw_main_menu(view):    MainMenu.draw_menu(view)
+def _draw_hub(view):          MainMenu.draw_hub(view)
+def _draw_map(view):          MapView.draw_map(view)
+def _draw_campfire(view):     Campfire.draw_screen(view)
+def _draw_shop(view):         Shop.draw_screen(view)
+def _draw_leaderboard(view):  LeaderboardView.draw_screen(view)
+def _draw_chest(view):        Chest.draw_screen(view)
+def _draw_victory(view):      VictoryScreen.draw_screen(view)
 def _draw_card_library(view): CardLibraryView.draw_screen(view)
 
 def _draw_event(view):
@@ -66,16 +69,16 @@ def _draw_combat(view):
         )
 
 DRAW_HANDLERS = {
-    "MAIN_MENU":   _draw_main_menu,
-    "HUB":         _draw_hub,
-    "MAP":         _draw_map,
-    "COMBAT":      _draw_combat,
-    "CAMPFIRE":    _draw_campfire,
-    "SHOP":        _draw_shop,
-    "LEADERBOARD": _draw_leaderboard,
-    "CHEST":       _draw_chest,
-    "EVENT":       _draw_event,
-    "VICTORY":     _draw_victory,
+    "MAIN_MENU":    _draw_main_menu,
+    "HUB":          _draw_hub,
+    "MAP":          _draw_map,
+    "COMBAT":       _draw_combat,
+    "CAMPFIRE":     _draw_campfire,
+    "SHOP":         _draw_shop,
+    "LEADERBOARD":  _draw_leaderboard,
+    "CHEST":        _draw_chest,
+    "EVENT":        _draw_event,
+    "VICTORY":      _draw_victory,
     "CARD_LIBRARY": _draw_card_library,
 }
 
@@ -110,6 +113,14 @@ class GameView:
         self.end_turn_rect        = pygame.Rect(1600, 500, 220, 60)
         self.btn_back_leaderboard = pygame.Rect(760, 900, 400, 70)
 
+        # Стопки карт (добор слева, сброс справа)
+        self.draw_pile_rect    = pygame.Rect(60,  820, 120, 160)
+        self.discard_pile_rect = pygame.Rect(1740, 820, 120, 160)
+
+        # Кеш перемешанного порядка добора для отображения в тултипе
+        self._draw_pile_display: list = []
+        self._draw_pile_ids:     list = []
+
         # Все hover-данные в одном объекте
         self.hover = HoverState()
 
@@ -120,6 +131,16 @@ class GameView:
 
         self.gm = GameManager()
         self.gm.start_game()
+
+    def _refresh_draw_pile_display(self, draw_pile):
+        """
+        Пересчитывает перемешанную копию добора для тултипа.
+        Вызывается только когда состав стопки изменился.
+        Настоящий порядок draw_pile не трогает.
+        """
+        self._draw_pile_display = draw_pile.copy()
+        _rnd.shuffle(self._draw_pile_display)
+        self._draw_pile_ids = [id(c) for c in draw_pile]
 
     def run(self):
         while self.is_running:
@@ -170,6 +191,7 @@ class GameView:
             dm = self.gm.active_combat.deck_manager
             hand_size = len(dm.hand)
 
+            # Hover по картам в руке
             for index in range(hand_size):
                 card_x = self.calculate_card_x(index, hand_size)
                 card_rect = pygame.Rect(
@@ -181,6 +203,7 @@ class GameView:
                     self.hover.card_obj   = dm.hand[index]
                     break
 
+            # Hover по бейджам статусов
             for rect, key, val in self.enemy_badge_rects:
                 if rect.collidepoint(mouse_pos):
                     self.hover.status_key = key
@@ -193,10 +216,22 @@ class GameView:
                         self.hover.status_val = val
                         break
 
+            # Hover по реликвиям
             for rect, relic in self.relic_rects:
                 if rect.collidepoint(mouse_pos):
                     self.hover.relic_obj = relic
                     break
+
+            # Обновляем кеш добора если состав изменился
+            current_ids = [id(c) for c in dm.draw_pile]
+            if current_ids != self._draw_pile_ids:
+                self._refresh_draw_pile_display(dm.draw_pile)
+
+            # Hover по стопкам
+            if self.draw_pile_rect.collidepoint(mouse_pos):
+                self.hover.pile_type = "draw"
+            elif self.discard_pile_rect.collidepoint(mouse_pos):
+                self.hover.pile_type = "discard"
 
         if self.gm.current_state == "HUB":
             dt = self.clock.get_time() / 1000.0
