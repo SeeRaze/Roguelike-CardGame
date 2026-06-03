@@ -50,7 +50,6 @@ while is_running:
 main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
 
 core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py
-⚠️ ЛЕГАСИ (мёртвый код, не импортируется): core/Card.py, core/Relic.py, core/enemy.py, core/player.py, core/items.py
 
 core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, heal.py
 
@@ -259,8 +258,8 @@ shld = 3 + tier*1
 - Комбо ПАР не срабатывает, если урон и `wet` в ОДНОЙ карте (эффекты применяются по порядку: DamageEffect считает урон до того, как StatusEffect наложит wet). Возможно намеренно.
 - `Заплатка._applied` — +5 max_hp применяется один раз за объект реликвии (на первом `on_combat_start`), сохраняется между боями. Корректно, но проверить, что реликвия не дублируется в пуле.
 
-### Мёртвый код — легаси корня `core/` (НЕ импортируется нигде, подтверждено grep)
-`core/Card.py`, `core/Relic.py`, `core/enemy.py`, `core/player.py`, `core/items.py` — заменены модульными `core/cards/`, `core/relics/`, `core/enemies/`, `core/players/`. Кандидаты на удаление. (НЕ путать с рабочими `core/Creature.py`, `core/EffectCalculator.py`, `core/StatusRegistry.py`, `core/rarity.py`.)
+### Мёртвый код — ✅ УДАЛЕНО в Сессии 28
+Легаси корня `core/` (`Card.py`, `Relic.py`, `enemy.py`, `player.py`, `items.py`) удалены — заменены модульными `core/cards/`, `core/relics/`, `core/enemies/`, `core/players/`. Рабочие файлы корня `core/`: `Creature.py`, `EffectCalculator.py`, `StatusRegistry.py`, `rarity.py`.
 
 ### Проверено и ОК
 Битых импортов нет. Сигнатуры всех 13 хуков реликвий/способностей совпадают (определение vs вызов). Циклов нет (отложенные импорты в ui/ обоснованы). Динамические атрибуты (`_iron_will_shield`, `temp_cost`, `bonus_draw`, `_elemental_blocked` и пр.) читаются через `getattr` с дефолтом — AttributeError не грозит. Порядок хода, шипы/вампиризм/bleed, dry_run в EffectCalculator — корректны.
@@ -276,8 +275,7 @@ shld = 3 + tier*1
 1. **Инвентарь реликвий в бою** — реликвии не помещаются на полосе, нужен отдельный UI (свёрнутая панель / скролл / отдельный экран по кнопке)
 
 ### Приоритет 2 (рефакторинг):
-2. Удалить мёртвые легаси-файлы в `core/` (5 шт., см. аудит)
-3. Файлы >150 строк (ГОСТ): HubView.py (386), CombatInterface.py (370), CardRenderer.py (357), Shop.py (273), GameView.py (271), advanced.py (269), hud.py (252), abilities.py (248), VictoryScreen.py (226), CombatManager.py (159) — кандидаты на разбивку.
+2. Файлы >150 строк (ГОСТ): HubView.py (386), CombatInterface.py (370), CardRenderer.py (357), Shop.py (273), GameView.py (271), advanced.py (269), hud.py (252), abilities.py (248), VictoryScreen.py (226), CombatManager.py (159) — кандидаты на разбивку.
 
 ### Отложено (нужны мульти-враги):
 - `on_kill` хук — реликвии-заглушки:
