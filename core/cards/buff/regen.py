@@ -2,7 +2,7 @@
 # Карты, накладывающие статус регенерации на игрока.
 # RegenEffect живёт в base.py -- здесь только фабрики карт.
 
-from core.cards.base import Card, RegenEffect
+from core.cards.base import Card, RegenEffect, ShieldEffect
 from core.rarity import Rarity
 
 
@@ -38,6 +38,6 @@ def create_triage():
         cost=1,
         card_type="skill",
         description="Получить Регенерацию (2) и 4 щита.",
-        effects=[RegenEffect(2, 3)],
+        effects=[RegenEffect(2, 3), ShieldEffect(4, 6)],
         rarity=Rarity.COMMON,
     )

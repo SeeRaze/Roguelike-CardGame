@@ -1,6 +1,7 @@
 import pygame
 from ui.events.event_data    import get_random_event
 from ui.events.event_effects import apply_option
+from ui.CardRenderer import CardRenderer
 
 _current_event = None
 _option_rects  = []
@@ -60,7 +61,16 @@ def draw_screen(view):
         res_surf = res_font.render(view.gm.event_result, True, _RESULT_COLOR)
         screen.blit(res_surf, (W // 2 - res_surf.get_width() // 2, y + 30))
 
-        cont_rect = pygame.Rect(W // 2 - 160, y + 100, 320, 60)
+        reward_card = getattr(view.gm, "event_result_card", None)
+        if reward_card is not None:
+            card_w, card_h = 160, 220
+            card_rect = pygame.Rect(W // 2 - card_w // 2, y + 80, card_w, card_h)
+            CardRenderer.draw(screen, reward_card, card_rect)
+            cont_y = card_rect.bottom + 20
+        else:
+            cont_y = y + 100
+
+        cont_rect = pygame.Rect(W // 2 - 160, cont_y, 320, 60)
         hover = cont_rect.collidepoint(mouse)
         pygame.draw.rect(screen, _BTN_HOVER_COLOR if hover else _BTN_COLOR,
                          cont_rect, border_radius=10)

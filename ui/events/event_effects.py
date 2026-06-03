@@ -74,6 +74,9 @@ def apply_effect(effect_str: str, gm) -> None:
     else:
         key, value = effect_str, None
 
+    # Сброс карты-награды по умолчанию
+    gm.event_result_card = None
+
     if key == "heal":
         amount = int(value)
         gm.player.hp = min(gm.player.hp + amount, gm.player.max_hp)
@@ -98,12 +101,14 @@ def apply_effect(effect_str: str, gm) -> None:
         factory = _get_card_factory(value)
         card = factory()
         gm.add_card(card)
-        gm.event_result = f"Получена карта: {card.name}"
+        gm.event_result      = "Получена карта:"
+        gm.event_result_card = card
 
     elif key == "gain_random_card":
         card = random.choice(CARD_FACTORIES)()
         gm.add_card(card)
-        gm.event_result = f"Получена карта: {card.name}"
+        gm.event_result      = "Получена карта:"
+        gm.event_result_card = card
 
     elif key == "gain_relic":
         relic_cls = _get_relic_class(value)

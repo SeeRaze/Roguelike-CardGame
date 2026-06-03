@@ -1,8 +1,16 @@
 import pygame
 import re
 from core.EffectCalculator import EffectCalculator
-from core.cards.base import StatusEffect, PoisonEffect
+from core.cards.base import (
+    StatusEffect, PoisonEffect,
+    RegenEffect, HealEffect, VampireDamageEffect
+)
+from core.cards.debuff.bleed import BleedEffect
 from core.StatusRegistry import STATUSES
+_EXTRA_KEYWORDS = {
+    "heal":    ("Лечение",    "Восстанавливает N HP."),
+    "vampire": ("Вампиризм",  "Восстанавливает 50% нанесённого урона."),
+    }
 
 
 class CardRenderer:
@@ -33,6 +41,7 @@ class CardRenderer:
         """
         Возвращает список (status_key, value) для статусных эффектов карты.
         value = реальное число с учётом апгрейда карты.
+        Псевдо-ключи: 'heal', 'vampire' -- не статусы, но показываются в тултипе.
         """
         seen     = set()
         keywords = []
@@ -45,9 +54,23 @@ class CardRenderer:
             elif isinstance(effect, PoisonEffect):
                 key = "poison"
                 val = effect.upgrade_val if card.upgraded else effect.base_val
-            if key and key in STATUSES and key not in seen:
-                seen.add(key)
-                keywords.append((key, val))
+            elif isinstance(effect, RegenEffect):
+                key = "regen"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
+            elif isinstance(effect, BleedEffect):
+                key = "bleed"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
+            elif isinstance(effect, VampireDamageEffect):
+                key = "vampire"
+                val = 50
+            elif isinstance(effect, HealEffect):
+                key = "heal"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
+
+            if key and key not in seen:
+                if key in STATUSES or key in _EXTRA_KEYWORDS:
+                    seen.add(key)
+                    keywords.append((key, val))
         return keywords
 
     @staticmethod
@@ -69,8 +92,10 @@ class CardRenderer:
         blocks = []
         max_w  = 0
         for key, val in keywords:
-            data       = STATUSES[key]
-            title_str, desc_str = data["keyword"]
+            if key in STATUSES:
+                title_str, desc_str = STATUSES[key]["keyword"]
+            else:
+                title_str, desc_str = _EXTRA_KEYWORDS[key]
             desc_str   = desc_str.replace("N", str(val))
             title_surf = font_title.render(title_str, True, (255, 220, 80))
             desc_lines = [

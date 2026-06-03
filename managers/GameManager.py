@@ -53,6 +53,7 @@ class GameManager:
         self.current_state = "MAIN_MENU"
         self.active_combat = None
         self.event_result  = None
+        self.event_result_card = None
 
         self.map_grid    = []
         self.player_path = []
