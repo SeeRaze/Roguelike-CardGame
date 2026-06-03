@@ -7,7 +7,8 @@ from ui.Campfire import Campfire
 
 def _handle_combat(view, mouse_pos):
     if view.gm.active_combat.enemy.hp <= 0:
-        view.gm.distribute_combat_rewards()
+        if view.gm.current_state == "COMBAT":
+            view.gm.distribute_combat_rewards()
         return
 
     if view.end_turn_rect.collidepoint(mouse_pos):

@@ -45,7 +45,7 @@ class GameManager:
 
         self.player        = Warrior()
         self.player_gold   = 100
-        self.player_keys   = 0              # <-- НОВОЕ
+        self.player_keys   = 0
         self.current_floor = 1
         self.removal_count = 0
         self.relics        = []
@@ -159,15 +159,19 @@ class GameManager:
     # ------------------------------------------------------------------
 
     def distribute_combat_rewards(self):
+        if self.current_state != "COMBAT":
+            return
+
         # Сброс боевого состояния игрока
         self.player.energy = self.player.max_energy
         self.player.shield = 0
         for key in ("weak", "vulnerable", "wet", "ignited", "strength"):
             self.player.statuses[key] = 0
+
         # Хук on_combat_end — реликвии реагируют на конец боя
         for relic in self.relics:
-            relic.on_combat_end(self.player)            
-        """Собирает награды за бой в pending_rewards и переходит на экран победы."""
+            relic.on_combat_end(self.player)
+
         if self.current_floor > self.stats["max_floor"]:
             self.stats["max_floor"] = self.current_floor
 
