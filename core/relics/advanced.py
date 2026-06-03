@@ -49,22 +49,14 @@ class ГнилойКлык(Relic):
             "Кровотечение не сбрасывается в конце хода, а уменьшается вдвое.",
             Rarity.RARE,
         )
-        # Флаг: реликвия уже перехватила сброс в этом ходу
         self._intercepted = False
 
     def on_bleed_tick(self, bleed_dmg, creature, combat_manager):
-        # Помечаем, что в этом ходу кровотечение было активно
         self._intercepted = True
-        return bleed_dmg  # урон не меняем, только сброс
+        return bleed_dmg
 
     def on_turn_start(self, combat_manager):
-        # Сбрасываем флаг в начале каждого хода
         self._intercepted = False
-
-
-# Примечание: ГнилойКлык требует изменения в Creature.tick_statuses.
-# Вместо s['bleed'] = 0 нужно проверять реликвии.
-# Логика вынесена в Creature.tick_statuses (см. ниже).
 
 
 class ПроклятаяКорона(Relic):
@@ -78,7 +70,7 @@ class ПроклятаяКорона(Relic):
     def on_damage_calculated(self, base_dmg, is_player_attack=True):
         if is_player_attack:
             return base_dmg * 2
-        return base_dmg  # урон врагов не трогаем
+        return base_dmg
 
 
 class ФлаконСЖелчью(Relic):
@@ -134,7 +126,6 @@ class СтараяПиявка(Relic):
         )
 
     def on_heal(self, healed_amount, creature):
-        # Добавляем +2 HP напрямую (уже после heal, поэтому добавляем сверху)
         bonus = min(2, creature.max_hp - creature.hp)
         if bonus > 0:
             creature.hp += bonus
@@ -186,7 +177,6 @@ class Заплатка(Relic):
         self._applied = False
 
     def on_combat_start(self, combat_manager):
-        # Применяем один раз за забег
         if not self._applied:
             combat_manager.player.max_hp += 5
             combat_manager.player.hp = min(
@@ -216,6 +206,8 @@ class ЗаточенныйОсколок(Relic):
             self._used_this_combat = True
             return base_dmg + 3
         return base_dmg
+
+
 class ШипастаяБроня(Relic):
     """При получении щита -- враг получает 1 Кровотечение."""
 
@@ -244,19 +236,25 @@ class ЖелезнаяВоля(Relic):
             "АКТИВНАЯ. Один раз за бой:\nщит не сбрасывается в начале следующего хода.",
             Rarity.RARE,
         )
-        self.is_active    = True   # флаг: это активная реликвия
-        self._used        = False  # использована в этом бою
-        self._shield_hold = False  # щит заморожен на следующий ход
+        self.is_active    = True
+        self._used        = False
+        self._shield_hold = False
 
     def on_combat_start(self, combat_manager):
         self._used        = False
         self._shield_hold = False
 
-    def activate(self, combat_manager):
+    def activate(self, combat_manager) -> bool:
         """Вызывается из InputHandler при клике на реликвию."""
         if self._used:
             combat_manager.add_log_message(
                 f"[Реликвия] '{self.name}': уже использована в этом бою!"
+            )
+            return False
+        # Нет смысла активировать без щита -- предупреждаем игрока
+        if combat_manager.player.shield <= 0:
+            combat_manager.add_log_message(
+                f"[Реликвия] '{self.name}': нет щита для сохранения!"
             )
             return False
         self._used        = True
@@ -267,10 +265,8 @@ class ЖелезнаяВоля(Relic):
         return True
 
     def on_turn_start(self, combat_manager):
-        """Перехватываем сброс щита -- если флаг активен, восстанавливаем."""
+        """Восстанавливаем щит если флаг активен."""
         if self._shield_hold:
-            # Щит уже сброшен в start_turn_phase до вызова хука.
-            # Сохраняем значение до сброса через отдельный атрибут.
             saved = getattr(combat_manager.player, '_iron_will_shield', 0)
             if saved > 0:
                 combat_manager.player.shield = saved

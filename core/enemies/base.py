@@ -44,7 +44,6 @@ class Enemy(Creature):
 
     @intent_type.setter
     def intent_type(self, value: str):
-        # Сохраняем текущее значение, меняем только тип
         old_val = self.intent.value if hasattr(self.intent, 'value') else 0
         cls = INTENT_REGISTRY.get(value)
         self.intent = cls(old_val) if cls else IntentNone()
@@ -55,11 +54,10 @@ class Enemy(Creature):
 
     @intent_value.setter
     def intent_value(self, value: int):
-        # Сохраняем текущий тип, меняем только значение
         if hasattr(self.intent, 'value'):
             self.intent.value = value
         else:
-            self.intent = IntentAttack(value)  # фолбэк
+            self.intent = IntentAttack(value)
 
     def set_intent(self, intent_type: str, value: int = 0):
         """Атомарная установка намерения — предпочтительный способ."""
@@ -82,7 +80,6 @@ class Enemy(Creature):
             final_dmg = EffectCalculator.calculate_damage(
                 self, player, intent.value, gm, combat_manager
             )
-            # Передаём combat_manager для триггера кровотечения
             player.take_damage(final_dmg, attacker=self, combat_manager=combat_manager)
             if combat_manager:
                 combat_manager.add_log_message(
@@ -90,7 +87,7 @@ class Enemy(Creature):
                 )
 
         elif isinstance(intent, IntentDefend):
-            self.gain_shield(intent.value)
+            self.gain_shield(intent.value, combat_manager)  # ← фикс
             if combat_manager:
                 combat_manager.add_log_message(
                     f" -> Закрывается щитом на +{intent.value}."

@@ -18,6 +18,14 @@ def _handle_combat(view, mouse_pos):
                 relic.activate(view.gm.active_combat)
             return
 
+    # Клик по слоту активной способности класса
+    ability_rect = getattr(view, 'ability_rect', None)
+    if ability_rect and ability_rect.collidepoint(mouse_pos):
+        ability = getattr(view.gm.active_combat.player, 'active_ability', None)
+        if ability and ability.is_ready():
+            ability.activate(view.gm.active_combat)
+        return
+
     if view.end_turn_rect.collidepoint(mouse_pos):
         view.gm.active_combat.end_turn_phase()
         return
@@ -89,8 +97,6 @@ STATE_HANDLERS = {
 
 
 class InputHandler:
-    """Изолированный обработчик мыши и ввода. Никакого визуала, только хитбоксы."""
-
     @staticmethod
     def process_mouse_clicks(view, mouse_pos):
         handler = STATE_HANDLERS.get(view.gm.current_state)
@@ -99,7 +105,7 @@ class InputHandler:
 
     @staticmethod
     def process_scroll(view, event_button):
-        direction = -1 if event_button == 4 else 1   # 4 = вверх, 5 = вниз
+        direction = -1 if event_button == 4 else 1
 
         state = view.gm.current_state
 

@@ -1,4 +1,5 @@
 from core.players.base import Player
+from core.players.abilities import MageAbility
 from core.cards import create_strike, create_defend, create_ignite, create_splash
 
 
@@ -6,8 +7,8 @@ def get_mage_deck():
     return [
         create_strike(), create_strike(),
         create_defend(), create_defend(), create_defend(),
-        create_ignite(),   # Огонь
-        create_splash(),   # Вода для комбо
+        create_ignite(),
+        create_splash(),
     ]
 
 
@@ -20,12 +21,8 @@ class Mage(Player):
             gold=90,
             starter_deck_factory=get_mage_deck,
         )
+        self.active_ability = MageAbility()
 
-    # ------------------------------------------------------------------
-    # Пассивка «Стихийный резонанс»
-    # При триггере комбо «Пар» — добрать 1 карту из колоды.
-    # EffectCalculator выставляет флаг _steam_combo_triggered на combat_manager.
-    # ------------------------------------------------------------------
     def on_card_played_passive(self, card, combat_manager) -> None:
         if not combat_manager:
             return

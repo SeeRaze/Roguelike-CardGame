@@ -159,6 +159,18 @@ class CombatInterface:
             screen, view.card_desc_font, player, x, y
         )
 
+        # Слот активной способности
+        y += 44
+        pygame.draw.line(screen, _PANEL_BORDER, (x, y), (x + _E_IW, y), 1)
+        y += 10
+        ability = getattr(player, 'active_ability', None)
+        if ability:
+            view.ability_rect = CombatHUD.draw_ability_slot(
+                screen, view.card_desc_font, ability, x, y
+            )
+        else:
+            view.ability_rect = None
+
     # ── ПРАВАЯ ПАНЕЛЬ: ВРАГ ───────────────────────────────────────────────────
     @staticmethod
     def _draw_enemy_panel(view, screen, enemy, player, intent_dmg, hover_dmg):
@@ -314,3 +326,41 @@ class CombatInterface:
             btn.centerx - lbl.get_width() // 2,
             btn.centery - lbl.get_height() // 2
         ))
+        # ── СЛОТ АКТИВНОЙ СПОСОБНОСТИ ───────────────────────────────────────────
+    @staticmethod
+    def draw_ability_slot(screen, font, ability, x, y) -> pygame.Rect:
+        """
+        Рисует кнопку активной способности класса.
+        Возвращает Rect для обработки кликов в InputHandler.
+        """
+        ready   = ability.is_ready()
+        used    = getattr(ability, '_used', False)
+
+        pad_x, pad_y = 12, 6
+        label    = f"[СПОСОБНОСТЬ] {ability.name}"
+        text_surf = font.render(label, True,
+                                (255, 220, 60) if ready else (100, 100, 100))
+        btn_w    = text_surf.get_width() + pad_x * 2
+        btn_h    = text_surf.get_height() + pad_y * 2
+        rect     = pygame.Rect(x, y, btn_w, btn_h)
+
+        # Фон
+        bg_color     = (40, 60, 40) if ready else (30, 30, 30)
+        border_color = (80, 200, 80) if ready else (60, 60, 60)
+
+        # Hover
+        if ready and rect.collidepoint(pygame.mouse.get_pos()):
+            bg_color     = (60, 90, 60)
+            border_color = (120, 255, 120)
+
+        pygame.draw.rect(screen, bg_color, rect, border_radius=8)
+        pygame.draw.rect(screen, border_color, rect, 2, border_radius=8)
+        screen.blit(text_surf, (x + pad_x, y + pad_y))
+
+        # Статус под кнопкой
+        status_text = "готова" if ready else ("использована" if used else "не готова")
+        status_color = (80, 200, 80) if ready else (120, 120, 120)
+        status_surf = font.render(status_text, True, status_color)
+        screen.blit(status_surf, (x + pad_x, y + btn_h + 4))
+
+        return rect

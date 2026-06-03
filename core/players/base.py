@@ -11,17 +11,16 @@ class Player(Creature):
         self.energy     = max_energy
         self.gold       = gold
 
-        self._starter_deck_factory = starter_deck_factory
-        # Дополнительные карты, добавленные в ходе забега (реликвии, события).
-        # Подмешиваются в стартовую деку при get_starter_deck().
+        self._starter_deck_factory  = starter_deck_factory
         self._extra_starter_cards: list = []
 
+        # Активная способность класса -- устанавливается в подклассах
+        self.active_ability = None
+
     def get_starter_deck(self) -> list:
-        """Возвращает стартовую деку + любые добавленные карты."""
         return self._starter_deck_factory() + list(self._extra_starter_cards)
 
     def add_to_starter_deck(self, card) -> None:
-        """Добавляет карту в стартовую деку (для реликвий/событий)."""
         self._extra_starter_cards.append(card)
 
     def reset_energy(self) -> None:
@@ -34,20 +33,14 @@ class Player(Creature):
         )
 
     # ------------------------------------------------------------------
-    # Хуки классовых пассивок — переопределяются в подклассах
+    # Хуки классовых пассивок -- переопределяются в подклассах
     # ------------------------------------------------------------------
 
     def on_turn_start_passive(self, combat_manager) -> None:
-        """Вызывается в начале хода, после сброса щита.
-        Warrior: сохраняет 30% щита на следующий ход."""
         pass
 
     def on_card_played_passive(self, card, combat_manager) -> None:
-        """Вызывается после разыгрывания карты.
-        Mage: добирает карту при триггере комбо «Пар»."""
         pass
 
     def on_heal_passive(self, healed_amount: int, combat_manager) -> None:
-        """Вызывается после любого хила игрока (прямого или регена).
-        Druid: накладывает яд на врага, равный количеству восстановленного HP."""
         pass

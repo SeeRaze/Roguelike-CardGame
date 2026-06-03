@@ -13,11 +13,20 @@ class CombatManager:
         self.turn_count = 1
 
         self.combat_log = []
+        self._elemental_blocked  = False
+        self._steam_combo_triggered = False
+
         self.add_log_message("=== БОЙ НАЧАЛСЯ ===")
 
+        # Хук on_combat_start -- реликвии
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
                 relic.on_combat_start(self)
+
+        # Хук on_combat_start -- активная способность
+        ability = getattr(self.player, 'active_ability', None)
+        if ability:
+            ability.on_combat_start(self)
 
         self.start_turn_phase()
 
@@ -32,12 +41,12 @@ class CombatManager:
         # Пассивка считает carry ДО сброса щита
         self.player.on_turn_start_passive(self)
 
-        # Сбрасываем щит, затем восстанавливаем carry если есть
+        # Сбрасываем щит, восстанавливаем carry
         carry = getattr(self.player, '_passive_shield_carry', 0)
         self.player._passive_shield_carry = 0
         self.player.shield = carry
 
-        # Сохраняем для Железной Воли
+        # Сохраняем для ЖелезнойВоли
         self.player._iron_will_shield = self.player.shield
 
         self.player.energy = self.player.max_energy
@@ -56,12 +65,17 @@ class CombatManager:
 
         self.add_log_message(f"--- НАЧАЛО ХОДА {self.turn_count} ---")
 
+        # Хук on_turn_start -- реликвии
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
                 relic.on_turn_start(self)
 
+        # Хук on_turn_start -- активная способность (штрафы, кулдауны)
+        ability = getattr(self.player, 'active_ability', None)
+        if ability:
+            ability.on_turn_start(self)
+
     def play_card_by_index(self, card_index):
-        """Разыгрывание карты по её порядковому номеру в руке."""
         if card_index < 0 or card_index >= len(self.deck_manager.hand):
             return False
 
@@ -75,19 +89,15 @@ class CombatManager:
         self.player.use_energy(effective_cost)
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
-        # Сбрасываем флаг комбо перед apply -- EffectCalculator выставит его если сработает
         self._steam_combo_triggered = False
         selected_card.apply(self.player, self.enemy, self)
 
-        # Хук классовой пассивки (Маг: Стихийный резонанс и др.)
         self.player.on_card_played_passive(selected_card, self)
 
-        # Хук on_card_played реликвий
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
                 relic.on_card_played(selected_card, self)
 
-        # Сбрасываем temp_cost после разыгрывания
         if hasattr(selected_card, 'temp_cost'):
             del selected_card.temp_cost
 
@@ -102,7 +112,6 @@ class CombatManager:
         return True
 
     def end_turn_phase(self):
-        """Конец хода игрока: фаза действий монстра."""
         self.add_log_message("Вы завершили ход.")
         self.deck_manager.discard_hand()
 

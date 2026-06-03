@@ -1,4 +1,5 @@
 from core.players.base import Player
+from core.players.abilities import DruidAbility
 from core.cards import (
     create_strike, create_defend,
     create_bandage, create_second_wind,
@@ -11,12 +12,11 @@ def get_druid_deck():
     return [
         create_strike(), create_strike(),
         create_defend(), create_defend(),
-        create_bandage(),       # быстрый хил
-        create_bandage(),       # ещё один -- класс про выживание
-        create_regenerate(),    # реген в конце хода
-        create_vitality(),      # усиленный реген
-        create_poison_stab(),   # пассивный урон пока лечишься
-        create_toxic_cloud(),   # тяжёлый яд
+        create_bandage(), create_bandage(),
+        create_regenerate(),
+        create_vitality(),
+        create_poison_stab(),
+        create_toxic_cloud(),
     ]
 
 
@@ -29,12 +29,8 @@ class Druid(Player):
             gold=100,
             starter_deck_factory=get_druid_deck,
         )
+        self.active_ability = DruidAbility()
 
-    # ------------------------------------------------------------------
-    # Пассивка «Токсичный круговорот»
-    # При любом хиле игрока -- враг получает яд, равный восстановленному HP.
-    # Вызывается из Creature.heal после хука on_heal реликвий.
-    # ------------------------------------------------------------------
     def on_heal_passive(self, healed_amount: int, combat_manager) -> None:
         if not combat_manager or healed_amount <= 0:
             return

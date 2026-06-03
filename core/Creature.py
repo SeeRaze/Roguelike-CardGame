@@ -2,6 +2,9 @@ from core.StatusRegistry import all_keys
 
 _STATUS_KEYS = set(all_keys())
 
+# Статусы, блокируемые МагоМ через «Стихийный барьер»
+_ELEMENTAL_KEYS = frozenset(("ignited", "wet", "poison"))
+
 
 class Creature:
     def __init__(self, name, hp, max_hp):
@@ -33,13 +36,26 @@ class Creature:
             self.statuses[key] = max(0, value)
 
     def add_status(self, key: str, amount: int, combat_manager=None):
-        if key in _STATUS_KEYS:
-            self.statuses[key] = max(0, self.statuses.get(key, 0) + amount)
-            if key == "wet" and combat_manager:
-                gm = getattr(combat_manager, 'gm', None)
-                if gm:
-                    for relic in gm.relics:
-                        relic.on_wet_applied(combat_manager)
+        if key not in _STATUS_KEYS:
+            return
+
+        # Блок стихий от способности Мага -- только на врага
+        if (key in _ELEMENTAL_KEYS
+                and combat_manager is not None
+                and getattr(combat_manager, '_elemental_blocked', False)
+                and self is getattr(combat_manager, 'enemy', None)):
+            combat_manager.add_log_message(
+                f"[МАГ] Стихийный барьер: {key} заблокирован!"
+            )
+            return
+
+        self.statuses[key] = max(0, self.statuses.get(key, 0) + amount)
+
+        if key == "wet" and combat_manager:
+            gm = getattr(combat_manager, 'gm', None)
+            if gm:
+                for relic in gm.relics:
+                    relic.on_wet_applied(combat_manager)
 
     # ------------------------------------------------------------------
     # Боевые методы
@@ -52,11 +68,9 @@ class Creature:
 
         if healed > 0 and combat_manager:
             gm = getattr(combat_manager, 'gm', None)
-            # Хук on_heal -- реликвии реагируют на хил
             if gm:
                 for relic in gm.relics:
                     relic.on_heal(healed, self)
-            # Хук классовой пассивки -- только для игрока (Druid: Токсичный круговорот)
             if hasattr(self, 'on_heal_passive'):
                 self.on_heal_passive(healed, combat_manager)
 
@@ -66,7 +80,6 @@ class Creature:
         self.shield += amount
         print(f"[{self.name}] получает +{amount} к щиту. "
               f"Текущий щит: {self.shield}")
-        # Хук on_shield_gained
         if amount > 0 and combat_manager:
             gm = getattr(combat_manager, 'gm', None)
             if gm:
@@ -75,7 +88,7 @@ class Creature:
 
     def take_damage(self, amount, attacker=None, combat_manager=None):
         print(f"[{self.name}] атакован на {amount} урона. "
-            f"(Щит: {self.shield}, HP: {self.hp})")
+              f"(Щит: {self.shield}, HP: {self.hp})")
         if self.shield >= amount:
             self.shield -= amount
         else:
@@ -85,13 +98,11 @@ class Creature:
         self.hp = max(self.hp, 0)
         print(f"[{self.name}] Итог -> Щит: {self.shield}, HP: {self.hp}")
 
-        # Шипы
         if self.statuses.get('thorns', 0) > 0 and attacker is not None:
             print(f" [ШИПЫ] {self.name} отражает "
-                f"{self.statuses['thorns']} урона на {attacker.name}!")
+                  f"{self.statuses['thorns']} урона на {attacker.name}!")
             attacker.hp = max(attacker.hp - self.statuses['thorns'], 0)
 
-        # Вампиризм атакующего -- триггер при любом уроне > 0
         if amount > 0 and attacker is not None:
             vamp = attacker.statuses.get('vampire', 0)
             if vamp > 0:
@@ -104,7 +115,6 @@ class Creature:
                         f"Вампиризм: {vamp} → {vamp // 2}."
                     )
 
-        # Кровотечение -- с хуком on_bleed_tick
         bleed = self.statuses.get('bleed', 0)
         if bleed > 0 and amount > 0:
             bleed_dmg = bleed
@@ -161,7 +171,6 @@ class Creature:
             if s['regen'] == 0:
                 print(f" [Статус] Регенерация на {self.name} иссякла.")
 
-        # Кровотечение -- сброс с учётом реликвий
         if s.get('bleed', 0) > 0:
             gm = getattr(combat_manager, 'gm', None) if combat_manager else None
             has_gniloy_klyk = gm and any(
