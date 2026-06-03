@@ -3,19 +3,19 @@ import random
 FLOORS_PER_ACT = 20
 
 NODE_WEIGHTS = {
-    "COMBAT":   55,
+    "COMBAT":   50,
     "CAMPFIRE": 15,
     "SHOP":     10,
     "CHEST":    12,
     "EVENT":    8,
+    "ELITE":    5,
 }
 
-# Переопределения типов для конкретных строк.
-# Добавить правило = одна строка здесь, функция не меняется.
 ROW_OVERRIDES = {
-    0:                    "COMBAT",                          # первая комната всегда бой
-    FLOORS_PER_ACT - 1:  "BOSS",                            # последняя — босс
-    FLOORS_PER_ACT - 2:  lambda: random.choice(["CAMPFIRE", "SHOP"]),  # предбосс
+    0:                    "COMBAT",
+    1:                    "COMBAT",                          # второй этаж тоже бой (не элита сразу)
+    FLOORS_PER_ACT - 1:  "BOSS",
+    FLOORS_PER_ACT - 2:  lambda: random.choice(["CAMPFIRE", "SHOP"]),
 }
 
 

@@ -100,7 +100,8 @@ class GameManager:
         self.current_state = chosen_room_type
 
         if self.current_state == "COMBAT":
-            self.spawn_procedural_enemy()
+            is_elite = (chosen_room_type == "ELITE")
+            self.spawn_procedural_enemy(is_elite=is_elite)
 
     def get_available_nodes(self):
         row = (self.current_floor - 1) % FLOORS_PER_ACT
@@ -118,7 +119,7 @@ class GameManager:
     # БОЙ
     # ------------------------------------------------------------------
 
-    def spawn_procedural_enemy(self):
+    def spawn_procedural_enemy(self, is_elite: bool = False):
         floor      = self.current_floor
         local_step = (floor - 1) % FLOORS_PER_ACT + 1
         tier       = (floor - 1) // FLOORS_PER_ACT + 1
@@ -128,6 +129,11 @@ class GameManager:
         enemy_shld = 3  + (tier * 1)
         is_boss    = (local_step == FLOORS_PER_ACT)
 
+        if is_elite:
+            enemy_hp   = int(enemy_hp   * 1.5)
+            enemy_dmg  = int(enemy_dmg  * 1.4)
+            enemy_shld = int(enemy_shld * 1.5)
+
         if is_boss:
             enemy_hp   = int(enemy_hp   * 2.2)
             enemy_dmg  = int(enemy_dmg  * 1.3)
@@ -136,6 +142,12 @@ class GameManager:
                            "Гидра Стихий"]
             e_name = f"БОСС: {random.choice(boss_titles)} [Ярус {tier + 1}]"
             enemy_class = BossTitan
+        elif is_elite:
+            prefixes = ["Элитный", "Закалённый", "Древний", "Проклятый Страж"]
+            types    = list(ENEMY_REGISTRY.keys())
+            e_type   = random.choice(types)
+            e_name   = f"{random.choice(prefixes)} {e_type} [Элита, Этаж {floor}]"
+            enemy_class = ENEMY_REGISTRY.get(e_type, Enemy)
         else:
             prefixes = ["Дикий", "Проклятый", "Чумной", "Стальной", "Адский"]
             types    = list(ENEMY_REGISTRY.keys())
@@ -146,8 +158,12 @@ class GameManager:
         enemy = enemy_class(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
         enemy.base_test_damage = enemy_dmg
         enemy.base_test_shield = enemy_shld
+        enemy.is_elite         = is_elite
+
         if is_boss:
             enemy.shield = enemy_shld * 2
+        elif is_elite:
+            enemy.shield = enemy_shld
 
         from managers.CombatManager import CombatManager
         self.active_combat = CombatManager(
@@ -177,6 +193,8 @@ class GameManager:
 
         local_step = (self.current_floor - 1) % FLOORS_PER_ACT + 1
         is_boss    = (local_step == FLOORS_PER_ACT)
+        is_elite   = getattr(getattr(self.active_combat, 'enemy', None),
+                             'is_elite', False)
 
         if is_boss:
             self.stats["bosses_killed"] += 1
@@ -189,6 +207,8 @@ class GameManager:
         has_crown = any(r.name == "Проклятая Корона" for r in self.relics)
         if not has_crown:
             gold_drop = random.randint(20, 35) + (self.current_floor * 3)
+            if is_elite:
+                gold_drop = int(gold_drop * 1.5)
             rewards.append({
                 "type":    "gold",
                 "label":   f"+{gold_drop} монет",
@@ -196,15 +216,22 @@ class GameManager:
                 "applied": False,
             })
 
-        # --- Реликвия (50% шанс) ---
-        if random.randint(1, 2) == 1:
-            roll = random.random()
-            if roll < 0.60:
-                rarity = Rarity.COMMON
-            elif roll < 0.90:
-                rarity = Rarity.UNCOMMON
-            else:
+        # --- Реликвия (50% обычный бой, 100% элита/босс) ---
+        relic_chance = True if (is_boss or is_elite) else random.randint(1, 2) == 1
+        if relic_chance:
+            if is_boss:
                 rarity = Rarity.RARE
+            elif is_elite:
+                roll = random.random()
+                rarity = Rarity.RARE if roll < 0.25 else Rarity.UNCOMMON
+            else:
+                roll = random.random()
+                if roll < 0.60:
+                    rarity = Rarity.COMMON
+                elif roll < 0.90:
+                    rarity = Rarity.UNCOMMON
+                else:
+                    rarity = Rarity.RARE
 
             pool = RELIC_POOL.get(rarity, [])
             if not pool:
