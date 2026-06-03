@@ -11,7 +11,7 @@ _HP_GREEN     = (60, 200, 80)
 _HP_YELLOW    = (220, 200, 50)
 _HP_RED       = (200, 60, 60)
 _HP_SHIELD    = (70, 160, 240)
-_HP_PROJ      = (220, 80, 80)   # проекция урона
+_HP_PROJ      = (220, 80, 80)
 _ENERGY_ON    = (100, 180, 255)
 _ENERGY_OFF   = (40, 40, 65)
 _ENERGY_BRD   = (160, 160, 255)
@@ -32,11 +32,6 @@ class CombatHUD:
     @staticmethod
     def draw_hp_bar(screen, x, y, width, height,
                     current_hp, max_hp, shield, incoming_dmg=0):
-        """
-        incoming_dmg > 0 -- рисует красную проекцию урона поверх бара.
-        Щит показывается синей полосой поверх HP.
-        """
-        # Фон
         pygame.draw.rect(screen, _HP_BG, (x, y, width, height), border_radius=4)
 
         ratio     = max(0.0, current_hp / max_hp)
@@ -47,7 +42,6 @@ class CombatHUD:
             pygame.draw.rect(screen, bar_color,
                              (x, y, fill_w, height), border_radius=4)
 
-        # Проекция урона
         if incoming_dmg > 0:
             dmg_after_shield = max(0, incoming_dmg - shield)
             if dmg_after_shield > 0:
@@ -58,24 +52,18 @@ class CombatHUD:
                     pygame.draw.rect(screen, _HP_PROJ,
                                      (proj_x, y, proj_w, height), border_radius=4)
 
-        # Щит -- синяя полоска сверху
         if shield > 0:
             shld_ratio = min(shield / max_hp, 1.0)
             shld_w     = int(width * shld_ratio)
             pygame.draw.rect(screen, _HP_SHIELD,
                              (x, y, shld_w, max(4, height // 4)), border_radius=2)
 
-        # Рамка
         pygame.draw.rect(screen, (100, 100, 120),
                          (x, y, width, height), 1, border_radius=4)
 
     # ── РОМБЫ ЭНЕРГИИ ───────────────────────────────────────────────────────
     @staticmethod
     def draw_energy_diamonds(screen, x, y, current, maximum, size=18):
-        """
-        Рисует ромбы энергии начиная с (x, y).
-        size -- половина диагонали ромба.
-        """
         gap = size * 2 + 8
         for i in range(maximum):
             cx = x + i * gap + size
@@ -144,6 +132,42 @@ class CombatHUD:
 
         return relic_rects
 
+    # ── СЛОТ АКТИВНОЙ СПОСОБНОСТИ ───────────────────────────────────────────
+    @staticmethod
+    def draw_ability_slot(screen, font, ability, x, y) -> pygame.Rect:
+        """
+        Рисует кнопку активной способности класса.
+        Возвращает Rect для обработки кликов в InputHandler.
+        """
+        ready = ability.is_ready()
+        used  = getattr(ability, '_used', False)
+
+        pad_x, pad_y = 12, 6
+        label     = f"[СПОСОБНОСТЬ] {ability.name}"
+        text_surf = font.render(label, True,
+                                (255, 220, 60) if ready else (100, 100, 100))
+        btn_w = text_surf.get_width() + pad_x * 2
+        btn_h = text_surf.get_height() + pad_y * 2
+        rect  = pygame.Rect(x, y, btn_w, btn_h)
+
+        bg_color     = (40, 60, 40) if ready else (30, 30, 30)
+        border_color = (80, 200, 80) if ready else (60, 60, 60)
+
+        if ready and rect.collidepoint(pygame.mouse.get_pos()):
+            bg_color     = (60, 90, 60)
+            border_color = (120, 255, 120)
+
+        pygame.draw.rect(screen, bg_color, rect, border_radius=8)
+        pygame.draw.rect(screen, border_color, rect, 2, border_radius=8)
+        screen.blit(text_surf, (x + pad_x, y + pad_y))
+
+        status_text  = "готова" if ready else ("использована" if used else "не готова")
+        status_color = (80, 200, 80) if ready else (120, 120, 120)
+        status_surf  = font.render(status_text, True, status_color)
+        screen.blit(status_surf, (x + pad_x, y + btn_h + 4))
+
+        return rect
+
     # ── ТУЛТИП СТАТУСА ──────────────────────────────────────────────────────
     @staticmethod
     def draw_status_tooltip(screen, font_desc, status_key, status_val, mouse_pos):
@@ -176,10 +200,10 @@ class CombatHUD:
     def _draw_tooltip(screen, font, lines, mouse_pos,
                       title=None, title_font=None,
                       border=(200, 200, 200), above_cursor=False):
-        tf        = title_font or font
+        tf           = title_font or font
         pad_x, pad_y = 12, 8
-        line_h    = font.get_linesize() + 2
-        title_h   = (tf.get_linesize() + 6) if title else 0
+        line_h       = font.get_linesize() + 2
+        title_h      = (tf.get_linesize() + 6) if title else 0
 
         max_w = max((font.size(l)[0] for l in lines), default=60)
         if title:
