@@ -1,11 +1,14 @@
 # ui/combat/panels.py
 # Боковые панели боевого экрана: полоса реликвий, панель игрока, панель врага, лог.
 import pygame
-from ui.combat.hud import CombatHUD
+from ui.combat.hud import CombatHUD, _RELIC_BADGE, _RELIC_GAP
 from ui.combat.layout import (
     _PANEL_BG, _PANEL_BORDER, _GOLD, _WHITE, _RED, _GREEN, _BLUE, _GRAY,
     _INTENT_OTHER, _SW, _PANEL_W, _PANEL_TOP, _P_PX, _P_IX, _E_PX, _E_IX, _E_IW,
 )
+
+_RELIC_START_X = 160
+_RELIC_RIGHT_MARGIN = 40
 
 
 def draw_relic_bar(view, screen):
@@ -13,16 +16,34 @@ def draw_relic_bar(view, screen):
     pygame.draw.rect(screen, _PANEL_BG, bar)
     pygame.draw.rect(screen, _PANEL_BORDER, bar, 1)
 
-    lbl = view.card_desc_font.render("АРТЕФАКТЫ:", True, _GOLD)
+    # Метка-кнопка «АРТЕФАКТЫ:» открывает панель со всеми реликвиями
+    lbl      = view.card_desc_font.render("АРТЕФАКТЫ:", True, _GOLD)
+    lbl_rect = pygame.Rect(14, 12, lbl.get_width() + 10, 28)
+    if lbl_rect.collidepoint(pygame.mouse.get_pos()):
+        pygame.draw.rect(screen, (40, 40, 60), lbl_rect, border_radius=4)
     screen.blit(lbl, (18, 16))
+    view.relic_panel_btn_rect = lbl_rect
+    view.relic_overflow_rect  = None
 
-    if hasattr(view.gm, 'relics'):
-        view.relic_rects = CombatHUD.draw_relics(
-            screen, view.card_desc_font,
-            view.gm.relics, 160, 10
-        )
-    else:
+    if not (hasattr(view.gm, 'relics') and view.gm.relics):
         view.relic_rects = []
+        return
+
+    view.relic_rects, hidden = CombatHUD.draw_relics(
+        screen, view.gm.relics, _RELIC_START_X, 5,
+        max_x=_SW - _RELIC_RIGHT_MARGIN,
+    )
+
+    # Слот «+N» при переполнении -- тоже открывает панель
+    if hidden > 0:
+        ox    = _RELIC_START_X + len(view.relic_rects) * (_RELIC_BADGE + _RELIC_GAP)
+        orect = pygame.Rect(ox, 5, _RELIC_BADGE, _RELIC_BADGE)
+        pygame.draw.rect(screen, (45, 45, 70), orect, border_radius=6)
+        pygame.draw.rect(screen, _GOLD, orect, 2, border_radius=6)
+        plus = view.card_desc_font.render(f"+{hidden}", True, _GOLD)
+        screen.blit(plus, (orect.centerx - plus.get_width() // 2,
+                           orect.centery - plus.get_height() // 2))
+        view.relic_overflow_rect = orect
 
 
 def draw_player_panel(view, screen, player, intent_dmg):

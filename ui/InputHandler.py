@@ -1,17 +1,30 @@
 import pygame
-import random
 from ui.chest import Chest
 from ui.shop import Shop
 from ui.Campfire import Campfire
 
 
 def _handle_combat(view, mouse_pos):
+    from ui.combat.relic_panel import RelicPanel
+
+    # Открытая панель реликвий перехватывает все клики
+    if RelicPanel.is_open(view):
+        RelicPanel.handle_click(view, mouse_pos)
+        return
+
     if view.gm.active_combat.enemy.hp <= 0:
         if view.gm.current_state == "COMBAT":
             view.gm.distribute_combat_rewards()
         return
 
-    # Клик по активной реликвии
+    # Открыть панель: клик по метке «АРТЕФАКТЫ» или слоту «+N»
+    btn = getattr(view, 'relic_panel_btn_rect', None)
+    ov  = getattr(view, 'relic_overflow_rect', None)
+    if (btn and btn.collidepoint(mouse_pos)) or (ov and ov.collidepoint(mouse_pos)):
+        RelicPanel.open(view)
+        return
+
+    # Клик по активной реликвии (бейдж на полосе)
     for rect, relic in getattr(view, 'relic_rects', []):
         if rect.collidepoint(mouse_pos):
             if getattr(relic, 'is_active', False):

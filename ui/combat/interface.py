@@ -5,6 +5,7 @@ from core.EffectCalculator import EffectCalculator
 from ui.combat.hud import CombatHUD
 from ui.combat.layout import _BG
 from ui.combat import panels, bottom
+from ui.combat.relic_panel import RelicPanel
 
 
 class CombatInterface:
@@ -46,6 +47,10 @@ class CombatInterface:
         bottom.draw_end_turn_btn(view, screen)
 
         CombatInterface._draw_tooltips(view, screen, dm)
+
+        # Инвентарь реликвий -- модальный оверлей поверх всего
+        if RelicPanel.is_open(view):
+            RelicPanel.draw(view, screen)
 
     @staticmethod
     def _draw_tooltips(view, screen, dm):

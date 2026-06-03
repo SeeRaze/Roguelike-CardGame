@@ -1,5 +1,4 @@
 import pygame
-import random as _rnd
 from core.StatusRegistry import STATUSES
 from core.rarity import RARITY_COLORS
 
@@ -15,6 +14,27 @@ _HP_PROJ      = (220, 80, 80)
 _ENERGY_ON    = (100, 180, 255)
 _ENERGY_OFF   = (40, 40, 65)
 _ENERGY_BRD   = (160, 160, 255)
+
+# Геометрия бейджа реликвии
+_RELIC_BADGE = 42
+_RELIC_GAP   = 8
+
+_badge_font = None   # ленивый кэш (pygame.font готов только после init)
+
+
+def _get_badge_font():
+    global _badge_font
+    if _badge_font is None:
+        _badge_font = pygame.font.SysFont("Arial", 18, bold=True)
+    return _badge_font
+
+
+def _relic_abbr(name: str) -> str:
+    """2-буквенная аббревиатура: инициалы двух слов либо первые 2 буквы."""
+    words = name.split()
+    if len(words) >= 2:
+        return (words[0][:1] + words[1][:1]).upper()
+    return name[:2].upper()
 
 
 def _hp_color(ratio):
@@ -101,36 +121,51 @@ class CombatHUD:
 
         return badge_rects
 
-    # ── РЕЛИКВИИ ────────────────────────────────────────────────────────────
+    # ── РЕЛИКВИИ: КОМПАКТНЫЕ БЕЙДЖИ ──────────────────────────────────────────
     @staticmethod
-    def draw_relics(screen, font, relics, x, y):
+    def draw_relics(screen, relics, x, y, max_x=None):
+        """Раскладывает реликвии компактными бейджами слева направо.
+        Если max_x задан и бейджи не влезают — рисует сколько помещается (минус место
+        под слот «+N») и возвращает число скрытых. Возврат: (relic_rects, hidden_count)."""
         relic_rects = []
-        cursor_x    = x
-        pad_x, pad_y = 10, 5
-        relic_h      = font.get_linesize() + pad_y * 2
+        step        = _RELIC_BADGE + _RELIC_GAP
+        total       = len(relics)
 
-        for relic in relics:
-            is_active  = getattr(relic, 'is_active', False)
-            used       = getattr(relic, '_used', False)
-            prefix     = "[A] " if is_active else ""
-            label      = prefix + relic.name
-            name_color = (255, 215, 0) if (is_active and not used) else \
-                         (120, 120, 120) if (is_active and used) else \
-                         (230, 230, 230)
+        visible = total
+        if max_x is not None:
+            fit = max(0, (max_x - x) // step)
+            if fit < total:
+                visible = max(0, fit - 1)   # оставить место под «+N»
 
-            text_surf    = font.render(label, True, name_color)
-            relic_w      = text_surf.get_width() + pad_x * 2
-            rect         = pygame.Rect(cursor_x, y, relic_w, relic_h)
-            border_color = RARITY_COLORS.get(relic.rarity, (150, 150, 150))
-
-            pygame.draw.rect(screen, (28, 28, 45), rect, border_radius=5)
-            pygame.draw.rect(screen, border_color, rect, 2, border_radius=5)
-            screen.blit(text_surf, (cursor_x + pad_x, y + pad_y))
-
+        for i, relic in enumerate(relics[:visible]):
+            rect = pygame.Rect(x + i * step, y, _RELIC_BADGE, _RELIC_BADGE)
+            CombatHUD.draw_relic_badge(screen, relic, rect)
             relic_rects.append((rect, relic))
-            cursor_x += relic_w + 8
 
-        return relic_rects
+        return relic_rects, total - visible
+
+    @staticmethod
+    def draw_relic_badge(screen, relic, rect):
+        """Один квадратный бейдж: заливка/рамка по редкости, аббревиатура, маркер активной."""
+        is_active = getattr(relic, 'is_active', False)
+        used      = getattr(relic, '_used', False)
+        rarity_c  = RARITY_COLORS.get(relic.rarity, (150, 150, 150))
+        fill      = tuple(c // 5 + 12 for c in rarity_c)
+
+        pygame.draw.rect(screen, fill, rect, border_radius=6)
+        pygame.draw.rect(screen, rarity_c, rect, 2, border_radius=6)
+
+        font = _get_badge_font()
+        abbr = _relic_abbr(relic.name)
+        ts   = font.render(abbr, True, (235, 235, 235))
+        screen.blit(ts, (rect.centerx - ts.get_width() // 2,
+                         rect.centery - ts.get_height() // 2))
+
+        # Маркер активной способности (золотая точка; тусклая, если использована)
+        if is_active:
+            dot = (120, 100, 30) if used else (255, 215, 0)
+            pygame.draw.circle(screen, dot, (rect.right - 7, rect.top + 7), 4)
+            pygame.draw.circle(screen, (20, 20, 20), (rect.right - 7, rect.top + 7), 4, 1)
 
     # ── СЛОТ АКТИВНОЙ СПОСОБНОСТИ ───────────────────────────────────────────
     @staticmethod

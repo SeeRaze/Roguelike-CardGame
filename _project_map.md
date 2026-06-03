@@ -1,5 +1,5 @@
 # _project_map.md
-_Последнее обновление: Сессия 29, Jun 4, 2026_
+_Последнее обновление: Сессия 30, Jun 4, 2026_
 _История изменений по версиям — в `PATCHNOTES.md`._
 
 ## Архитектура
@@ -80,7 +80,7 @@ managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py,
      MapGenerator.py, network_manager.py, EnemySpawner.py, RewardManager.py
 ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
-ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hover.py, hud.py
+ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hover.py, relic_panel.py, hud.py
 
 ui/cards/init.py, renderer.py, classifier.py, description.py, keywords.py, data.py
 
@@ -148,6 +148,18 @@ vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire
 `on_kill` (заглушка), `on_combat_end`, `on_bleed_tick`, `on_heal`, `on_chest_opened`
 
 `on_turn_start` вызывается в `CombatManager.start_turn_phase` ПОСЛЕ сброса щита.
+
+### Реликвии — UI в бою (инвентарь)
+- Полоса сверху (`ui/combat/panels.py::draw_relic_bar`): компактные **бейджи** (квадрат с рамкой
+  по редкости + 2-буквенная аббревиатура; золотая точка = активная). Рисует `CombatHUD.draw_relics`
+  (`ui/combat/hud.py`) → возвращает `(view.relic_rects=[(rect,relic)...], hidden)`. При нехватке
+  ширины — слот «+N» (`view.relic_overflow_rect`).
+- Метка «АРТЕФАКТЫ:» (`view.relic_panel_btn_rect`) и «+N» открывают **панель** `RelicPanel`
+  (`ui/combat/relic_panel.py`) — модальный оверлей со всеми реликвиями (бейдж+название+описание,
+  2 колонки). Состояние `RelicPanel._open` привязано к `id(active_combat)` → авто-сброс между боями.
+- Ховер по бейджу → `CombatHUD.draw_relic_tooltip` (гасится при открытой панели). Клик по активной
+  реликвии (бейдж или ячейка панели) → `relic.activate(active_combat)`. Маршрутизация —
+  `InputHandler._handle_combat` (панель перехватывает клики первой).
 
 ### Активные способности классов
 Файлы: `core/players/ability.py` (базовый класс `ClassAbility`), пакет `core/players/abilities/` — по одному файлу на способность (`warrior.py`/`rogue.py`/`mage.py`/`druid.py`/`berserker.py`), реэкспорт через `abilities/__init__.py`.
@@ -294,8 +306,10 @@ shld = 3 + tier*1
 
 ## Задачи для будущих сессий
 
-### Приоритет 1:
-1. **Инвентарь реликвий в бою** — реликвии не помещаются на полосе, нужен отдельный UI (свёрнутая панель / скролл / отдельный экран по кнопке)
+### Приоритет 1 — ✅ ВЫПОЛНЕНО в Сессии 30
+1. ✅ **Инвентарь реликвий в бою** — реликвии-чипы уезжали за край экрана. Сделаны компактные
+   бейджи (помещаются 19+) + панель-оверлей `RelicPanel` по клику на «АРТЕФАКТЫ»/«+N»
+   (см. «Реликвии — UI в бою»). Скролл панели при очень большом пуле — возможный follow-up.
 
 ### Приоритет 2 (рефакторинг) — ✅ ВЫПОЛНЕНО в Сессии 29
 Все три стадии плана рефакторинга крупных файлов завершены:
@@ -319,4 +333,6 @@ shld = 3 + tier*1
 - Stage 1 (контент-ядро): `core/players/abilities.py`→пакет (1 файл/способность), `core/relics/advanced.py`→пакет по теме, god-object `GameManager` разобран (`EnemySpawner`+`RewardManager`, 266→145).
 - Stage 2 (крупный UI): `HubView`→`ui/hub/`, `CombatInterface`→`ui/combat/` (+удалён мёртвый дубль `draw_ability_slot`), `CardRenderer`→`ui/cards/`. Введён дифференцированный ГОСТ: логика — жёстко 150, UI — структурно по швам с мягким потолком ~220.
 - Stage 3 (остальной UI): `Shop`→`ui/shop/`, `GameView` разнесён (`draw_dispatchers`/`hover_state`/`combat/hover`, 271→140, удалён мёртвый `_draw_placeholder`), `VictoryScreen`→`ui/victory/`, `CardLibraryView`→`ui/library/`. `MapView` оставлен (167, цельный render).
-- Публичные точки входа сохранены через реэкспорт. CI зелёный (Stage 1+2 на сервере, run 26915968445) + рантайм-импорт всего UI через SDL dummy. **Рефакторинг крупных файлов завершён.**
+- Публичные точки входа сохранены через реэкспорт. CI зелёный (Stage 1+2 run 26915968445, Stage 3 run 26917046774) + рантайм-импорт всего UI через SDL dummy. **Рефакторинг крупных файлов завершён.**
+
+Сессия 30 (Jun 4, 2026): **инвентарь реликвий в бою** (Приоритет 1). Компактные бейджи на полосе (рамка по редкости + аббревиатура + маркер активной, помещаются 19+) и модальная панель `RelicPanel` (`ui/combat/relic_panel.py`) со всеми реликвиями по клику на «АРТЕФАКТЫ»/«+N». Ховер-тултип и активация сохранены. Проверено headless (SDL dummy): рендер, открытие/закрытие, активация из панели, авто-сброс между боями. Попутно убраны 2 мёртвых импорта (`ui/combat/` теперь F401-чистый).
