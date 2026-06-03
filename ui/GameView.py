@@ -100,9 +100,9 @@ class GameView:
         self.fps        = 60
         self.is_running = True
 
-        self.main_font      = pygame.font.SysFont("Arial", 32, bold=True)
+        self.main_font      = pygame.font.SysFont("Arial", 24, bold=True)
         self.ui_font        = pygame.font.SysFont("Courier New", 24)
-        self.card_font      = pygame.font.SysFont("Arial", 22, bold=True)
+        self.card_font      = pygame.font.SysFont("Arial", 18, bold=True)
         self.card_desc_font = pygame.font.SysFont("Arial", 16)
 
         self.scroll_y    = 0
@@ -110,7 +110,7 @@ class GameView:
         self.card_width  = 180
         self.card_height = 250
 
-        self.end_turn_rect        = pygame.Rect(1600, 500, 220, 60)
+        self.end_turn_rect = pygame.Rect(1680, 900, 220, 52)
         self.btn_back_leaderboard = pygame.Rect(760, 900, 400, 70)
 
         # Стопки карт (добор слева, сброс справа)
