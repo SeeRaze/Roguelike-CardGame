@@ -123,9 +123,9 @@ class GameManager:
         local_step = (floor - 1) % FLOORS_PER_ACT + 1
         tier       = (floor - 1) // FLOORS_PER_ACT + 1
 
-        enemy_hp   = 20 + (floor * 3) + (tier * 10)
-        enemy_dmg  = 3  + (tier * 1)
-        enemy_shld = 2
+        enemy_hp   = 35 + (floor * 5) + (tier * 15)
+        enemy_dmg  = 5  + (tier * 2)  + (floor // 3)
+        enemy_shld = 3  + (tier * 1)
         is_boss    = (local_step == FLOORS_PER_ACT)
 
         if is_boss:
