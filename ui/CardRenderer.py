@@ -3,147 +3,148 @@ import re
 from core.EffectCalculator import EffectCalculator
 from core.cards.base import (
     StatusEffect, PoisonEffect,
-    RegenEffect, HealEffect, VampireDamageEffect
+    RegenEffect, HealEffect, VampireDamageEffect,
+    DamageEffect, ShieldEffect
 )
 from core.cards.debuff.bleed import BleedEffect
+from core.cards.buff.strength import BuffEffect
 from core.StatusRegistry import STATUSES
+from core.cards.buff.vampirism import VampireBuffEffect
+
+# Псевдо-ключи для тултипов (не статусы Creature)
 _EXTRA_KEYWORDS = {
     "heal":    ("Лечение",    "Восстанавливает N HP."),
     "vampire": ("Вампиризм",  "Восстанавливает 50% нанесённого урона."),
-    }
+}
+
+# ─── Палитра карт ────────────────────────────────────────────────────────────
+# Каждый класс: (bg_color, border_color)
+# bg используется как тонтированный фон карты, border — рамка.
+
+_C = {
+    # Чистая атака (DamageEffect only)
+    "attack_pure":  ((50, 20, 20),  (220, 60,  60)),
+    # Кровотечение — тёмно-бордовый (отличается от чистой атаки)
+    "bleed":        ((45, 10, 15),  (160, 30,  55)),
+    # Яд — тёмно-зелёный
+    "poison":       ((15, 40, 15),  (50,  180, 80)),
+    # Огонь/Горение — оранжево-жёлтый
+    "fire":         ((50, 30, 10),  (230, 140, 30)),
+    # Вода/Мокрый — синий
+    "water":        ((15, 30, 55),  (52,  152, 219)),
+    # Вампиризм — тёмно-пурпурный
+    "vampire":      ((40, 15, 40),  (180, 60,  200)),
+    # Прямое лечение — светло-зелёный
+    "heal":         ((15, 45, 25),  (80,  220, 120)),
+    # Регенерация — изумрудный (темнее хила)
+    "regen":        ((10, 40, 35),  (30,  180, 140)),
+    # Щит — стальной синий
+    "shield":       ((15, 25, 50),  (70,  130, 220)),
+    # Баффы (strength/thorns) — янтарный/золотой
+    "buff":         ((45, 35, 10),  (210, 170, 40)),
+    # Дебаффы (vulnerable/weak) — фиолетовый
+    "debuff":       ((35, 15, 45),  (155, 89,  182)),
+    # Смешанные атаки с доп. эффектом — тёмно-красный (мягче чистой атаки)
+    "attack_mixed": ((45, 20, 20),  (200, 80,  80)),
+    # Дефолт
+    "default":      ((30, 30, 38),  (90,  120, 180)),
+}
+
+
+def _classify_card(card):
+    """Определяет класс карты по составу эффектов. Возвращает ключ из _C."""
+    effects = card.effects
+    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect)) for e in effects)
+    has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
+    has_bleed    = any(isinstance(e, BleedEffect) for e in effects)
+    has_poison   = any(isinstance(e, PoisonEffect) for e in effects)
+    has_shield   = any(isinstance(e, ShieldEffect) for e in effects)
+    has_heal     = any(isinstance(e, HealEffect) for e in effects)
+    has_regen    = any(isinstance(e, RegenEffect) for e in effects)
+    has_buff     = any(isinstance(e, BuffEffect) for e in effects)
+
+    has_ignited  = any(isinstance(e, StatusEffect) and e.status_type == "ignited" for e in effects)
+    has_wet      = any(isinstance(e, StatusEffect) and e.status_type == "wet"     for e in effects)
+    has_debuff   = any(
+        isinstance(e, StatusEffect) and e.status_type in ("vulnerable", "weak")
+        for e in effects
+    )
+
+    # Приоритет: специфичные эффекты важнее общих
+    if has_vampire:   return "vampire"
+    if has_bleed:     return "bleed"
+    if has_poison:    return "poison"
+    if has_ignited:   return "fire"
+    if has_wet:       return "water"
+    if has_regen:     return "regen"
+    if has_heal:      return "heal"
+    if has_buff:      return "buff"
+    if has_debuff:    return "debuff"
+    if has_shield and not has_damage: return "shield"
+    if has_damage and not has_shield and not has_debuff: return "attack_pure"
+    if has_damage:    return "attack_mixed"
+    if has_shield:    return "shield"
+    return "default"
 
 
 class CardRenderer:
     COLOR_COMBO    = (255, 215, 0)
-    COLOR_DMG      = (46, 204, 113)
+    COLOR_DMG      = (46,  204, 113)
     COLOR_GRAY     = (200, 200, 200)
-    COLOR_COST_LOW = (160, 40, 40)
+    COLOR_COST_LOW = (160, 40,  40)
     _DMG_MARKER    = "§"
 
     @staticmethod
     def get_card_colors(card):
-        name = card.name.lower()
-        if "огн" in name or "поджог" in name:
-            return (45, 20, 20), (231, 76, 60)
-        elif "всплеск" in name or "дожд" in name or "вод" in name:
-            return (20, 35, 50), (52, 152, 219)
-        elif "яд" in name or "токсин" in name or "кислот" in name:
-            return (20, 45, 20), (46, 204, 113)
-        elif "скруч" in name or "нейтрал" in name or "устраш" in name:
-            return (40, 20, 45), (155, 89, 182)
-        elif card.card_type == "attack":
-            return (45, 45, 45), (240, 70, 70)
+        """Возвращает (bg_color, border_color) по типу эффектов карты."""
+        key = _classify_card(card)
+        return _C[key]
+
+    @staticmethod
+    def draw(surface, card, x, y, font_title, font_desc,
+             is_hovered=False, player=None, enemy=None):
+        """Мастер-метод полной отрисовки карты 180×250."""
+        width, height = 180, 250
+        rect = pygame.Rect(x, y, width, height)
+
+        can_afford = (
+            player is None
+            or not hasattr(player, 'energy')
+            or card.cost <= player.energy
+        )
+
+        bg_color, border_color = CardRenderer.get_card_colors(card)
+
+        # При ховере слегка осветляем фон
+        if is_hovered:
+            bg_color = tuple(min(255, c + 20) for c in bg_color)
+
+        border_thickness = 5 if is_hovered else 3
+
+        pygame.draw.rect(surface, bg_color, rect, border_radius=10)
+        pygame.draw.rect(surface, border_color, rect, border_thickness, border_radius=10)
+
+        cost_color = CardRenderer.COLOR_COST_LOW if not can_afford else border_color
+        cost_surf  = font_title.render(str(card.cost), True, cost_color)
+        surface.blit(cost_surf, (rect.x + 14, rect.y + 12))
+
+        CardRenderer.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
+
+        if card.card_type == "attack" and player is not None and enemy is not None:
+            CardRenderer.draw_smart_description(
+                surface, card.description, font_desc, rect,
+                card.upgraded, player=player, enemy=enemy
+            )
         else:
-            return (40, 40, 40), (70, 160, 240)
+            CardRenderer.draw_smart_description(
+                surface, card.description, font_desc, rect,
+                card.upgraded
+            )
 
-    @staticmethod
-    def _get_card_keywords(card) -> list[tuple[str, int]]:
-        """
-        Возвращает список (status_key, value) для статусных эффектов карты.
-        value = реальное число с учётом апгрейда карты.
-        Псевдо-ключи: 'heal', 'vampire' -- не статусы, но показываются в тултипе.
-        """
-        seen     = set()
-        keywords = []
-        for effect in card.effects:
-            key = None
-            val = 0
-            if isinstance(effect, StatusEffect):
-                key = effect.status_type
-                val = effect.upgrade_turns if card.upgraded else effect.base_turns
-            elif isinstance(effect, PoisonEffect):
-                key = "poison"
-                val = effect.upgrade_val if card.upgraded else effect.base_val
-            elif isinstance(effect, RegenEffect):
-                key = "regen"
-                val = effect.upgrade_val if card.upgraded else effect.base_val
-            elif isinstance(effect, BleedEffect):
-                key = "bleed"
-                val = effect.upgrade_val if card.upgraded else effect.base_val
-            elif isinstance(effect, VampireDamageEffect):
-                key = "vampire"
-                val = 50
-            elif isinstance(effect, HealEffect):
-                key = "heal"
-                val = effect.upgrade_val if card.upgraded else effect.base_val
+        if not can_afford:
+            CardRenderer._draw_unaffordable_overlay(surface, rect)
 
-            if key and key not in seen:
-                if key in STATUSES or key in _EXTRA_KEYWORDS:
-                    seen.add(key)
-                    keywords.append((key, val))
-        return keywords
-
-    @staticmethod
-    def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
-        """
-        Рисует окошко с расшифровкой ключевых слов карты.
-        Появляется справа от карты (или слева если нет места).
-        """
-        keywords = CardRenderer._get_card_keywords(card)
-        if not keywords:
-            return
-
-        pad_x, pad_y = 14, 10
-        line_h_title = font_title.get_linesize()
-        line_h_desc  = font_desc.get_linesize() + 1
-        gap          = 6
-        section_gap  = 4
-
-        blocks = []
-        max_w  = 0
-        for key, val in keywords:
-            if key in STATUSES:
-                title_str, desc_str = STATUSES[key]["keyword"]
-            else:
-                title_str, desc_str = _EXTRA_KEYWORDS[key]
-            desc_str   = desc_str.replace("N", str(val))
-            title_surf = font_title.render(title_str, True, (255, 220, 80))
-            desc_lines = [
-                font_desc.render(l, True, (210, 210, 210))
-                for l in desc_str.split("\n")
-            ]
-            block_w = max(
-                title_surf.get_width(),
-                max(s.get_width() for s in desc_lines)
-            ) + pad_x * 2
-            max_w = max(max_w, block_w)
-            blocks.append((title_surf, desc_lines))
-
-        box_w = max_w
-        box_h = pad_y * 2
-        for title_surf, desc_lines in blocks:
-            box_h += line_h_title + section_gap
-            box_h += len(desc_lines) * line_h_desc
-            box_h += gap
-        box_h -= gap
-
-        screen_w, screen_h = screen.get_size()
-        tip_x = card_rect.right + 12
-        tip_y = card_rect.top
-        if tip_x + box_w > screen_w - 10:
-            tip_x = card_rect.left - box_w - 12
-        if tip_y + box_h > screen_h - 10:
-            tip_y = screen_h - box_h - 10
-
-        bg_rect = pygame.Rect(tip_x, tip_y, box_w, box_h)
-        pygame.draw.rect(screen, (18, 18, 24), bg_rect, border_radius=8)
-        pygame.draw.rect(screen, (180, 160, 80), bg_rect, 1, border_radius=8)
-
-        cursor_y = tip_y + pad_y
-        for i, (title_surf, desc_lines) in enumerate(blocks):
-            if i > 0:
-                sep_y = cursor_y - gap // 2
-                pygame.draw.line(
-                    screen, (80, 80, 80),
-                    (tip_x + pad_x, sep_y),
-                    (tip_x + box_w - pad_x, sep_y), 1
-                )
-            screen.blit(title_surf, (tip_x + pad_x, cursor_y))
-            cursor_y += line_h_title + section_gap
-            for desc_surf in desc_lines:
-                screen.blit(desc_surf, (tip_x + pad_x, cursor_y))
-                cursor_y += line_h_desc
-            cursor_y += gap
+        return rect
 
     @staticmethod
     def draw_centered_title(surface, text, font, card_rect, is_hovered):
@@ -247,7 +248,7 @@ class CardRenderer:
             for word, is_dmg_word in line:
                 clean_word = word.replace(CardRenderer._DMG_MARKER, "")
                 if is_dmg_word:
-                    display  = f"*{clean_word}*"
+                    display   = f"*{clean_word}*"
                     word_surf = font_big.render(display + " ", True, color_digit)
                 elif is_upgraded and clean_word.isdigit():
                     word_surf = font_big.render(clean_word + " ", True, CardRenderer.COLOR_DMG)
@@ -264,43 +265,109 @@ class CardRenderer:
         surface.blit(overlay, (rect.x, rect.y))
 
     @staticmethod
-    def draw(surface, card, x, y, font_title, font_desc,
-             is_hovered=False, player=None, enemy=None):
-        """Мастер-метод полной отрисовки карты 180×250."""
-        width, height = 180, 250
-        rect = pygame.Rect(x, y, width, height)
+    def _get_card_keywords(card) -> list[tuple[str, int]]:
+        """
+        Возвращает список (status_key, value) для тултипа карты.
+        Псевдо-ключи: 'heal', 'vampire' — не статусы, но показываются в тултипе.
+        """
+        seen     = set()
+        keywords = []
+        for effect in card.effects:
+            key = None
+            val = 0
+            if isinstance(effect, StatusEffect):
+                key = effect.status_type
+                val = effect.upgrade_turns if card.upgraded else effect.base_turns
+            elif isinstance(effect, PoisonEffect):
+                key = "poison"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
+            elif isinstance(effect, RegenEffect):
+                key = "regen"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
+            elif isinstance(effect, BleedEffect):
+                key = "bleed"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
+            elif isinstance(effect, VampireBuffEffect):
+                key = "vampire"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
+            elif isinstance(effect, HealEffect):
+                key = "heal"
+                val = effect.upgrade_val if card.upgraded else effect.base_val
 
-        can_afford = (
-            player is None
-            or not hasattr(player, 'energy')
-            or card.cost <= player.energy
-        )
+            if key and key not in seen:
+                if key in STATUSES or key in _EXTRA_KEYWORDS:
+                    seen.add(key)
+                    keywords.append((key, val))
+        return keywords
 
-        bg_color = (55, 55, 60) if is_hovered else (35, 35, 38)
-        border_thickness = 5 if is_hovered else 3
-        _, border_color = CardRenderer.get_card_colors(card)
+    @staticmethod
+    def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
+        """
+        Рисует окошко с расшифровкой ключевых слов карты.
+        Появляется справа от карты (или слева если нет места).
+        """
+        keywords = CardRenderer._get_card_keywords(card)
+        if not keywords:
+            return
 
-        pygame.draw.rect(surface, bg_color, rect, border_radius=10)
-        pygame.draw.rect(surface, border_color, rect, border_thickness, border_radius=10)
+        pad_x, pad_y = 14, 10
+        line_h_title = font_title.get_linesize()
+        line_h_desc  = font_desc.get_linesize() + 1
+        gap          = 6
+        section_gap  = 4
 
-        cost_color = CardRenderer.COLOR_COST_LOW if not can_afford else border_color
-        cost_surf  = font_title.render(str(card.cost), True, cost_color)
-        surface.blit(cost_surf, (rect.x + 14, rect.y + 12))
+        blocks = []
+        max_w  = 0
+        for key, val in keywords:
+            if key in STATUSES:
+                title_str, desc_str = STATUSES[key]["keyword"]
+            else:
+                title_str, desc_str = _EXTRA_KEYWORDS[key]
+            desc_str   = desc_str.replace("N", str(val))
+            title_surf = font_title.render(title_str, True, (255, 220, 80))
+            desc_lines = [
+                font_desc.render(l, True, (210, 210, 210))
+                for l in desc_str.split("\n")
+            ]
+            block_w = max(
+                title_surf.get_width(),
+                max(s.get_width() for s in desc_lines)
+            ) + pad_x * 2
+            max_w = max(max_w, block_w)
+            blocks.append((title_surf, desc_lines))
 
-        CardRenderer.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
+        box_w = max_w
+        box_h = pad_y * 2
+        for title_surf, desc_lines in blocks:
+            box_h += line_h_title + section_gap
+            box_h += len(desc_lines) * line_h_desc
+            box_h += gap
+        box_h -= gap
 
-        if card.card_type == "attack" and player is not None and enemy is not None:
-            CardRenderer.draw_smart_description(
-                surface, card.description, font_desc, rect,
-                card.upgraded, player=player, enemy=enemy
-            )
-        else:
-            CardRenderer.draw_smart_description(
-                surface, card.description, font_desc, rect,
-                card.upgraded
-            )
+        screen_w, screen_h = screen.get_size()
+        tip_x = card_rect.right + 12
+        tip_y = card_rect.top
+        if tip_x + box_w > screen_w - 10:
+            tip_x = card_rect.left - box_w - 12
+        if tip_y + box_h > screen_h - 10:
+            tip_y = screen_h - box_h - 10
 
-        if not can_afford:
-            CardRenderer._draw_unaffordable_overlay(surface, rect)
+        bg_rect = pygame.Rect(tip_x, tip_y, box_w, box_h)
+        pygame.draw.rect(screen, (18, 18, 24), bg_rect, border_radius=8)
+        pygame.draw.rect(screen, (180, 160, 80), bg_rect, 1, border_radius=8)
 
-        return rect
+        cursor_y = tip_y + pad_y
+        for i, (title_surf, desc_lines) in enumerate(blocks):
+            if i > 0:
+                sep_y = cursor_y - gap // 2
+                pygame.draw.line(
+                    screen, (80, 80, 80),
+                    (tip_x + pad_x, sep_y),
+                    (tip_x + box_w - pad_x, sep_y), 1
+                )
+            screen.blit(title_surf, (tip_x + pad_x, cursor_y))
+            cursor_y += line_h_title + section_gap
+            for desc_surf in desc_lines:
+                screen.blit(desc_surf, (tip_x + pad_x, cursor_y))
+                cursor_y += line_h_desc
+            cursor_y += gap

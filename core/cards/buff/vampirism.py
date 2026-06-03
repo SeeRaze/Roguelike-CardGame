@@ -1,42 +1,57 @@
-# core/cards/buff/vampirism.py
-# Карты с механикой вампиризма: урон + хил 50% от нанесённого.
+# Карты вампиризма: накладывают статус-бафф на игрока.
+# Вампиризм триггерится в Creature.take_damage при каждой атаке игрока.
 
-from core.cards.base import Card, VampireDamageEffect
+from core.cards.base import Card, DamageEffect
 from core.rarity import Rarity
 
 
+class VampireBuffEffect:
+    """Накладывает статус вампиризма на игрока."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val    = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        amount = self.upgrade_val if is_upgraded else self.base_val
+        player.add_status("vampire", amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Вампиризм +{amount}. Итого: {player.statuses['vampire']}."
+            )
+
+
 def create_drain():
-    """Воин/Разбойник: базовый вампирский удар."""
+    """Базовый вампирский удар + бафф вампиризма."""
     return Card(
         name="Высасывание",
         cost=1,
         card_type="attack",
-        description="Урон 6 (9). Восстановить 50% нанесённого урона.",
-        effects=[VampireDamageEffect(6, 9)],
+        description="Урон 6 (9). Вампиризм +4 (6).",
+        effects=[DamageEffect(6, 9), VampireBuffEffect(4, 6)],
         rarity=Rarity.UNCOMMON,
     )
 
 
 def create_blood_feast():
-    """Тяжёлый вампирский удар. Изгнание."""
+    """Тяжёлый удар с мощным вампиризмом. Изгнание."""
     return Card(
         name="Кровавый Пир",
         cost=2,
         card_type="attack",
-        description="Урон 18 (24). Восстановить 50% нанесённого урона. Изгнание.",
-        effects=[VampireDamageEffect(18, 24)],
+        description="Урон 18 (24). Вампиризм +10 (15). Изгнание.",
+        effects=[DamageEffect(18, 24), VampireBuffEffect(10, 15)],
         rarity=Rarity.RARE,
         exile=True,
     )
 
 
 def create_life_tap():
-    """Маг: слабый удар, но гарантированный хил даже при 1 уроне."""
+    """Слабый удар, но чистый вампиризм без урона."""
     return Card(
         name="Жизнеотвод",
         cost=1,
         card_type="attack",
-        description="Урон 4 (6). Восстановить 50% нанесённого урона.",
-        effects=[VampireDamageEffect(4, 6)],
+        description="Урон 4 (6). Вампиризм +6 (9).",
+        effects=[DamageEffect(4, 6), VampireBuffEffect(6, 9)],
         rarity=Rarity.COMMON,
     )

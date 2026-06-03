@@ -64,7 +64,7 @@ class Creature:
 
     def take_damage(self, amount, attacker=None, combat_manager=None):
         print(f"[{self.name}] атакован на {amount} урона. "
-              f"(Щит: {self.shield}, HP: {self.hp})")
+            f"(Щит: {self.shield}, HP: {self.hp})")
         if self.shield >= amount:
             self.shield -= amount
         else:
@@ -77,14 +77,26 @@ class Creature:
         # Шипы
         if self.statuses.get('thorns', 0) > 0 and attacker is not None:
             print(f" [ШИПЫ] {self.name} отражает "
-                  f"{self.statuses['thorns']} урона на {attacker.name}!")
+                f"{self.statuses['thorns']} урона на {attacker.name}!")
             attacker.hp = max(attacker.hp - self.statuses['thorns'], 0)
+
+        # Вампиризм атакующего — триггер при любом уроне > 0
+        if amount > 0 and attacker is not None:
+            vamp = attacker.statuses.get('vampire', 0)
+            if vamp > 0:
+                heal_amount = max(1, amount // 2)
+                attacker.heal(heal_amount, combat_manager)
+                attacker.statuses['vampire'] = vamp // 2
+                if combat_manager:
+                    combat_manager.add_log_message(
+                        f" [ВАМПИР] Вы восстанавливаете {heal_amount} HP. "
+                        f"Вампиризм: {vamp} → {vamp // 2}."
+                    )
 
         # Кровотечение — с хуком on_bleed_tick
         bleed = self.statuses.get('bleed', 0)
         if bleed > 0 and amount > 0:
             bleed_dmg = bleed
-            # Реликвии могут изменить урон от кровотечения
             if combat_manager:
                 gm = getattr(combat_manager, 'gm', None)
                 if gm:

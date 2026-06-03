@@ -23,13 +23,15 @@ class DamageEffect:
 
 
 class VampireDamageEffect:
+    """DEPRECATED: заменён на VampireBuffEffect в vampirism.py.
+    Оставлен для обратной совместимости импортов в CardRenderer.py."""
     def __init__(self, base_val, upgrade_val):
-        self.base_val = base_val
+        self.base_val    = base_val
         self.upgrade_val = upgrade_val
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
-        base = self.upgrade_val if is_upgraded else self.base_val
-        gm_ref = combat_manager.gm if combat_manager is not None else None
+        # Старая логика — больше не используется в картах
+        pass
 
         final_dmg = EffectCalculator.calculate_damage(
             player, enemy, base, gm_ref, combat_manager
