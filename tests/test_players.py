@@ -1,7 +1,6 @@
 # tests/test_players.py
 # Проверяем игроков: базовый Player (статы, энергия, колода)
 # и классовые пассивы (Warrior, Mage, Druid).
-from core.Creature import Creature
 from core.players.base import Player
 from core.players.warrior import Warrior
 from core.players.mage import Mage
@@ -176,9 +175,11 @@ def test_маг_без_комбо_не_добирает(make_combat):
 def test_друид_при_хиле_травит_врага(make_combat):
     d = Druid()
     cm = make_combat(player=d)
+    d.on_turn_start_passive(cm)            # сброс бюджета яда на ход
     cm.enemy.poison = 1
     d.on_heal_passive(5, cm)
-    assert cm.enemy.poison == 6            # было 1 + хил 5
+    # Яд = доля хила (50%): int(5*0.5) = 2. Было 1 + 2 = 3.
+    assert cm.enemy.poison == 3
 
 
 def test_друид_не_травит_при_нулевом_хиле(make_combat):
@@ -196,3 +197,19 @@ def test_друид_не_травит_мёртвого_врага(make_combat):
     cm.enemy.poison = 1
     d.on_heal_passive(5, cm)
     assert cm.enemy.poison == 1            # без изменений
+
+
+def test_друид_потолок_яда_за_ход(make_combat):
+    # Несколько хилов за один ход не превышают POISON_CAP_PER_TURN.
+    d = Druid()
+    cm = make_combat(player=d)
+    d.on_turn_start_passive(cm)            # бюджет = 4
+    cm.enemy.poison = 0
+    d.on_heal_passive(100, cm)             # доля огромна, но обрезается до бюджета
+    assert cm.enemy.poison == Druid.POISON_CAP_PER_TURN   # = 4
+    d.on_heal_passive(100, cm)             # бюджет исчерпан -> +0
+    assert cm.enemy.poison == Druid.POISON_CAP_PER_TURN
+    # Новый ход -> бюджет снова доступен
+    d.on_turn_start_passive(cm)
+    d.on_heal_passive(100, cm)
+    assert cm.enemy.poison == Druid.POISON_CAP_PER_TURN * 2
