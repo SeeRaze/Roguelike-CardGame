@@ -68,3 +68,30 @@ def format_report(class_name: str, stats: dict, max_floor: int = 100) -> str:
     lines.append(f"  Ср. HP:       {hp_line}")
     lines.append("=" * 60)
     return "\n".join(lines)
+
+
+def format_dual_report(class_name: str, wall: dict, ceiling: dict) -> str:
+    """Сравнительный отчёт двух метрик (см. balance-curve-framework):
+      • wall    — случайный драфт, «базовая стена» без билда.
+      • ceiling — собранный билд (ядро+жадный драфт), «потолок».
+    Показывает зазор стена↔потолок = всё пространство геймплея. Большой зазор
+    у класса = есть компаундящий движок (категория 4); зазор ≈ 0 = потолок
+    упёрт в ту же стену (движка нет)."""
+    def _row(label, s):
+        wr = " ".join(f"{s['winrates'][cp]:>3.0f}%" for cp in CHECKPOINTS)
+        return (f"  {label:<8} med={s['depth_med']:>3}  p25={s['depth_p25']:>3}  "
+                f"p75={s['depth_p75']:>3}  max={s['depth_max']:>3}  wr[{wr} ]")
+
+    gap_med = ceiling["depth_med"] - wall["depth_med"]
+    gap_wr50 = ceiling["winrates"][50] - wall["winrates"][50]
+    lines = [
+        f"=== {class_name} × {wall['runs']} забегов (wall) / "
+        f"{ceiling['runs']} (ceiling) ===",
+        f"  чекпоинты: {CHECKPOINTS}",
+        _row("WALL", wall),
+        _row("CEILING", ceiling),
+        f"  ЗАЗОР: med {gap_med:+d}  wr50 {gap_wr50:+.0f}пп  "
+        f"({'есть движок' if gap_med >= 15 else 'упёрт в стену'})",
+        "=" * 64,
+    ]
+    return "\n".join(lines)

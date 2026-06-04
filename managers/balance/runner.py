@@ -3,6 +3,13 @@
 # HP переносится между боями, костры лечат, колода РАСТЁТ (карты-награды).
 # Использует РЕАЛЬНУЮ сборку врагов (EnemySpawner) — чтобы мерить настоящие
 # формулы сложности.
+#
+# Две метрики (см. balance-curve-framework / двойная экспонента):
+#   • wall    — случайный драфт (random-награда). «Базовая стена» без билда.
+#   • ceiling — ядро билда в стартовой колоде + жадный драфт + реликвии.
+#               «Потолок» собранного билда. Задаётся через параметры
+#               run_single_run (draft / extra_cards / relics); дефолты дают
+#               ТОЧНО прежнее wall-поведение (регресс-нейтрально).
 import random
 from core.cards.catalog   import get_pool_for_class
 from managers.EnemySpawner import build_enemy_group
@@ -16,9 +23,10 @@ _CAMPFIRE_HEAL = 0.30
 _CARD_REWARD_CHANCE = 0.6
 
 
-def _maybe_reward_card(deck: list, class_name: str) -> None:
-    """С вероятностью _CARD_REWARD_CHANCE добавить в колоду случайную карту
-    из пула класса (generic + классовые). Удаление/апгрейд не моделируем."""
+def default_draft(deck: list, class_name: str) -> None:
+    """Драфт метрики WALL: с вероятностью _CARD_REWARD_CHANCE добавить в колоду
+    СЛУЧАЙНУЮ карту из пула класса. Моделирует игрока без плана сборки —
+    «базовая стена». Удаление/апгрейд не моделируем."""
     if random.random() < _CARD_REWARD_CHANCE:
         pool = get_pool_for_class(class_name)
         deck.append(random.choice(pool)())
@@ -28,8 +36,8 @@ class _StubGM:
     """Минимальный игровой контекст для боя вне UI.
     CombatManager читает gm.stats / gm.relics / gm.current_floor."""
 
-    def __init__(self):
-        self.relics        = []
+    def __init__(self, relics=None):
+        self.relics        = relics if relics is not None else []
         self.current_floor = 1
         self.current_state = "COMBAT"
         self.stats = {
@@ -40,16 +48,36 @@ class _StubGM:
         }
 
 
-def run_single_run(player_class, max_floor: int = 100) -> dict:
+def run_single_run(player_class, max_floor: int = 100, *,
+                   draft=None, extra_cards=None, relics=None) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
+
+    Параметры билда (дефолты = метрика WALL, прежнее поведение):
+      draft       — функция (deck, class_name) -> None, зовётся после каждого
+                    выжитого боя (прогрессия колоды). По умолчанию default_draft
+                    (случайная награда).
+      extra_cards — список ФАБРИК карт, добавляемых в СТАРТОВУЮ колоду (ядро
+                    билда для метрики ceiling). По умолчанию пусто.
+      relics      — список ФАБРИК/классов реликвий; инстанцируются на забег и
+                    кладутся в gm.relics (хуки реликвий работают в бою).
+                    По умолчанию пусто.
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
     """
+    draft = draft or default_draft
+
     player     = player_class()
-    deck       = player.get_starter_deck()
     class_name = player_class.__name__
-    gm         = _StubGM()
+
+    # Ядро билда — карты-фабрики в стартовую колоду (ceiling).
+    for factory in (extra_cards or []):
+        player.add_to_starter_deck(factory())
+    deck = player.get_starter_deck()
+
+    # Реликвии билда — свежие инстансы на забег (хранят состояние, напр. _applied).
+    relic_objs = [r() for r in (relics or [])]
+    gm = _StubGM(relics=relic_objs)
 
     hp_by_floor: dict = {}
 
@@ -66,8 +94,8 @@ def run_single_run(player_class, max_floor: int = 100) -> dict:
         if not survived or player.hp <= 0:
             return {"death_floor": floor, "hp_by_floor": hp_by_floor}
 
-        # Прогрессия колоды: карта-награда за бой.
-        _maybe_reward_card(deck, class_name)
+        # Прогрессия колоды: карта-награда за бой (стратегия драфта).
+        draft(deck, class_name)
 
         # Костёр на предбоссовом этаже: частичное лечение.
         if local_step == FLOORS_PER_ACT - 1:
