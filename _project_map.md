@@ -1,10 +1,10 @@
 # _project_map.md
-_Последнее обновление: Сессия 30, Jun 4, 2026_
+_Последнее обновление: Сессия 31, Jun 4, 2026_
 _История изменений по версиям — в `PATCHNOTES.md`._
 
 ## Архитектура
-- `core/` — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py)
-- `ui/` — вся отрисовка. Пакеты: `cards/` (CardRenderer), `combat/` (CombatInterface+HUD), `hub/` (HubView), `shop/` (Shop), `victory/` (VictoryScreen), `library/` (CardLibraryView), `chest/`, `events/`; модули: GameView.py (+`draw_dispatchers.py`, `hover_state.py`), MainMenu.py, MapView.py, LeaderboardView.py, Campfire.py.
+- `core/` — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py, Summon.py)
+- `ui/` — вся отрисовка. Пакеты: `cards/` (CardRenderer), `combat/` (CombatInterface+HUD, targeting), `hub/` (HubView), `shop/` (Shop), `victory/` (VictoryScreen), `library/` (CardLibraryView), `chest/`, `events/`; модули: GameView.py (+`draw_dispatchers.py`, `hover_state.py`), MainMenu.py, MapView.py, LeaderboardView.py, Campfire.py.
 - `managers/` — CombatManager, DeckManager, GameManager, MapGenerator, network_manager, EnemySpawner, RewardManager
 - Разрешение: строго 1920×1080 Full HD
 - **Ветка разработки: dev** (main — стабильная, dev — активная работа)
@@ -128,10 +128,13 @@ vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire
 - Превью урона на карте — `EffectCalculator.calculate_damage(..., dry_run=True)` (состояние не меняется).
 
 ### Бой: цикл хода (CombatManager)
-`CombatManager.__init__(player, enemy, starting_deck, game_manager=None)` → хуки `on_combat_start` → `start_turn_phase()`.
-- **`start_turn_phase`**: `enemy.choose_intent()` → пассив игрока считает carry щита → `_iron_will_shield = shield`; сброс щита до carry → `energy = max_energy` → добор `5 + bonus_draw` → (Разбойник: случайной карте `temp_cost -= 1`) → хуки реликвий `on_turn_start` → `ability.on_turn_start` (штрафы).
-- **`play_card_by_index`**: проверка энергии (`temp_cost` или `cost`) → `card.apply()` → пассив `on_card_played_passive` → реликвии `on_card_played` → карта в `discard_pile`/`exile_pile`.
-- **`end_turn_phase`**: сброс руки → враг: `shield=0`, `execute_intent()`, `tick_statuses()` → игрок `tick_statuses()` → проверка смерти (`enemy.hp<=0` победа; `player.hp<=0` → запись рекорда + `LEADERBOARD`).
+`CombatManager.__init__(player, enemies, starting_deck, game_manager=None)` — принимает список врагов (или одного, автоматически оборачивается). Хранит `self.enemies: list`, `self.allies: list`. Compat-свойство `self.enemy` → первый враг (для старого кода).
+- **`start_turn_phase`**: цикл по всем живым врагам → `choose_intent()` → пассив игрока считает carry щита → `_iron_will_shield = shield`; сброс щита до carry → `energy = max_energy` → добор `5 + bonus_draw` → (Разбойник: случайной карте `temp_cost -= 1`) → хуки реликвий `on_turn_start` → `ability.on_turn_start` (штрафы).
+- **`play_card_by_index(idx, target=None)`**: проверка энергии → если цель не передана: `get_target_enemy()` (первый живой враг) → `card.apply(player, target, self)` → пассив `on_card_played_passive` → реликвии `on_card_played` → карта в `discard_pile`/`exile_pile`.
+- **`end_turn_phase`**: сброс руки → цикл по живым врагам: `shield=0`, `execute_intent()`, `tick_statuses()`, `_check_enemy_death()` (вызывает `on_kill` на реликвиях + стата) → игрок `tick_statuses()` → цикл по союзникам: `choose_action()`, `execute_action()`, `tick_statuses()`, `_check_ally_death()` → проверка победы: `all(e.hp <= 0)` → `check_player_defeat()`.
+- **Мульти-враги**: этажи 1–4: 1 враг, 5–8: 2 врага, 9+: 3 врага. HP каждого уменьшен пропорционально. Босс всегда один.
+- **Таргетинг**: клик по вражеской панели меняет `_target_index`. Жёлтая рамка вокруг выбранной цели. `play_card_by_index` получает цель из `TargetingSystem.get_current_target()`.
+- **Союзники**: карты призыва (`create_summon_wolf`/`golem`) создают `Summon` в `combat.allies`. В конце хода союзники атакуют случайного живого врага. Панели союзников — в центральной зоне (x=590..1330).
 
 ### Колода (DeckManager)
 Пайлы: `draw_pile` ← `hand` → `discard_pile`; `exile_pile` отдельно. `draw_cards(n)` — при пустом доборе перемешивает сброс обратно. `discard_hand()` — сброс руки + чистка `temp_cost`. `reset_deck()` (новый бой) — возвращает изгнанные карты в пул и перемешивает.
@@ -232,10 +235,10 @@ shld = 3 + tier*1
 ## Реализованные системы (после Сессии 27)
 Все 14 пунктов плана масштабируемости (A–N) ВЫПОЛНЕНЫ.
 
-Реликвии — 19 итого:
+Реликвии — 21 итого:
 - COMMON: LuckyClover, SpikedBracelet, ТочильныйКамень, СтараяПиявка, СчастливаяМонетка, ЗасохшийКлевер, Заплатка, ЗаточенныйОсколок
-- UNCOMMON: ДревнееОгниво, НамокшаяРукавица, ОкровавленныйШприц, ФлаконСЖелчью, СвинцовыйНабалдашник, ШипастаяБроня
-- RARE: ЭнергоЯдро, СердцеТитана, ГнилойКлык, ЖелезнаяВоля
+- UNCOMMON: ДревнееОгниво, НамокшаяРукавица, ОкровавленныйШприц, ФлаконСЖелчью, СвинцовыйНабалдашник, ШипастаяБроня, ТрофейныйКлык
+- RARE: ЭнергоЯдро, СердцеТитана, ГнилойКлык, ЖелезнаяВоля, БерсеркМедальон
 - LEGENDARY: ПроклятаяКорона
 
 ## Важные детали и грабли
@@ -321,18 +324,21 @@ shld = 3 + tier*1
 
 🧹 Остаточный долг: ~64 предсуществующих неиспользуемых импорта (ruff F401) по проекту — не в CI-наборе; разово почистить `ruff --select F401 --fix`.
 
-### Отложено (нужны мульти-враги):
-- `on_kill` хук — реликвии-заглушки:
-  - Трофейный Клык (UNCOMMON, +1 Сила после убийства)
-  - Берсерк-Медальон (RARE, +1 Энергия после убийства)
+### Выполнено (было отложено; Сессия 31)
+- ✅ Мульти-враги: группы 1–3 врагов по этажу, компактные панели, on_kill хук
+- ✅ Союзники: Summon (Creature), карты призыва, авто-атака, центральная зона
+- ✅ Таргетинг: клик-выбор цели, жёлтая рамка
+- ✅ `on_kill`-реликвии: ТрофейныйКлык (UNCOMMON, +1 Сила), БерсеркМедальон (RARE, +1 Энергия)
 
 ## Статус
 Сессия 27 завершена (Jun 3, 2026).
-Сессия 28: настроен GitHub CLI + CI, проведён аудит зависимостей/логики, карта синхронизирована с кодом.
-Сессия 29 (Jun 4, 2026): рефакторинг крупных файлов.
-- Stage 1 (контент-ядро): `core/players/abilities.py`→пакет (1 файл/способность), `core/relics/advanced.py`→пакет по теме, god-object `GameManager` разобран (`EnemySpawner`+`RewardManager`, 266→145).
-- Stage 2 (крупный UI): `HubView`→`ui/hub/`, `CombatInterface`→`ui/combat/` (+удалён мёртвый дубль `draw_ability_slot`), `CardRenderer`→`ui/cards/`. Введён дифференцированный ГОСТ: логика — жёстко 150, UI — структурно по швам с мягким потолком ~220.
-- Stage 3 (остальной UI): `Shop`→`ui/shop/`, `GameView` разнесён (`draw_dispatchers`/`hover_state`/`combat/hover`, 271→140, удалён мёртвый `_draw_placeholder`), `VictoryScreen`→`ui/victory/`, `CardLibraryView`→`ui/library/`. `MapView` оставлен (167, цельный render).
-- Публичные точки входа сохранены через реэкспорт. CI зелёный (Stage 1+2 run 26915968445, Stage 3 run 26917046774) + рантайм-импорт всего UI через SDL dummy. **Рефакторинг крупных файлов завершён.**
-
-Сессия 30 (Jun 4, 2026): **инвентарь реликвий в бою** (Приоритет 1). Компактные бейджи на полосе (рамка по редкости + аббревиатура + маркер активной, помещаются 19+) и модальная панель `RelicPanel` (`ui/combat/relic_panel.py`) со всеми реликвиями по клику на «АРТЕФАКТЫ»/«+N». Ховер-тултип и активация сохранены. Проверено headless (SDL dummy): рендер, открытие/закрытие, активация из панели, авто-сброс между боями. Попутно убраны 2 мёртвых импорта (`ui/combat/` теперь F401-чистый).
+Сессия 28: настроен GitHub CLI + CI, проведён аудит зависимостей/логики.
+Сессия 29 (Jun 4, 2026): рефакторинг крупных файлов (Stage 1–3).
+Сессия 30 (Jun 4, 2026): инвентарь реликвий в бою (бейджи + панель).
+Сессия 31 (Jun 4, 2026): **мульти-юниты (враги + союзники) в 4 фазы.**
+- Фаза 1: `self.enemies: list` + compat-свойство `enemy` + `on_kill` в `_check_enemy_death`
+- Фаза 2: `build_enemy_group` (1–3 врага), компактные вражеские панели
+- Фаза 3: `Summon(Creature)` + `SummonEffect` + карты призыва, панели союзников в центре
+- Фаза 4: `TargetingSystem` (клик по врагу = выбор цели) + ТрофейныйКлык + БерсеркМедальон
+- Новые файлы: `core/Summon.py`, `core/cards/summon.py`, `ui/combat/targeting.py`
+- Тесты: 128 (было 56). ALL_RELICS: 19 → 21.
