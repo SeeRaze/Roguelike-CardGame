@@ -1,3 +1,5 @@
+import random
+
 from core.Creature import Creature
 
 
@@ -66,6 +68,16 @@ class Enemy(Creature):
     def choose_intent(self):
         pass
 
+    def _choose_attack_target(self, player, combat_manager):
+        """Цель атаки врага — СЛУЧАЙНАЯ из {игрок + живые союзники}.
+        Без союзников (или без боя) бьёт игрока, как раньше. Случайный выбор —
+        фундамент под будущий статус «провокация» (он сможет форсировать цель)
+        и под призывные классы: стая естественно поглощает часть ударов."""
+        if not combat_manager:
+            return player
+        allies = [a for a in getattr(combat_manager, "allies", []) if a.hp > 0]
+        return random.choice([player] + allies) if allies else player
+
     def execute_intent(self, player, combat_manager=None):
         self.turn_count += 1
         if combat_manager:
@@ -76,14 +88,21 @@ class Enemy(Creature):
 
         if isinstance(intent, IntentAttack):
             gm = combat_manager.gm if combat_manager else None
+            target = self._choose_attack_target(player, combat_manager)
             final_dmg = EffectCalculator.calculate_damage(
-                self, player, intent.value, gm, combat_manager
+                self, target, intent.value, gm, combat_manager
             )
-            player.take_damage(final_dmg, attacker=self, combat_manager=combat_manager)
+            target.take_damage(final_dmg, attacker=self, combat_manager=combat_manager)
             if combat_manager:
-                combat_manager.add_log_message(
-                    f" -> Бьет вас на {final_dmg} урона."
-                )
+                if target is player:
+                    combat_manager.add_log_message(
+                        f" -> Бьет вас на {final_dmg} урона."
+                    )
+                else:
+                    combat_manager.add_log_message(
+                        f" -> Бьёт союзника {target.name} на {final_dmg} урона."
+                    )
+                    combat_manager._check_ally_death(target)
 
         elif isinstance(intent, IntentDefend):
             self.gain_shield(intent.value, combat_manager)  # ← фикс
