@@ -11,7 +11,7 @@ class CombatManager:
     # Без него союзники (враги их не бьют) копились бы вечно → бесконечный
     # снежный ком. Это ручка тюнинга баланса Призывателя (см. Этап 5).
     # Замер чувствительности (эт.25 дошёл): cap4=10% · cap6=33% · cap8=56%.
-    MAX_PERSISTENT_ALLIES = 6
+    MAX_PERSISTENT_ALLIES = 10
 
     def __init__(self, player, enemies, starting_deck, game_manager=None):
         self.gm = game_manager

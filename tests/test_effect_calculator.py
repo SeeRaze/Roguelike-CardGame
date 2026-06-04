@@ -50,13 +50,13 @@ def test_порядок_ярость_потом_слабость():
     assert calc(atk, tgt, 10) == 10
 
 
-def test_комбо_пар_удваивает_урон():
-    # «Пар»: цель одновременно Мокрая и Горящая -> урон ×2.
+def test_комбо_пар_утраивает_урон():
+    # «Пар»: цель одновременно Мокрая и Горящая -> урон ×3.0.
     atk = Creature("Атакующий", 50, 50)
     tgt = Creature("Цель", 50, 50)
     tgt.wet = 2
     tgt.ignited = 2
-    assert calc(atk, tgt, 10) == 20
+    assert calc(atk, tgt, 10) == 30
 
 
 def test_dry_run_не_расходует_стаки_комбо():
@@ -118,7 +118,7 @@ def test_реестр_содержит_правильную_запись_пар(
     assert steam is not None
     assert steam["name"] == "ПАР"
     assert steam["requires"] == ("wet", "ignited")
-    assert steam["multiplier"] == 2.0
+    assert steam["multiplier"] == 3.0
     assert steam["consume"] == 1
     assert "ПАР" in steam["log"]
 

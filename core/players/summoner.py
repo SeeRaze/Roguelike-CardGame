@@ -19,7 +19,7 @@ class Summoner(Player):
     def __init__(self):
         super().__init__(
             name="Призыватель",
-            max_hp=60,
+            max_hp=85,
             max_energy=3,
             gold=100,
             starter_deck_factory=get_summoner_deck,

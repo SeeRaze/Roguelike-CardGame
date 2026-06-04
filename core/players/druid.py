@@ -21,13 +21,13 @@ def get_druid_deck():
 
 class Druid(Player):
     # Балансировка пассива «Токсичный круговорот» (см. on_heal_passive).
-    POISON_FRACTION     = 0.5   # доля хила, переходящая в яд
-    POISON_CAP_PER_TURN = 4     # максимум яда от пассива за один ход
+    POISON_FRACTION     = 0.3   # доля хила, переходящая в яд
+    POISON_CAP_PER_TURN = 3     # максимум яда от пассива за один ход
 
     def __init__(self):
         super().__init__(
             name="Друид",
-            max_hp=70,
+            max_hp=65,
             max_energy=3,
             gold=100,
             starter_deck_factory=get_druid_deck,

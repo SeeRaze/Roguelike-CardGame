@@ -10,7 +10,6 @@ from core.cards import (
 def get_rogue_deck():
     return [
         create_strike(), create_strike(), create_strike(),
-        create_strike(),
         create_defend(), create_defend(),
         create_neutralize(),
         create_lacerate(),
@@ -22,8 +21,8 @@ class Rogue(Player):
     def __init__(self):
         super().__init__(
             name="Разбойник",
-            max_hp=55,
-            max_energy=4,
+            max_hp=40,
+            max_energy=3,
             gold=120,
             starter_deck_factory=get_rogue_deck,
         )

@@ -12,7 +12,7 @@ class Summon(Creature):
     # Пассив Призывателя «Свора»: каждый союзник бьёт сильнее за КАЖДОГО
     # другого живого союзника на поле. Урон стаи растёт нелинейно
     # (N союзников × бонус (N-1)) — даёт призывам масштаб на поздних этажах.
-    PACK_DAMAGE_PER_ALLY = 2
+    PACK_DAMAGE_PER_ALLY = 5
 
     def __init__(self, name, hp, attack_power, owner=None):
         super().__init__(name=name, hp=hp, max_hp=hp)

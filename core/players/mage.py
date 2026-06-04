@@ -19,7 +19,7 @@ class Mage(Player):
     def __init__(self):
         super().__init__(
             name="Маг",
-            max_hp=65,
+            max_hp=70,
             max_energy=3,
             gold=90,
             starter_deck_factory=get_mage_deck,
@@ -35,4 +35,9 @@ class Mage(Player):
             if drawn > 0:
                 combat_manager.add_log_message(
                     " [МАГ] Стихийный резонанс: +1 карта из колоды!"
+                )
+            healed = self.heal(7, combat_manager)
+            if healed > 0:
+                combat_manager.add_log_message(
+                    f" [МАГ] Стихийный резонанс: +{healed} HP от стихий!"
                 )

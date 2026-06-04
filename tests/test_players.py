@@ -77,7 +77,7 @@ def test_use_energy_не_уходит_ниже_нуля():
 def test_воин_имеет_правильные_статы():
     w = Warrior()
     assert w.name == "Воин"
-    assert w.max_hp == 80
+    assert w.max_hp == 90
     assert w.max_energy == 3
     assert w.gold == 100
     assert w.active_ability is not None
@@ -86,7 +86,7 @@ def test_воин_имеет_правильные_статы():
 def test_маг_имеет_правильные_статы():
     m = Mage()
     assert m.name == "Маг"
-    assert m.max_hp == 65
+    assert m.max_hp == 70
     assert m.max_energy == 3
     assert m.gold == 90
     assert m.active_ability is not None
@@ -95,15 +95,16 @@ def test_маг_имеет_правильные_статы():
 def test_друид_имеет_правильные_статы():
     d = Druid()
     assert d.name == "Друид"
-    assert d.max_hp == 70
+    assert d.max_hp == 65
     assert d.max_energy == 3
     assert d.gold == 100
     assert d.active_ability is not None
 
 
-def test_разбойник_имеет_4_энергии():
+def test_разбойник_имеет_3_энергии_и_40_hp():
     r = Rogue()
-    assert r.max_energy == 4
+    assert r.max_energy == 3
+    assert r.max_hp == 40
 
 
 def test_берсерк_имеет_60_hp():
@@ -179,8 +180,8 @@ def test_друид_при_хиле_травит_врага(make_combat):
     d.on_turn_start_passive(cm)            # сброс бюджета яда на ход
     cm.enemy.poison = 1
     d.on_heal_passive(5, cm)
-    # Яд = доля хила (50%): int(5*0.5) = 2. Было 1 + 2 = 3.
-    assert cm.enemy.poison == 3
+    # Яд = доля хила (30%): int(5*0.3) = 1. Было 1 + 1 = 2.
+    assert cm.enemy.poison == 2
 
 
 def test_друид_не_травит_при_нулевом_хиле(make_combat):
