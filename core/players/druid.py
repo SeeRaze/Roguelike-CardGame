@@ -39,6 +39,9 @@ class Druid(Player):
         self._poison_budget = self.POISON_CAP_PER_TURN
 
     def on_heal_passive(self, healed_amount: int, combat_manager) -> None:
+        # «Токсичный круговорот»: часть исцеления Друид ЖЕРТВУЕТ — отдаёт это
+        # HP обратно и превращает в яд на враге. Чистое лечение снижается
+        # (sustain слабее), зато враг травится. Тема «жизнь ↔ яд» сохранена.
         if not combat_manager or healed_amount <= 0:
             return
         enemy = getattr(combat_manager, 'enemy', None)
@@ -52,7 +55,11 @@ class Druid(Player):
             return
         self._poison_budget = budget - gain
 
+        # Жертва: возвращаем часть полученного HP (net-лечение режется).
+        self.hp = max(1, self.hp - gain)
+
         enemy.add_status('poison', gain, combat_manager)
         combat_manager.add_log_message(
-            f" [ДРУИД] Токсичный круговорот: враг получает +{gain} яда!"
+            f" [ДРУИД] Токсичный круговорот: жертвует {gain} HP → "
+            f"враг получает +{gain} яда!"
         )

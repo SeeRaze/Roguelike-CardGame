@@ -12,8 +12,8 @@ def create_regenerate():
         name="Регенерация",
         cost=1,
         card_type="skill",
-        description="Получить Регенерацию (3). Изгнание.",
-        effects=[RegenEffect(3, 5)],
+        description="Получить Регенерацию (2). Изгнание.",
+        effects=[RegenEffect(2, 4)],
         rarity=Rarity.UNCOMMON,
         exile=True,
     )
@@ -25,8 +25,8 @@ def create_vitality():
         name="Живучесть",
         cost=2,
         card_type="skill",
-        description="Получить Регенерацию (5).",
-        effects=[RegenEffect(5, 8)],
+        description="Получить Регенерацию (3).",
+        effects=[RegenEffect(3, 5)],
         rarity=Rarity.RARE,
     )
 

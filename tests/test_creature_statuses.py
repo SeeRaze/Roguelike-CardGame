@@ -33,14 +33,14 @@ def test_шипы_отражают_урон_в_атакующего():
     assert attacker.hp == 48    # 2 урона отражено шипами
 
 
-def test_вампиризм_лечит_атакующего_и_уменьшается_вдвое():
+def test_вампиризм_лечит_атакующего_и_гаснет_втрое():
     target = Creature("Цель", 50, 50)
     attacker = Creature("Вампир", 40, 50)
     attacker.vampire = 4
     target.take_damage(10, attacker=attacker)
-    # хил = max(1, 10//2) = 5 -> 40 + 5 = 45; вампиризм 4 -> 2
-    assert attacker.hp == 45
-    assert attacker.vampire == 2
+    # хил = max(1, 10*2//5) = 4 -> 40 + 4 = 44; вампиризм 4 -> 4//3 = 1
+    assert attacker.hp == 44
+    assert attacker.vampire == 1
 
 
 def test_кровотечение_наносит_доп_урон_при_получении_удара():
@@ -69,6 +69,15 @@ def test_тик_регенерации_лечит():
     c.regen = 2
     c.tick_statuses()
     assert c.hp == 42 and c.regen == 1
+
+
+def test_тик_регенерации_ограничен_потолком_за_ход():
+    c = Creature("Цель", 10, 100)
+    c.regen = 20                       # стак выше потолка
+    c.tick_statuses()
+    # лечение срезано до REGEN_HEAL_CAP_PER_TURN, стак убывает на 1
+    assert c.hp == 10 + Creature.REGEN_HEAL_CAP_PER_TURN
+    assert c.regen == 19
 
 
 def test_временные_статусы_спадают_на_один():

@@ -22,7 +22,7 @@ class Rogue(Player):
     def __init__(self):
         super().__init__(
             name="Разбойник",
-            max_hp=65,
+            max_hp=55,
             max_energy=4,
             gold=120,
             starter_deck_factory=get_rogue_deck,

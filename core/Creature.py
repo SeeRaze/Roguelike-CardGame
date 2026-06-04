@@ -7,6 +7,10 @@ _ELEMENTAL_KEYS = frozenset(("ignited", "wet", "poison"))
 
 
 class Creature:
+    # Потолок лечения от статуса «регенерация» за один тик (см. tick_statuses).
+    # Режет перекормленные стаки регена, не трогая одиночные хил-карты.
+    REGEN_HEAL_CAP_PER_TURN = 6
+
     def __init__(self, name, hp, max_hp):
         self.name   = name
         self.hp     = hp
@@ -106,13 +110,19 @@ class Creature:
         if amount > 0 and attacker is not None:
             vamp = attacker.statuses.get('vampire', 0)
             if vamp > 0:
-                heal_amount = max(1, amount // 2)
+                # Вампиризм лечит на 40% нанесённого урона (было 50%). Доля
+                # снижена, чтобы sustain Разбойника не перекрывал урон врага
+                # на поздних этажах. Тема «кровь» сохранена.
+                heal_amount = max(1, amount * 2 // 5)
                 attacker.heal(heal_amount, combat_manager)
-                attacker.statuses['vampire'] = vamp // 2
+                # Стак вампиризма гаснет ВТРОЕ за триггер (а не вдвое): меньше
+                # «бесплатных» лечащих ударов с одного наложения.
+                decayed = vamp // 3
+                attacker.statuses['vampire'] = decayed
                 if combat_manager:
                     combat_manager.add_log_message(
                         f" [ВАМПИР] Вы восстанавливаете {heal_amount} HP. "
-                        f"Вампиризм: {vamp} → {vamp // 2}."
+                        f"Вампиризм: {vamp} → {decayed}."
                     )
 
         bleed = self.statuses.get('bleed', 0)
@@ -162,7 +172,10 @@ class Creature:
                 print(f" [Статус] Яд в теле {self.name} рассеялся.")
 
         if s.get('regen', 0) > 0:
-            healed = self.heal(s['regen'], combat_manager)
+            # Потолок лечения от регена за один тик: высокие стаки регена
+            # (несколько хил-карт сразу) больше не возвращают HP «на полную».
+            regen_heal = min(s['regen'], self.REGEN_HEAL_CAP_PER_TURN)
+            healed = self.heal(regen_heal, combat_manager)
             if combat_manager:
                 combat_manager.add_log_message(
                     f" [РЕГЕН] {self.name} восстанавливает {healed} HP."
