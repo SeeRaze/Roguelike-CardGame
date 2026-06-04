@@ -10,7 +10,8 @@
 import random
 
 from core.cards import (
-    create_retribution, create_iron_wall, create_boil, create_ignite,
+    create_retribution, create_iron_wall, create_steel_barricade, create_bastion,
+    create_boil, create_ignite,
     create_splash, create_toxic_cloud, create_poison_stab, create_lacerate,
     create_open_wound, create_hemorrhage, create_battle_cry,
     create_summon_wolf, create_summon_golem,
@@ -46,7 +47,8 @@ _STATUS_VALUE = {
 # Каждое ядро = (extra_cards, relics). Архетип «к чему класс собирается».
 CLASS_CORES = {
     "Warrior": (
-        [create_retribution, create_iron_wall, create_retribution],
+        [create_retribution, create_iron_wall, create_steel_barricade,
+         create_bastion, create_retribution],
         [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро, ПроклятаяКорона],
     ),
     "Mage": (

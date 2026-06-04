@@ -81,11 +81,11 @@ class CombatManager:
         # Пассивка считает carry ДО сброса щита
         self.player.on_turn_start_passive(self)
 
-        # Сбрасываем щит, восстанавливаем carry
+        # Сбрасываем щит, восстанавливаем carry + БАРЬЕР (несгораемый щит).
         self.player._iron_will_shield = self.player.shield
         carry = getattr(self.player, '_passive_shield_carry', 0)
         self.player._passive_shield_carry = 0
-        self.player.shield = carry
+        self.player.shield = carry + self.player.barrier
 
 
         self.player.energy = self.player.max_energy

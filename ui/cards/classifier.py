@@ -3,6 +3,7 @@
 from core.cards.base import (
     StatusEffect, PoisonEffect, RegenEffect, HealEffect,
     VampireDamageEffect, DamageEffect, ShieldEffect, DetonateEffect,
+    BarrierEffect,
 )
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.strength import BuffEffect
@@ -25,6 +26,7 @@ def classify_card(card) -> str:
     has_flow     = any(isinstance(e, FlowEffect) for e in effects)
     has_detonate = any(isinstance(e, DetonateEffect) for e in effects)
     has_echo     = any(isinstance(e, EchoEffect) for e in effects)
+    has_barrier  = any(isinstance(e, BarrierEffect) for e in effects)
 
     has_ignited  = any(isinstance(e, StatusEffect) and e.status_type == "ignited" for e in effects)
     has_wet      = any(isinstance(e, StatusEffect) and e.status_type == "wet"     for e in effects)
@@ -53,6 +55,8 @@ def classify_card(card) -> str:
         return "air"
     if has_echo:
         return "echo"
+    if has_barrier:
+        return "barrier"
     if has_regen:
         return "regen"
     if has_heal:

@@ -10,6 +10,7 @@
 from core.cards import (
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
     create_catalyst,
+    create_steel_barricade, create_bastion,
     create_ignite, create_fire_breath,
     create_splash, create_rain_cloud,
     create_shock_bolt, create_chain_lightning, create_thunder_strike, create_overload,
@@ -50,7 +51,7 @@ GENERIC_FACTORIES = [
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────
 CLASS_FACTORIES = {
     "Summoner": [create_summon_wolf, create_summon_golem],
-    "Warrior":  [create_retribution],
+    "Warrior":  [create_retribution, create_steel_barricade, create_bastion],
     "Mage":     [create_boil],
 }
 

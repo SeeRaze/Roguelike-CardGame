@@ -112,13 +112,18 @@ InputHandler.py, LeaderboardView.py, MainMenu.py, MapView.py, map_icons.py
 - `_ELEMENTAL_KEYS = frozenset(("ignited", "wet", "poison"))` — блокируется при `_elemental_blocked`
 
 ### StatusRegistry.py
-Единый реестр всех 13 статусов:
+Единый реестр всех 14 статусов:
 vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire,
-shock, shatter, echo
+shock, shatter, echo, barrier
 - **echo** (Сессия 37, движок кат.4): is_stack на ИГРОКЕ. Каждая разыгранная карта
   срабатывает повторно за каждый заряд Эха, после чего заряд тратится. Хук —
   в `CombatManager.play_card_by_index`. Чистый множитель: карта с уроном 6 под эхом 2
   наносит 6×3=18. Не в `_ELEMENTAL_KEYS` (не стихия, мета-механика).
+- **barrier** (Сессия 37, движок кат.4 для Воина): is_stack на ИГРОКЕ. Несгораемый
+  щит — при ежеходном сбросе `shield = carry + barrier`. Каждый стак = +1 щита
+  КАЖДЫЙ ход. Хук — в `CombatManager.start_turn_phase`. Синергия: барьер → shield
+  floor растёт → Возмездие (щит→урон) бьёт сильнее. Компаунд: защитные скиллы
+  усиливают ВСЕ будущие ходы.
 - **shock** (Сессия 36, стихия «Молния»): is_stack, НЕ тикает в конце хода —
   расходуется при УДАРЕ (+`EffectCalculator.SHOCK_DAMAGE_PER_STACK`=3 урона за удар,
   −1 заряд). Архетип микро-атак: каждый отдельный `DamageEffect` дренит свой заряд.

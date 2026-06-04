@@ -2,6 +2,7 @@ from core.players.base import Player
 from core.players.abilities import WarriorAbility
 from core.cards import (
     create_strike, create_defend, create_heavy_blade, create_retribution,
+    create_steel_barricade,
 )
 
 
@@ -10,7 +11,8 @@ def get_warrior_deck():
         create_strike(), create_strike(), create_strike(), create_strike(),
         create_defend(), create_defend(), create_defend(), create_defend(),
         create_heavy_blade(),
-        create_retribution(),      # классовая карта: щит → урон (защита = атака)
+        create_retribution(),       # классовая: щит → урон (защита = атака)
+        create_steel_barricade(),   # классовая: движок кат.4 (несгораемый щит)
     ]
 
 

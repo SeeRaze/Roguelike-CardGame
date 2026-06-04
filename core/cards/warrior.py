@@ -2,7 +2,11 @@
 # Классовые карты Воина. Идентичность класса — «защита = атака»: Воин копит щит
 # и конвертирует его в урон. ShieldDamageEffect — win-condition танка против
 # масштабирующихся врагов средней игры.
-from core.cards.base import Card
+#
+# Барьер (кат.4 движок): несгораемый щит — не сбрасывается между ходами.
+# Воин строит барьер защитными картами → shield floor растёт → Возмездие бьёт
+# всё сильнее. Компаунд: каждый сыгранный защитный скилл усиливает ВСЕ будущие ходы.
+from core.cards.base import Card, ShieldEffect, BarrierEffect
 from core.EffectCalculator import EffectCalculator
 from core.rarity import Rarity
 
@@ -67,5 +71,32 @@ def create_retribution():
         description="Урон ВСЕМ врагам = текущему щиту (130% при улучшении). "
                     "Щит не тратится.",
         effects=[ShieldDamageEffect(1.0, 1.3)],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_steel_barricade():
+    """«Стальной заслон» — Барьер 2(3). Чистый энейблер движка Воина:
+    каждый стак барьера = +1 щита в начале КАЖДОГО хода (не сгорает).
+    Компаунд: барьер копится → щит растёт → Возмездие бьёт сильнее."""
+    return Card(
+        name="Стальной заслон",
+        cost=1,
+        card_type="skill",
+        description="Барьер 2(3): +N несгораемого щита каждый ход.",
+        effects=[BarrierEffect(2, 3)],
+        rarity=Rarity.COMMON,
+    )
+
+
+def create_bastion():
+    """«Бастион» — щит 6(9) + Барьер 2(3). Гибрид: защищает сейчас
+    И строит несгораемый щит на будущие ходы."""
+    return Card(
+        name="Бастион",
+        cost=2,
+        card_type="defense",
+        description="Щит 6(9). Барьер 2(3): несгораемый щит каждый ход.",
+        effects=[ShieldEffect(6, 9), BarrierEffect(2, 3)],
         rarity=Rarity.UNCOMMON,
     )

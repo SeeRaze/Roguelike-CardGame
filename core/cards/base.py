@@ -109,6 +109,23 @@ class PoisonEffect:
             )
 
 
+class BarrierEffect:
+    """Накладывает Барьер на игрока — несгораемый щит, не сбрасывается между ходами.
+    Каждый стак барьера = +1 к щиту при СБРОСЕ в начале хода (см. CombatManager).
+    Это движок кат.4 для Воина: «защита = атака» через Возмездие."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        amount = self.upgrade_val if is_upgraded else self.base_val
+        player.add_status("barrier", amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Барьер +{amount} (всего: {player.barrier})."
+            )
+
+
 class DetonateEffect:
     """Подрывает все ГОТОВЫЕ детонации на цели (см. core/DetonationRegistry.py):
     для каждой записи, чьи requires-статусы все > 0, вызывает handler. Карта с

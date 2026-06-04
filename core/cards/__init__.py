@@ -18,6 +18,6 @@ from core.cards.buff.regen import create_regenerate, create_vitality, create_tri
 from core.cards.buff.vampirism import create_drain, create_blood_feast, create_life_tap
 from core.cards.debuff.bleed import create_lacerate, create_hemorrhage, create_open_wound
 from core.cards.summon import create_summon_wolf, create_summon_golem
-from core.cards.warrior import create_retribution
+from core.cards.warrior import create_retribution, create_steel_barricade, create_bastion
 from core.cards.mage import create_boil
 from core.cards.echo import create_echo_resonance, create_echo_strike, create_echo_cascade

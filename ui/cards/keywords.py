@@ -3,6 +3,7 @@
 import pygame
 from core.cards.base import (
     StatusEffect, PoisonEffect, RegenEffect, HealEffect, DetonateEffect,
+    BarrierEffect,
 )
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.vampirism import VampireBuffEffect
@@ -47,6 +48,9 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
             val = 0
         elif isinstance(effect, EchoEffect):
             key = "echo"
+            val = effect.upgrade_val if card.upgraded else effect.base_val
+        elif isinstance(effect, BarrierEffect):
+            key = "barrier"
             val = effect.upgrade_val if card.upgraded else effect.base_val
 
         if key and key not in seen:
