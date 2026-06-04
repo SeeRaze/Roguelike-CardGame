@@ -6,6 +6,7 @@ from core.players.abilities.rogue import RogueAbility
 from core.players.abilities.mage import MageAbility
 from core.players.abilities.druid import DruidAbility
 from core.players.abilities.berserker import BerserkerAbility
+from core.players.abilities.summoner import SummonerAbility
 
 __all__ = [
     "WarriorAbility",
@@ -13,4 +14,5 @@ __all__ = [
     "MageAbility",
     "DruidAbility",
     "BerserkerAbility",
+    "SummonerAbility",
 ]

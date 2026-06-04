@@ -111,7 +111,7 @@ class PoisonEffect:
 
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
-                 rarity=Rarity.COMMON, exile=False):
+                 rarity=Rarity.COMMON, exile=False, card_class=None):
         self.name = name
         self.cost = cost
         self.card_type = card_type
@@ -120,6 +120,9 @@ class Card:
         self.rarity = rarity
         self.upgraded = False
         self.exile = exile
+        # Принадлежность классу: None = нейтральная (generic), иначе имя класса
+        # (напр. "Summoner"). Проставляется централизованно в core/cards/catalog.py.
+        self.card_class = card_class
 
     def upgrade(self):
         if not self.upgraded:

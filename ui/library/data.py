@@ -12,6 +12,7 @@ from core.cards import (
     create_drain, create_blood_feast, create_life_tap,
     create_lacerate, create_hemorrhage, create_open_wound,
 )
+from core.cards.catalog import get_class_cards
 
 WARRIOR_CARDS = [
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
@@ -47,9 +48,15 @@ BERSERKER_CARDS = [
     create_lacerate,                    # кровь -- давление
 ]
 
+# Призыватель: базовые + классовые карты призыва (из каталога).
+SUMMONER_CARDS = [
+    create_strike, create_defend,
+    create_bandage,
+] + get_class_cards("Summoner")
+
 ALL_CARDS = list({f.__name__: f for f in
     WARRIOR_CARDS + ROGUE_CARDS + MAGE_CARDS +
-    DRUID_CARDS + BERSERKER_CARDS}.values())
+    DRUID_CARDS + BERSERKER_CARDS + SUMMONER_CARDS}.values())
 
 TABS = [
     ("Все",       ALL_CARDS),
@@ -58,6 +65,7 @@ TABS = [
     ("Маг",       MAGE_CARDS),
     ("Друид",     DRUID_CARDS),
     ("Берсерк",   BERSERKER_CARDS),
+    ("Призыватель", SUMMONER_CARDS),
 ]
 
 # Геометрия сетки

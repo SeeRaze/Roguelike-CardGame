@@ -1,5 +1,5 @@
 # ui/hub/selectors.py
-# Отрисовка селектора классов (5 карточек). Возвращает кликабельные прямоугольники.
+# Отрисовка селектора классов (6 карточек). Возвращает кликабельные прямоугольники.
 import pygame
 from ui.hub.data import (
     CLASS_INFO, _PANEL_COLOR, _BTN_BORDER, _TITLE_COLOR, _TEXT_COLOR,
@@ -8,7 +8,7 @@ from ui.hub.data import (
 
 
 def draw_class_selector(screen, gm, mouse_pos) -> dict:
-    """Нарисовать 5 карточек классов. Возвращает {имя_класса: Rect} для кликов."""
+    """Нарисовать 6 карточек классов. Возвращает {имя_класса: Rect} для кликов."""
     font_label = pygame.font.SysFont("Arial", 22, bold=True)
     font_stats = pygame.font.SysFont("Arial", 17, bold=True)
     font_desc  = pygame.font.SysFont("Arial", 16)

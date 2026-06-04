@@ -4,3 +4,4 @@ from core.players.rogue import Rogue
 from core.players.mage import Mage
 from core.players.druid import Druid
 from core.players.berserker import Berserker
+from core.players.summoner import Summoner

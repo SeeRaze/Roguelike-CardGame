@@ -38,7 +38,7 @@ class CardLibraryView:
         pygame.draw.rect(view.screen, (200, 200, 200), cls._btn_back, 2, border_radius=8)
         view.draw_text("<  Назад", view.card_font, (255, 255, 255), 42, 35)
 
-        # Вкладки -- 6 штук, шаг 155 чтобы влезли
+        # Вкладки -- шаг 160 чтобы влезли
         cls._tab_rects = []
         tx = 220
         for i, (label, _) in enumerate(TABS):

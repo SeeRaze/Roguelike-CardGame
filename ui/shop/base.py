@@ -24,8 +24,8 @@ class Shop:
         Shop.is_leave_hovered   = False
 
     @staticmethod
-    def generate_showcase():
-        Shop.item_1, Shop.item_2 = pick_two_cards()
+    def generate_showcase(class_name=None):
+        Shop.item_1, Shop.item_2 = pick_two_cards(class_name)
         Shop.showcase_generated  = True
 
     @staticmethod
@@ -34,7 +34,7 @@ class Shop:
         screen.fill(_BG_COLOR)
 
         if not Shop.showcase_generated:
-            Shop.generate_showcase()
+            Shop.generate_showcase(type(view.gm.player).__name__)
 
         fonts = {
             "title": pygame.font.SysFont("Arial", 42, bold=True),

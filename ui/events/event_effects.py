@@ -1,5 +1,5 @@
 import random
-from ui.events.event_data import CARD_FACTORIES
+from core.cards.catalog import get_pool_for_class
 
 
 def _get_relic_class(name: str):
@@ -105,7 +105,8 @@ def apply_effect(effect_str: str, gm) -> None:
         gm.event_result_card = card
 
     elif key == "gain_random_card":
-        card = random.choice(CARD_FACTORIES)()
+        pool = get_pool_for_class(type(gm.player).__name__)
+        card = random.choice(pool)()
         gm.add_card(card)
         gm.event_result      = "Получена карта:"
         gm.event_result_card = card
