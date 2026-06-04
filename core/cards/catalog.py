@@ -20,6 +20,7 @@ from core.cards import (
     create_lacerate, create_hemorrhage, create_open_wound,
     create_summon_wolf, create_summon_golem,
     create_retribution,
+    create_boil,
 )
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
@@ -40,6 +41,7 @@ GENERIC_FACTORIES = [
 CLASS_FACTORIES = {
     "Summoner": [create_summon_wolf, create_summon_golem],
     "Warrior":  [create_retribution],
+    "Mage":     [create_boil],
 }
 
 

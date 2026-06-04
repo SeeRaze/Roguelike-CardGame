@@ -7,7 +7,8 @@ from core.players.mage import Mage
 from core.players.druid import Druid
 from core.players.rogue import Rogue
 from core.players.berserker import Berserker
-from core.cards import create_strike
+from core.cards import create_strike, create_boil
+from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class
 
 
 # Заглушка-фабрика колоды для тестов
@@ -85,7 +86,7 @@ def test_воин_имеет_правильные_статы():
 def test_маг_имеет_правильные_статы():
     m = Mage()
     assert m.name == "Маг"
-    assert m.max_hp == 55
+    assert m.max_hp == 65
     assert m.max_energy == 3
     assert m.gold == 90
     assert m.active_ability is not None
@@ -146,20 +147,20 @@ def test_маг_добирает_карту_при_комбо_пар(make_combat
     m = Mage()
     cm = make_combat(player=m)
     # Имитируем: в колоде есть карты, комбо-флаг поднят
-    cm._steam_combo_triggered = True
+    cm._combo_triggered = True
     from managers.DeckManager import DeckManager
     cm.deck_manager = DeckManager(m.get_starter_deck())
     before = len(cm.deck_manager.hand)
     m.on_card_played_passive(None, cm)
     after = len(cm.deck_manager.hand)
-    assert cm._steam_combo_triggered is False  # флаг сброшен
+    assert cm._combo_triggered is False  # флаг сброшен
     assert after == before + 1                 # +1 карта в руку
 
 
 def test_маг_без_комбо_не_добирает(make_combat):
     m = Mage()
     cm = make_combat(player=m)
-    cm._steam_combo_triggered = False
+    cm._combo_triggered = False
     from managers.DeckManager import DeckManager
     cm.deck_manager = DeckManager(m.get_starter_deck())
     before = len(cm.deck_manager.hand)
@@ -213,3 +214,107 @@ def test_друид_потолок_яда_за_ход(make_combat):
     d.on_turn_start_passive(cm)
     d.on_heal_passive(100, cm)
     assert cm.enemy.poison == Druid.POISON_CAP_PER_TURN * 2
+
+
+# ═══════════════════════════════════════════════════════════
+# Mage — классовая карта «Закипание» (энейблер ПАР)
+# ═══════════════════════════════════════════════════════════
+
+def test_закипание_в_стартовой_колоде_мага():
+    m = Mage()
+    deck = m.get_starter_deck()
+    names = [c.name for c in deck]
+    assert "Закипание" in names
+    assert len(deck) == 8  # 2 Удар + 3 Защита + Поджог + Всплеск + Закипание
+
+
+def test_закипание_вешает_и_мокрый_и_горение(make_combat, make_creature):
+    player = make_creature("Игрок", 50, 50)
+    enemy = make_creature("Враг", 50, 50)
+    cm = make_combat(player=player, enemy=enemy)
+    card = create_boil()
+    card.apply(player, enemy, cm)
+    assert enemy.wet == 3
+    assert enemy.ignited == 3
+
+
+def test_закипание_вешает_оба_статуса_улучшенные(make_combat, make_creature):
+    player = make_creature("Игрок", 50, 50)
+    enemy = make_creature("Враг", 50, 50)
+    cm = make_combat(player=player, enemy=enemy)
+    card = create_boil()
+    card.upgrade()
+    card.apply(player, enemy, cm)
+    assert enemy.wet == 4
+    assert enemy.ignited == 4
+
+
+def test_закипание_не_срабатывает_пар_само_на_себе(make_combat, make_creature):
+    """Эффекты в порядке урон→статусы: урон наносится ДО наложения стихий,
+    поэтому Закипание НЕ детонирует само-комбо (статусов ещё нет на момент
+    DamageEffect). Это чистый сетап — ×2 будет на СЛЕДУЮЩЕЙ атаке."""
+    player = make_creature("Игрок", 50, 50)
+    enemy = make_creature("Враг", 40, 40)  # 40 HP чтобы пережить урон 5
+    cm = make_combat(player=player, enemy=enemy)
+    card = create_boil()
+    card.apply(player, enemy, cm)
+    # Флаг комбо не должен быть выставлен
+    assert not getattr(cm, '_combo_triggered', False)
+
+
+def test_закипание_в_class_factories():
+    assert "Mage" in CLASS_FACTORIES
+    factories = CLASS_FACTORIES["Mage"]
+    assert any(f.__name__ == "create_boil" for f in factories)
+
+
+def test_закипание_в_пуле_выдачи_мага():
+    pool = get_pool_for_class("Mage")
+    tagged_names = [f.__name__ for f in pool]
+    assert "create_boil" in tagged_names
+
+
+# ═══════════════════════════════════════════════════════════
+# MagePolicy — компетентный бот (приоритет энейблера)
+# ═══════════════════════════════════════════════════════════
+
+def test_mage_policy_приоритет_энейблера_без_статусов(make_combat, make_creature):
+    """Враг без стихий → бот играет энейблер для сетапа."""
+    from managers.balance.policy import MagePolicy
+    policy = MagePolicy()
+    player = make_creature("Игрок", 50, 50)
+    enemy = make_creature("Враг", 50, 50)
+    cm = make_combat(player=player, enemy=enemy)
+    boil = create_boil()
+    strike = create_strike()
+    # Враг чистый — энейблер в приоритете
+    chosen = policy.pick_card([boil, strike], cm)
+    assert chosen.name == "Закипание"
+
+
+def test_mage_policy_атака_после_сетапа(make_combat, make_creature):
+    """На враге уже wet+ignited — бот играет атаку для детонации."""
+    from managers.balance.policy import MagePolicy
+    policy = MagePolicy()
+    player = make_creature("Игрок", 50, 50)
+    enemy = make_creature("Враг", 50, 50)
+    enemy.wet = 3
+    enemy.ignited = 3
+    cm = make_combat(player=player, enemy=enemy)
+    boil = create_boil()
+    strike = create_strike()
+    chosen = policy.pick_card([boil, strike], cm)
+    assert chosen.name == "Удар"
+
+
+def test_mage_policy_фолбэк_если_энейблера_нет(make_combat, make_creature):
+    """Энейблера нет в руке — бот играет случайно (не падает)."""
+    from managers.balance.policy import MagePolicy
+    policy = MagePolicy()
+    player = make_creature("Игрок", 50, 50)
+    enemy = make_creature("Враг", 50, 50)
+    cm = make_combat(player=player, enemy=enemy)
+    strike1 = create_strike()
+    strike2 = create_strike()
+    chosen = policy.pick_card([strike1, strike2], cm)
+    assert chosen is not None

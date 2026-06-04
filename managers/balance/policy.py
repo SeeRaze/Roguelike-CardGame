@@ -5,7 +5,7 @@
 # он играет к ядру своего класса. Цель — честный замер, а не оптимальный ИИ.
 import random
 
-from core.cards.base import ShieldEffect
+from core.cards.base import ShieldEffect, DamageEffect, StatusEffect
 from core.cards.summon import SummonEffect
 from core.cards.warrior import ShieldDamageEffect
 
@@ -110,7 +110,35 @@ class DruidPolicy(BotPolicy):
 
 
 class MagePolicy(BotPolicy):
-    """«Стихийный барьер» — только при достаточной сумме стихийных стаков."""
+    """«Стихийный барьер» — при достаточной сумме стихийных стаков.
+    pick_card: сетап комбо энейблером → атаки для детонации → фолбэк."""
+
+    def pick_card(self, playable, combat):
+        enemy = combat.enemy
+        has_both = (getattr(enemy, "wet", 0) > 0
+                    and getattr(enemy, "ignited", 0) > 0)
+        # Энейблер: карта, вешающая И wet, И ignited (сетап ПАР)
+        enablers = []
+        attacks = []
+        for c in playable:
+            status_types = {
+                e.status_type
+                for e in c.effects
+                if isinstance(e, StatusEffect)
+            }
+            if "wet" in status_types and "ignited" in status_types:
+                enablers.append(c)
+            if any(isinstance(e, DamageEffect) for e in c.effects):
+                attacks.append(c)
+        # Если комбо ещё не готово — сетап энейблером
+        if not has_both and enablers:
+            return enablers[0]
+        # Комбо готово — атаки для детонации (×2), но НЕ энейблер
+        others = [c for c in playable if c not in enablers]
+        detonators = [c for c in attacks if c not in enablers]
+        if detonators:
+            return random.choice(detonators)
+        return random.choice(others) if others else random.choice(playable)
 
     def on_turn_end(self, combat) -> None:
         ab = _ability(combat)

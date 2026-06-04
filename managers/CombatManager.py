@@ -28,7 +28,7 @@ class CombatManager:
 
         self.combat_log = []
         self._elemental_blocked  = False
-        self._steam_combo_triggered = False
+        self._combo_triggered = False
 
         self.add_log_message("=== БОЙ НАЧАЛСЯ ===")
 
@@ -127,7 +127,7 @@ class CombatManager:
         self.player.use_energy(effective_cost)
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
-        self._steam_combo_triggered = False
+        self._combo_triggered = False
         if target is None:
             target = self.get_target_enemy()
         if target is None or target.hp <= 0:

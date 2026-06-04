@@ -37,7 +37,7 @@ class FakeCombat:
         self.enemies = [enemy]      # новый код проверяет self in cm.enemies
         self.gm = FakeGM(relics)
         self._elemental_blocked = False
-        self._steam_combo_triggered = False
+        self._combo_triggered = False
         self.log = []          # сюда складываются сообщения боевого лога
 
     def add_log_message(self, message):

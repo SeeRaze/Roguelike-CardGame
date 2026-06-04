@@ -45,16 +45,20 @@ class EffectCalculator:
         if target.vulnerable > 0:
             final_damage = int(final_damage * 1.5)
 
-        # 5. СТИХИЙНОЕ КОМБО: ПАР
-        if target.wet > 0 and target.ignited > 0:
-            final_damage = int(final_damage * 2.0)
-            if not dry_run:
-                target.wet     = max(0, target.wet - 1)
-                target.ignited = max(0, target.ignited - 1)
-                if combat_manager:
-                    combat_manager.add_log_message("[!!! КОМБО: ПАР (х2.0) !!!]")
-                    # Флаг для пассивки Мага «Стихийный резонанс»
-                    combat_manager._steam_combo_triggered = True
+        # 5. СТИХИЙНЫЕ КОМБО — data-driven реестр (core/ComboRegistry.py)
+        # Множительные комбо: все requires-статусы >0 → ×multiplier, снять consume.
+        from core.ComboRegistry import all_combos
+        for combo_key, combo in all_combos().items():
+            if all(getattr(target, req, 0) > 0
+                   for req in combo["requires"]):
+                final_damage = int(final_damage * combo["multiplier"])
+                if not dry_run:
+                    for req in combo["requires"]:
+                        current = getattr(target, req, 0)
+                        setattr(target, req, max(0, current - combo["consume"]))
+                    if combat_manager:
+                        combat_manager.add_log_message(combo["log"])
+                        combat_manager._combo_triggered = True
 
         if not dry_run and game_manager and hasattr(game_manager, 'stats'):
             if final_damage > game_manager.stats.get("max_damage_dealt", 0):

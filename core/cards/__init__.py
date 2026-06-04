@@ -12,3 +12,4 @@ from core.cards.buff.vampirism import create_drain, create_blood_feast, create_l
 from core.cards.debuff.bleed import create_lacerate, create_hemorrhage, create_open_wound
 from core.cards.summon import create_summon_wolf, create_summon_golem
 from core.cards.warrior import create_retribution
+from core.cards.mage import create_boil
