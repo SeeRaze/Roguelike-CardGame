@@ -112,9 +112,9 @@ InputHandler.py, LeaderboardView.py, MainMenu.py, MapView.py, map_icons.py
 - `_ELEMENTAL_KEYS = frozenset(("ignited", "wet", "poison"))` — блокируется при `_elemental_blocked`
 
 ### StatusRegistry.py
-Единый реестр всех 15 статусов:
+Единый реестр всех 16 статусов:
 vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire,
-shock, shatter, echo, barrier, mastery
+shock, shatter, echo, barrier, mastery, frenzy
 - **echo** (Сессия 37, движок кат.4): is_stack на ИГРОКЕ. Каждая разыгранная карта
   срабатывает повторно за каждый заряд Эха, после чего заряд тратится. Хук —
   в `CombatManager.play_card_by_index`. Чистый множитель: карта с уроном 6 под эхом 2
@@ -128,6 +128,14 @@ shock, shatter, echo, barrier, mastery
   всех атак до конца боя (плоско, шаг 2c EffectCalculator, только атаки игрока).
   Растёт от комбо: пассив Мага при `_combo_triggered` даёт +1. Компаунд: комбо →
   +урон → больше комбо. Не в `_ELEMENTAL_KEYS`.
+- **frenzy** (Сессия 37, движок кат.4 для Разбойника): is_stack на ИГРОКЕ. +N к
+  каждому накладываемому Кровотечению (`BleedEffect` читает `player.frenzy`). Растёт
+  +1 за каждую сыгранную атаку (пассив Rogue). Врождённо: bleed Разбойника убывает
+  ВДВОЕ (а не в ноль) в `Creature.tick_statuses` → наложения копятся. Компаунд:
+  темп атак → растущий dot. Сим-артефакт: бот не пилотирует (как shock-dilution).
+- **Все 4 движка** (echo/barrier/mastery/frenzy) сбрасываются между боями через
+  `Player.reset_combat_statuses()` — компаунд ВНУТРИбоевой (персистентность по
+  забегу — отдельный слой, шаг 5 framework).
 - **shock** (Сессия 36, стихия «Молния»): is_stack, НЕ тикает в конце хода —
   расходуется при УДАРЕ (+`EffectCalculator.SHOCK_DAMAGE_PER_STACK`=3 урона за удар,
   −1 заряд). Архетип микро-атак: каждый отдельный `DamageEffect` дренит свой заряд.

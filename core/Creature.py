@@ -189,7 +189,12 @@ class Creature:
             has_gniloy_klyk = gm and any(
                 r.name == "Гнилой Клык" for r in gm.relics
             )
-            if has_gniloy_klyk:
+            # Разбойник врождённо «бередит раны»: его Кровотечение убывает вдвое,
+            # а не в ноль — это даёт frenzy-усиленным наложениям накапливаться
+            # (движок кат.4). Проверяем класс игрока через combat_manager.
+            player = getattr(combat_manager, 'player', None) if combat_manager else None
+            is_rogue = type(player).__name__ == "Rogue" if player else False
+            if has_gniloy_klyk or is_rogue:
                 s['bleed'] = s['bleed'] // 2
                 print(f" [Статус] Кровотечение на {self.name} "
                       f"уменьшилось до {s['bleed']}.")

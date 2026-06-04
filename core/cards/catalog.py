@@ -27,6 +27,7 @@ from core.cards import (
     create_retribution,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
+    create_bloodlust, create_serrated_edge,
 )
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
@@ -53,6 +54,7 @@ CLASS_FACTORIES = {
     "Summoner": [create_summon_wolf, create_summon_golem],
     "Warrior":  [create_retribution, create_steel_barricade, create_bastion],
     "Mage":     [create_boil, create_arcane_focus, create_elemental_surge],
+    "Rogue":    [create_bloodlust, create_serrated_edge],
 }
 
 

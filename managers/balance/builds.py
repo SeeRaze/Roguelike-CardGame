@@ -14,15 +14,20 @@ from core.cards import (
     create_boil, create_arcane_focus, create_elemental_surge, create_ignite,
     create_splash, create_toxic_cloud, create_poison_stab, create_lacerate,
     create_open_wound, create_hemorrhage, create_battle_cry,
+    create_bloodlust, create_serrated_edge,
     create_summon_wolf, create_summon_golem,
 )
 from core.cards.base import (
     DamageEffect, ShieldEffect, StatusEffect, PoisonEffect,
-    DetonateEffect, RegenEffect, HealEffect,
+    DetonateEffect, RegenEffect, HealEffect, BarrierEffect,
 )
 from core.cards.air import FlowEffect
 from core.cards.summon import SummonEffect
 from core.cards.warrior import ShieldDamageEffect
+from core.cards.debuff.bleed import BleedEffect
+from core.cards.echo import EchoEffect, EchoPayoffEffect
+from core.cards.mage import MasteryEffect
+from core.cards.rogue import FrenzyEffect
 from core.relics import (
     ПроклятаяКорона, ЭнергоЯдро, ТочильныйКамень, ЖелезнаяВоля, ШипастаяБроня,
     ДревнееОгниво, ФлаконСЖелчью, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
@@ -61,7 +66,8 @@ CLASS_CORES = {
         [ФлаконСЖелчью, СердцеТитана, ЭнергоЯдро],
     ),
     "Rogue": (
-        [create_lacerate, create_open_wound, create_hemorrhage],
+        [create_bloodlust, create_lacerate, create_serrated_edge,
+         create_open_wound, create_hemorrhage],
         [ГнилойКлык, ОкровавленныйШприц, ЭнергоЯдро, ТочильныйКамень],
     ),
     "Berserker": (
@@ -95,6 +101,14 @@ def _card_themes(card) -> set:
             t.add("attack")
         elif isinstance(e, (DetonateEffect, FlowEffect)):
             t.add("synergy")
+        elif isinstance(e, (BleedEffect, FrenzyEffect)):
+            t.add("bleed")
+        elif isinstance(e, MasteryEffect):
+            t.add("mastery")
+        elif isinstance(e, BarrierEffect):
+            t.add("shield")
+        elif isinstance(e, (EchoEffect, EchoPayoffEffect)):
+            t.add("echo")
     return t
 
 
@@ -129,8 +143,18 @@ def _card_score(card) -> float:
             value += e.hp * 0.2 + e.attack_power * 2
         elif isinstance(e, ShieldDamageEffect):
             value += 6                          # AoE по щиту
+        elif isinstance(e, BleedEffect):
+            value += e.base_val * 1.5           # dot, масштабируется по ходам/frenzy
         elif isinstance(e, (DetonateEffect, FlowEffect)):
             value += 4                          # синергия/темпо
+        elif isinstance(e, (EchoEffect, EchoPayoffEffect)):
+            value += 5                          # ретриггер-множитель (кат.4)
+        elif isinstance(e, MasteryEffect):
+            value += e.base_val * 3             # +урон ВСЕХ атак до конца боя
+        elif isinstance(e, BarrierEffect):
+            value += e.base_val * 2.5           # несгораемый щит (компаунд)
+        elif isinstance(e, FrenzyEffect):
+            value += e.base_val * 2             # усиливает все будущие bleed
     return value / max(1, card.cost)            # отдача за единицу энергии
 
 
