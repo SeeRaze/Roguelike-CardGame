@@ -3,6 +3,9 @@ class EffectCalculator:
     # Бонус урона за один заряд Шока, расходуемый при ударе (см. шаг 6).
     SHOCK_DAMAGE_PER_STACK = 3
 
+    # Множитель урона по цели с Расколом, ПОКА у неё есть щит (см. шаг 4b).
+    SHATTER_MULT = 3.0
+
     @staticmethod
     def calculate_damage(attacker, target, base_damage,
                          game_manager=None, combat_manager=None,
@@ -47,6 +50,17 @@ class EffectCalculator:
         # 4. Уязвимость цели
         if target.vulnerable > 0:
             final_damage = int(final_damage * 1.5)
+
+        # 4b. РАСКОЛ цели — контра броне: пока у цели есть щит, урон ×SHATTER_MULT.
+        # Множитель-ЧТЕНИЕ (заряды не тратятся, статус тикает по ходам). Условие
+        # на щит проверяется в момент удара: при мульти-хите как только щит сбит,
+        # последующие удары идут без бонуса.
+        if target.shatter > 0 and target.shield > 0:
+            final_damage = int(final_damage * EffectCalculator.SHATTER_MULT)
+            if not dry_run and combat_manager:
+                combat_manager.add_log_message(
+                    f"[РАСКОЛ] Броня крошится: урон ×{EffectCalculator.SHATTER_MULT}!"
+                )
 
         # 5. СТИХИЙНЫЕ КОМБО — data-driven реестр (core/ComboRegistry.py)
         # Множительные комбо: все requires-статусы >0 → ×multiplier, снять consume.

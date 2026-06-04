@@ -3,6 +3,7 @@ from core.cards.basic import create_strike, create_defend, create_heavy_blade, c
 from core.cards.fire import create_ignite, create_fire_breath
 from core.cards.water import create_splash, create_rain_cloud
 from core.cards.shock import create_shock_bolt, create_chain_lightning, create_thunder_strike
+from core.cards.earth import create_rockfall, create_crush, create_tectonic_strike
 from core.cards.poison import create_poison_stab, create_toxic_cloud, create_acid_shield
 from core.cards.debuff import create_bash, create_neutralize, create_intimidate
 from core.cards.buff import create_flex, create_battle_cry, create_thorn_armor

@@ -24,6 +24,7 @@ def classify_card(card) -> str:
     has_ignited  = any(isinstance(e, StatusEffect) and e.status_type == "ignited" for e in effects)
     has_wet      = any(isinstance(e, StatusEffect) and e.status_type == "wet"     for e in effects)
     has_shock    = any(isinstance(e, StatusEffect) and e.status_type == "shock"   for e in effects)
+    has_shatter  = any(isinstance(e, StatusEffect) and e.status_type == "shatter" for e in effects)
     has_debuff   = any(
         isinstance(e, StatusEffect) and e.status_type in ("vulnerable", "weak")
         for e in effects
@@ -41,6 +42,8 @@ def classify_card(card) -> str:
         return "water"
     if has_shock:
         return "shock"
+    if has_shatter:
+        return "earth"
     if has_regen:
         return "regen"
     if has_heal:

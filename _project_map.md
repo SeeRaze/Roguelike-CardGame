@@ -57,7 +57,7 @@ main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/wo
 
 core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py
 
-core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, shock.py, heal.py
+core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, shock.py, earth.py, heal.py
 
 core/cards/buff/init.py, strength.py, thorns.py, regen.py, vampirism.py
 
@@ -112,17 +112,26 @@ InputHandler.py, LeaderboardView.py, MainMenu.py, MapView.py, map_icons.py
 - `_ELEMENTAL_KEYS = frozenset(("ignited", "wet", "poison"))` — блокируется при `_elemental_blocked`
 
 ### StatusRegistry.py
-Единый реестр всех 11 статусов:
-vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire, shock
+Единый реестр всех 12 статусов:
+vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire,
+shock, shatter
 - **shock** (Сессия 36, стихия «Молния»): is_stack, НЕ тикает в конце хода —
   расходуется при УДАРЕ (+`EffectCalculator.SHOCK_DAMAGE_PER_STACK`=3 урона за удар,
   −1 заряд). Архетип микро-атак: каждый отдельный `DamageEffect` дренит свой заряд.
   НЕ в `_ELEMENTAL_KEYS` (барьер Мага его не трогает).
+- **shatter** (Сессия 36, стихия «Земля»): is_duration (тикает в duration-петле
+  `tick_statuses` вместе с vulnerable/weak/wet). Пока у цели есть ЩИТ — она получает
+  урон ×`EffectCalculator.SHATTER_MULT`=3 (контра броне). Множитель-ЧТЕНИЕ, заряды
+  при ударе не тратятся.
 
 ### EffectCalculator.py
 Единая точка боевой математики. `dry_run=True` для превью.
 - Обновляет `gm.stats["max_damage_dealt"]`
 - Определяет `is_player_attack`, передаёт в `on_damage_calculated`
+- **Шаг 4b — Раскол**: если `target.shatter>0` И `target.shield>0`, урон
+  ×`SHATTER_MULT`(3) (после уязвимости, множится с ней и с комбо). Условие на щит
+  проверяется в момент удара → при мульти-хите бонус пропадает, как только щит сбит.
+  Заряды не тратятся (статус-длительность).
 - **Шаг 6 — Шок**: если у цели `shock>0`, +`SHOCK_DAMAGE_PER_STACK`(3) к урону
   ПЛОСКО (после уязвимости/комбо, чтобы не множился), и −1 заряд. `dry_run` бонус
   показывает, но заряд НЕ тратит.
@@ -140,7 +149,10 @@ vulnerable, weak, wet, ignited, poison, strength, thorns, regen, bleed, vampire,
 ЕДИНЫЙ источник правды о том, какие карты существуют и кому доступны:
 - `GENERIC_FACTORIES` — нейтральные карты (доступны всем классам). Сессия 36:
   +3 карты Шока (`core/cards/shock.py`): «Разряд» (энейблер, Шок 3(4)), «Серия
-  молний» (3×2(3) мульти-хит, дренит заряды), «Громовой удар» (урон 6(8)+Шок 2(3)).
+  молний» (3×2(3) мульти-хит, дренит заряды), «Громовой удар» (урон 6(8)+Шок 2(3));
+  +3 карты Земли (`core/cards/earth.py`): «Камнепад» (энейблер, Раскол 2(3)),
+  «Дробящий удар» (урон 4(6), эксплойт Раскола по щиту), «Тектонический удар»
+  (урон 6(8)+Раскол 2(3)).
 - `CLASS_FACTORIES = {"Summoner": [wolf, golem], "Warrior": [retribution]}` —
   классовые карты, выдаются в забеге ТОЛЬКО своему классу. Добавить классовую
   карту = одна строка сюда.

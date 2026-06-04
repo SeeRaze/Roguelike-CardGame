@@ -242,3 +242,51 @@ def test_шок_не_уходит_ниже_нуля(make_combat):
     cm = make_combat(player=atk, enemy=tgt)
     calc(atk, tgt, 5, combat_manager=cm)
     assert tgt.shock == 0
+
+
+# ═══════════════════════════════════════════════════════════
+# Раскол — контра броне: пока у цели есть щит, урон ×3
+# ═══════════════════════════════════════════════════════════
+
+def test_раскол_утраивает_урон_по_щиту():
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shatter = 2
+    tgt.shield = 20
+    assert calc(atk, tgt, 10) == 30          # ×3
+
+
+def test_раскол_без_щита_не_усиливает():
+    # Нет щита → крушить нечего, множитель не применяется.
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shatter = 2
+    tgt.shield = 0
+    assert calc(atk, tgt, 10) == 10
+
+
+def test_без_раскола_щит_не_усиливает():
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shield = 20
+    assert calc(atk, tgt, 10) == 10
+
+
+def test_раскол_не_расходуется_при_ударе():
+    # Раскол — длительность, тикает по ходам, а не при ударе.
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shatter = 2
+    tgt.shield = 20
+    calc(atk, tgt, 10)
+    assert tgt.shatter == 2                  # заряд на месте
+
+
+def test_раскол_множится_с_уязвимостью():
+    # Уязвимость ×1.5, затем Раскол ×3 → int(10 * 1.5) * 3 = 45.
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.vulnerable = 1
+    tgt.shatter = 1
+    tgt.shield = 30
+    assert calc(atk, tgt, 10) == 45
