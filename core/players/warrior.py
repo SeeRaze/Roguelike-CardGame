@@ -1,6 +1,8 @@
 from core.players.base import Player
 from core.players.abilities import WarriorAbility
-from core.cards import create_strike, create_defend, create_heavy_blade
+from core.cards import (
+    create_strike, create_defend, create_heavy_blade, create_retribution,
+)
 
 
 def get_warrior_deck():
@@ -8,6 +10,7 @@ def get_warrior_deck():
         create_strike(), create_strike(), create_strike(), create_strike(),
         create_defend(), create_defend(), create_defend(), create_defend(),
         create_heavy_blade(),
+        create_retribution(),      # классовая карта: щит → урон (защита = атака)
     ]
 
 
@@ -23,7 +26,7 @@ class Warrior(Player):
         self.active_ability = WarriorAbility()
 
     def on_turn_start_passive(self, combat_manager) -> None:
-        carry = int(self.shield * 0.3)
+        carry = int(self.shield * 0.5)
         self._passive_shield_carry = carry
         if carry > 0 and combat_manager:
             combat_manager.add_log_message(

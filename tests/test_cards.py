@@ -10,6 +10,7 @@ from core.cards.base import (
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.debuff.bleed import BleedEffect
+from core.cards.warrior import ShieldDamageEffect
 from core.rarity import Rarity
 
 
@@ -223,3 +224,48 @@ def test_vampire_effect_накладывает_вампиризм(make_creature)
     enemy  = make_creature("Враг", 50, 50)
     VampireBuffEffect(4, 6).execute(player, enemy, combat_manager=None, is_upgraded=False)
     assert player.vampire == 4
+
+
+# ═══════════════════════════════════════════════════════════
+# ShieldDamageEffect — «Возмездие» Воина (урон = щит, по всем, щит не тратится)
+# ═══════════════════════════════════════════════════════════
+
+def test_возмездие_урон_равен_щиту_и_не_тратит_щит(make_creature):
+    player = make_creature("Игрок", 50, 50)
+    enemy  = make_creature("Враг", 50, 50)
+    player.shield = 12
+    ShieldDamageEffect(1.0, 1.3).execute(player, enemy, combat_manager=None,
+                                         is_upgraded=False)
+    assert enemy.hp == 38          # 50 - 12
+    assert player.shield == 12     # щит НЕ тратится — payoff танка
+
+
+def test_возмездие_улучшенное_бьёт_сильнее(make_creature):
+    player = make_creature("Игрок", 50, 50)
+    enemy  = make_creature("Враг", 50, 50)
+    player.shield = 10
+    ShieldDamageEffect(1.0, 1.3).execute(player, enemy, combat_manager=None,
+                                         is_upgraded=True)
+    assert enemy.hp == 37          # 50 - int(10 * 1.3)
+
+
+def test_возмездие_без_щита_не_бьёт(make_creature):
+    player = make_creature("Игрок", 50, 50)
+    enemy  = make_creature("Враг", 50, 50)
+    player.shield = 0
+    ShieldDamageEffect(1.0, 1.3).execute(player, enemy, combat_manager=None,
+                                         is_upgraded=False)
+    assert enemy.hp == 50          # урона нет
+
+
+def test_возмездие_бьёт_всех_врагов(make_combat, make_creature):
+    player = make_creature("Игрок", 50, 50)
+    e1     = make_creature("Враг1", 50, 50)
+    e2     = make_creature("Враг2", 50, 50)
+    cm = make_combat(player=player, enemy=e1)
+    cm.enemies = [e1, e2]          # мультивражеский бой
+    player.shield = 8
+    ShieldDamageEffect(1.0, 1.3).execute(player, e1, combat_manager=cm,
+                                         is_upgraded=False)
+    assert e1.hp == 42 and e2.hp == 42     # 8 урона КАЖДОМУ
+    assert player.shield == 8              # щит сохраняется

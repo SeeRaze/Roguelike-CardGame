@@ -5,15 +5,18 @@
 # он играет к ядру своего класса. Цель — честный замер, а не оптимальный ИИ.
 import random
 
+from core.cards.base import ShieldEffect
 from core.cards.summon import SummonEffect
+from core.cards.warrior import ShieldDamageEffect
 
 # --- Пороги «компетентности» (НЕ игровой баланс, а качество игры бота) ---
 # Жать реактивную способность, когда набралось осмысленно много стаков/щита.
-_WARRIOR_SHIELD_MIN   = 8    # «Щитовой удар»: удар = 50% щита
-_ROGUE_BLEED_MIN      = 8    # «Вскрытие»: удвоить кровотечение (ценой -1 энергии)
-_DRUID_POISON_MIN     = 10   # «Токсичный взрыв»: снять весь яд разом
-_MAGE_ELEMENTAL_MIN   = 4    # «Стихийный барьер»: щит = стихийные стаки * 3
-_BERSERK_HP_FRACTION  = 0.6  # «Кровавая ярость»: жать, пока HP безопасно высок
+_WARRIOR_SHIELD_MIN     = 8   # «Щитовой удар»: удар = 50% щита
+_WARRIOR_RETRIBUTION_MIN = 10 # «Возмездие»: придержать, пока щит не накоплен
+_ROGUE_BLEED_MIN        = 8   # «Вскрытие»: удвоить кровотечение (ценой -1 энергии)
+_DRUID_POISON_MIN       = 10  # «Токсичный взрыв»: снять весь яд разом
+_MAGE_ELEMENTAL_MIN     = 4   # «Стихийный барьер»: щит = стихийные стаки * 3
+_BERSERK_HP_FRACTION    = 0.6 # «Кровавая ярость»: жать, пока HP безопасно высок
 
 # Стихийные статусы для подсчёта (как в MageAbility).
 _ELEMENTAL_STATUSES = ("ignited", "wet", "poison")
@@ -64,7 +67,23 @@ class BerserkerPolicy(BotPolicy):
 
 
 class WarriorPolicy(BotPolicy):
-    """«Щитовой удар» в конце хода — щит набран, в начале след. хода он обнулится."""
+    """Ядро Воина — «защита = атака»: копим щит, затем конвертируем в урон
+    («Возмездие» = щит, «Щитовой удар» = 50% щита)."""
+
+    def pick_card(self, playable, combat):
+        shield = combat.player.shield
+        retribution = [c for c in playable
+                       if any(isinstance(e, ShieldDamageEffect) for e in c.effects)]
+        shields = [c for c in playable
+                   if any(isinstance(e, ShieldEffect) for e in c.effects)]
+        others = [c for c in playable if c not in retribution]
+        # «Возмездие» — на накопленном щите (или когда больше нечем играть).
+        if retribution and (shield >= _WARRIOR_RETRIBUTION_MIN or not others):
+            return retribution[0]
+        # Иначе сначала строим щит (топливо для удара), потом всё остальное.
+        if shields:
+            return random.choice(shields)
+        return random.choice(others) if others else random.choice(playable)
 
     def on_turn_end(self, combat) -> None:
         ab = _ability(combat)
