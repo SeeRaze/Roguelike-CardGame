@@ -22,7 +22,8 @@ def update_combat_hover(view):
             break
 
     # Hover по бейджам статусов (враг, затем игрок)
-    for rect, key, val in view.enemy_badge_rects:
+    for item in view.enemy_badge_rects:
+        rect, key, val = item[0], item[1], item[2]
         if rect.collidepoint(mouse_pos):
             view.hover.status_key = key
             view.hover.status_val = val

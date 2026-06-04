@@ -4,7 +4,11 @@ import pygame
 from ui.combat.layout import _PANEL_BORDER, _WHITE, _BLUE, _GRAY
 
 
-def draw_hand(view, screen, dm, enemy, player):
+def draw_hand(view, screen, dm, enemies, player):
+    # Для превью карт берём первого живого врага
+    target = None
+    if enemies:
+        target = next((e for e in enemies if e.hp > 0), enemies[0])
     hand_size = len(dm.hand)
     for index, card in enumerate(dm.hand):
         card_x = view.calculate_card_x(index, hand_size)
@@ -12,7 +16,7 @@ def draw_hand(view, screen, dm, enemy, player):
                   if index == view.hover.card_index
                   else view.base_y)
         view.draw_card_by_data(card, card_x, card_y,
-                               enemy=enemy, player=player)
+                               enemy=target, player=player)
 
 
 def draw_piles(view, screen, dm):

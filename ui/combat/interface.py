@@ -17,32 +17,34 @@ class CombatInterface:
         screen.fill(_BG)
 
         combat = view.gm.active_combat
-        enemy  = combat.enemy
-        player = combat.player
-        dm     = combat.deck_manager
+        enemies = combat.enemies
+        player  = combat.player
+        dm      = combat.deck_manager
 
-        # Проекция урона: намерение врага → на HP-бар игрока
+        # Проекция урона: сумма намерений всех атакующих врагов → на HP-бар игрока
         intent_dmg = 0
-        if enemy.intent_type == "attack" and enemy.intent_value:
-            intent_dmg = EffectCalculator.calculate_damage(
-                attacker=enemy, target=player,
-                base_damage=enemy.intent_value, dry_run=True
-            )
+        for e in enemies:
+            if e.hp > 0 and e.intent_type == "attack" and e.intent_value:
+                intent_dmg += EffectCalculator.calculate_damage(
+                    attacker=e, target=player,
+                    base_damage=e.intent_value, dry_run=True
+                )
 
-        # Проекция урона: hover-карта → на HP-бар врага
+        # Проекция урона: hover-карта → на первого живого врага
         hover_dmg = 0
-        if view.hover.card_obj:
+        target = combat.get_target_enemy()
+        if view.hover.card_obj and target:
             hover_dmg = EffectCalculator.calculate_damage(
-                attacker=player, target=enemy,
+                attacker=player, target=target,
                 base_damage=getattr(view.hover.card_obj, 'damage', 0),
                 dry_run=True
             )
 
         panels.draw_relic_bar(view, screen)
         panels.draw_player_panel(view, screen, player, intent_dmg)
-        panels.draw_enemy_panel(view, screen, enemy, player, intent_dmg, hover_dmg)
+        panels.draw_enemy_panels(view, screen, enemies, player, hover_dmg)
         panels.draw_combat_log(view, screen, combat)
-        bottom.draw_hand(view, screen, dm, enemy, player)
+        bottom.draw_hand(view, screen, dm, enemies, player)
         bottom.draw_piles(view, screen, dm)
         bottom.draw_end_turn_btn(view, screen)
 

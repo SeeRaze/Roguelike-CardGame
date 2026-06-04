@@ -67,3 +67,44 @@ def build_enemy(current_floor: int, is_elite: bool = False):
         enemy.shield = enemy_shld
 
     return enemy
+
+
+def build_enemy_group(current_floor: int, is_elite: bool = False):
+    """Собрать группу врагов для этажа.
+    Возвращает список из 1–3 врагов. Босс всегда один.
+    Этажи 1–4: 1 враг. Этажи 5–8: 2 врага. Этажи 9+: 3 врага.
+    HP каждого уменьшен пропорционально размеру группы."""
+    local_step = (current_floor - 1) % FLOORS_PER_ACT + 1
+    is_boss    = (local_step == FLOORS_PER_ACT)
+
+    # Босс всегда один (полный HP)
+    if is_boss:
+        return [build_enemy(current_floor, is_elite)]
+
+    # Размер группы по этажу
+    if current_floor <= 4:
+        group_size = 1
+    elif current_floor <= 8:
+        group_size = 2
+    else:
+        group_size = 3
+
+    # Элита тоже может быть группой (но реже: размер на 1 меньше)
+    if is_elite and group_size > 1:
+        group_size -= 1
+
+    enemies = []
+    for i in range(group_size):
+        enemy = build_enemy(current_floor, is_elite)
+        # Уменьшаем HP пропорционально размеру группы
+        enemy.hp     = max(1, int(enemy.hp * 0.6) if group_size == 2
+                                     else int(enemy.hp * 0.4))
+        enemy.max_hp = enemy.hp
+        # Лёгкое уменьшение урона, чтобы группа не ваншотала
+        enemy.base_test_damage = max(3, int(enemy.base_test_damage * 0.75))
+        # Добавляем номер к имени для различия
+        if group_size > 1:
+            enemy.name = f"{enemy.name} ({i + 1}/{group_size})"
+        enemies.append(enemy)
+
+    return enemies

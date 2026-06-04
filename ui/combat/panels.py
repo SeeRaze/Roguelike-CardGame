@@ -101,65 +101,112 @@ def draw_player_panel(view, screen, player, intent_dmg):
         view.ability_rect = None
 
 
-def draw_enemy_panel(view, screen, enemy, player, intent_dmg, hover_dmg):
-    panel_h = 380
-    panel   = pygame.Rect(_E_PX, _PANEL_TOP, _PANEL_W, panel_h)
-    pygame.draw.rect(screen, _PANEL_BG, panel, border_radius=12)
-    pygame.draw.rect(screen, _PANEL_BORDER, panel, 2, border_radius=12)
-
-    x, y = _E_IX, _PANEL_TOP + 20
-
-    if enemy.hp <= 0:
-        screen.blit(view.main_font.render("ВРАГ ПОВЕРЖЕН!", True, _GREEN),
-                    (x + 60, y + 130))
-        screen.blit(view.card_desc_font.render(
-            "Кликните для продолжения", True, _GRAY), (x + 40, y + 175))
+def draw_enemy_panels(view, screen, enemies, player, hover_dmg):
+    """Отрисовка панелей врагов. 1 враг — полноразмерная, 2–3 — компактные."""
+    n = len(enemies)
+    if n == 0:
+        view.enemy_panel_rects = []
         view.enemy_badge_rects = []
         return
 
-    screen.blit(view.main_font.render(
-        f"ВРАГ: {enemy.name}", True, _WHITE), (x, y))
+    # Размеры панелей в зависимости от количества врагов
+    if n == 1:
+        panel_w = _PANEL_W                         # 560 — как раньше
+        gap = 0
+    elif n == 2:
+        panel_w = 270
+        gap = 20
+    else:  # n == 3
+        panel_w = 180
+        gap = 10
 
-    y += 44
-    CombatHUD.draw_hp_bar(
-        screen, x, y, _E_IW, 26,
-        enemy.hp, enemy.max_hp, enemy.shield,
-        incoming_dmg=hover_dmg
-    )
-    y += 32
-    shld_str = f"  +{enemy.shield} щит" if enemy.shield > 0 else ""
-    screen.blit(view.card_desc_font.render(
-        f"HP: {enemy.hp} / {enemy.max_hp}{shld_str}", True, _RED
-    ), (x, y))
+    panel_h = 380
+    # Внутренний отступ пропорционален ширине панели
+    inner_pad = max(10, int(panel_w * 0.04))
 
-    y += 44
-    pygame.draw.line(screen, _PANEL_BORDER, (x, y - 6), (x + _E_IW, y - 6), 1)
-    if enemy.intent_type == "attack" and intent_dmg:
-        dmg_color = CombatHUD.get_intent_damage_color(intent_dmg, player.shield)
-        lbl = view.card_desc_font.render("Намерение: атака на ", True, _GOLD)
-        screen.blit(lbl, (x, y))
-        screen.blit(view.card_desc_font.render(
-            str(intent_dmg), True, dmg_color), (x + lbl.get_width(), y))
-    elif enemy.intent_type:
-        screen.blit(view.card_desc_font.render(
-            f"Намерение: {enemy.intent_type} {enemy.intent_value or ''}",
-            True, _INTENT_OTHER), (x, y))
-    else:
-        screen.blit(view.card_desc_font.render(
-            "Намерение: —", True, _GRAY), (x, y))
+    view.enemy_panel_rects = []
+    all_badges = []  # список (rect, key, val, enemy) для ховера
 
-    # Статусы
-    y += 38
-    pygame.draw.line(screen, _PANEL_BORDER, (x, y), (x + _E_IW, y), 1)
-    y += 10
-    view.enemy_badge_rects = CombatHUD.draw_status_badges(
-        screen, view.card_desc_font, enemy, x, y
-    )
+    for i, enemy in enumerate(enemies):
+        px = _E_PX + i * (panel_w + gap)
+        py = _PANEL_TOP
+        panel_rect = pygame.Rect(px, py, panel_w, panel_h)
+        view.enemy_panel_rects.append(panel_rect)
+
+        pygame.draw.rect(screen, _PANEL_BG, panel_rect, border_radius=12)
+        border_color = _PANEL_BORDER
+        pygame.draw.rect(screen, border_color, panel_rect, 2, border_radius=12)
+
+        x, y = px + inner_pad, py + 16
+
+        # --- Мёртвый враг: затемнённая панель ---
+        if enemy.hp <= 0:
+            dim = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+            dim.fill((0, 0, 0, 120))
+            screen.blit(dim, (px, py))
+            dead_text = view.card_desc_font.render("ПОВЕРЖЕН", True, _GRAY)
+            screen.blit(dead_text, (px + (panel_w - dead_text.get_width()) // 2,
+                                    py + panel_h // 2 - 12))
+            continue
+
+        # --- Имя ---
+        name_font = view.main_font if n <= 2 else view.card_desc_font
+        enemy_label = f"ВРАГ: {enemy.name}" if n <= 2 else enemy.name.split("(")[0].strip()
+        screen.blit(name_font.render(enemy_label, True, _WHITE), (x, y))
+
+        # --- HP-бар (ширина под панель) ---
+        bar_w = panel_w - inner_pad * 2
+        y += 36
+        CombatHUD.draw_hp_bar(
+            screen, x, y, bar_w, 22,
+            enemy.hp, enemy.max_hp, enemy.shield,
+            incoming_dmg=hover_dmg if i == 0 else 0,
+        )
+        y += 26
+        hp_font = view.card_desc_font
+        shld_str = f" +{enemy.shield}щ" if enemy.shield > 0 else ""
+        hp_text = f"HP:{enemy.hp}/{enemy.max_hp}{shld_str}"
+        screen.blit(hp_font.render(hp_text, True, _RED), (x, y))
+
+        # --- Намерение ---
+        y += 34
+        line_end = x + bar_w
+        pygame.draw.line(screen, _PANEL_BORDER, (x, y - 4), (line_end, y - 4), 1)
+        intent = enemy.intent
+        if isinstance(intent, type(pygame.Rect)):  # fallback — intent всегда есть
+            pass
+        if enemy.intent_type == "attack":
+            dmg_color = CombatHUD.get_intent_damage_color(
+                enemy.intent_value, player.shield)
+            intent_text = f"Атака {enemy.intent_value}"
+            screen.blit(hp_font.render(intent_text, True, dmg_color), (x, y))
+        elif enemy.intent_type == "defend":
+            screen.blit(hp_font.render(f"Защита {enemy.intent_value}", True, _BLUE), (x, y))
+        elif enemy.intent_type == "debuff":
+            screen.blit(hp_font.render(f"Слабость {enemy.intent_value}", True, _INTENT_OTHER), (x, y))
+        else:
+            screen.blit(hp_font.render("—", True, _GRAY), (x, y))
+
+        # --- Статусы ---
+        y += 30
+        pygame.draw.line(screen, _PANEL_BORDER, (x, y), (line_end, y), 1)
+        y += 8
+        badges = CombatHUD.draw_status_badges(
+            screen, view.card_desc_font, enemy, x, y
+        )
+        for rect, key, val in badges:
+            all_badges.append((rect, key, val, enemy))
+
+    view.enemy_badge_rects = all_badges
 
 
 def draw_combat_log(view, screen, combat):
-    log_top = _PANEL_TOP + 400          # под панелью врага (380 + 20 зазор)
-    log     = pygame.Rect(_E_PX, log_top, _PANEL_W, 260)
+    # Позиция: под панелями врагов (если есть enemy_panel_rects) или фиксированно
+    if hasattr(view, 'enemy_panel_rects') and view.enemy_panel_rects:
+        log_top = max(r.bottom for r in view.enemy_panel_rects) + 12
+    else:
+        log_top = _PANEL_TOP + 400
+    log = pygame.Rect(_E_PX, log_top, _PANEL_W, 260)
     pygame.draw.rect(screen, _PANEL_BG, log, border_radius=12)
     pygame.draw.rect(screen, _PANEL_BORDER, log, 2, border_radius=12)
 

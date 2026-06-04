@@ -1,6 +1,6 @@
 import os
 from managers.MapGenerator    import generate_map, FLOORS_PER_ACT
-from managers.EnemySpawner    import build_enemy, ENEMY_REGISTRY
+from managers.EnemySpawner    import build_enemy, build_enemy_group, ENEMY_REGISTRY
 from managers.RewardManager   import build_rewards
 from core.players             import Warrior
 
@@ -102,14 +102,14 @@ class GameManager:
     # --- БОЙ (спавн врага -> EnemySpawner) ---
 
     def spawn_procedural_enemy(self, is_elite: bool = False):
-        """Создать врага для текущего этажа и запустить бой.
+        """Создать врага/группу для текущего этажа и запустить бой.
 
-        Статы/имя/класс считает EnemySpawner.build_enemy; здесь — только привязка
-        к бою (создание CombatManager и active_combat)."""
-        enemy = build_enemy(self.current_floor, is_elite)
+        Статы/имя/класс считает EnemySpawner.build_enemy_group; здесь — только
+        привязка к бою (создание CombatManager и active_combat)."""
+        enemies = build_enemy_group(self.current_floor, is_elite)
         from managers.CombatManager import CombatManager
         self.active_combat = CombatManager(
-            self.player, enemy, self.current_deck, self
+            self.player, enemies, self.current_deck, self
         )
 
     # --- НАГРАДЫ (расчёт -> RewardManager) ---
