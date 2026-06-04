@@ -42,12 +42,12 @@ def test_маг_стихийный_барьер_даёт_щит(make_combat):
 
 def test_друид_токсичный_взрыв(make_combat):
     cm = make_combat()
-    cm.enemy.poison = 4
+    cm.enemy.poison = 8             # 8 яда → бурст 8 урона + реген = 8//4 = 2
     ab = DruidAbility()
     ab.activate(cm)
     assert cm.enemy.poison == 0     # весь яд снят...
-    assert cm.enemy.hp == 46        # ...и нанесён разом (4 урона)
-    assert cm.player.regen == 2     # реген = половина снятого яда
+    assert cm.enemy.hp == 42        # ...и нанесён разом (8 урона)
+    assert cm.player.regen == 2     # реген = 1/4 снятого яда (потолок 8)
     assert ab._used is True
 
 

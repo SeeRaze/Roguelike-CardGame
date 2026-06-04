@@ -6,15 +6,18 @@ class DruidAbility(ClassAbility):
     """
     «Токсичный взрыв»
     Снимает весь яд с врага, наносит этот урон разом.
-    Друид получает Регенерацию = половина снятого яда.
+    Друид получает Регенерацию = 1/4 снятого яда (не более 8).
     Один раз за бой.
     """
+
+    # Потолок Регенерации за одно применение способности.
+    REGEN_CAP = 8
 
     def __init__(self):
         super().__init__(
             name="Токсичный взрыв",
             description="Снять весь яд с врага, нанести разом.\n"
-                        "Регенерация = половина снятого яда.\n"
+                        "Регенерация = 1/4 снятого яда (макс. 8).\n"
                         "Один раз за бой.",
         )
 
@@ -38,7 +41,7 @@ class DruidAbility(ClassAbility):
             combat_manager=combat_manager
         )
 
-        regen_gain = max(1, poison // 2)
+        regen_gain = min(max(1, poison // 4), self.REGEN_CAP)
         combat_manager.player.add_status("regen", regen_gain, combat_manager)
 
         self._used = True
