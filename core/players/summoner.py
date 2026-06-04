@@ -9,10 +9,9 @@ from core.cards import (
 def get_summoner_deck():
     return [
         create_strike(), create_strike(), create_strike(),
-        create_strike(),
-        create_defend(), create_defend(), create_defend(),
+        create_defend(), create_defend(),
         create_bandage(),
-        create_summon_wolf(),
+        create_summon_wolf(), create_summon_wolf(),
     ]
 
 
