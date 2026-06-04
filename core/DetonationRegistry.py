@@ -85,6 +85,20 @@ def _acid(target, combat_manager):
     return 0
 
 
+def _poison_blast(target, combat_manager):
+    """Ядовзрыв (Яд + Горение): детонирует ВЕСЬ яд мгновенно СКВОЗЬ щит
+    (= стаки Яда уроном прямо в HP, как тик яда), снимает Яд и УДВАИВАЕТ Горение
+    (пламя раздувает токсичные пары)."""
+    burst = target.get_status("poison")
+    target.hp = max(0, target.hp - burst)          # сквозь щит (прямо в HP)
+    target.set_status("poison", 0)
+    target.set_status("ignited", target.get_status("ignited") * 2)
+    combat_manager.add_log_message(
+        f" -> Ядовзрыв: {burst} урона сквозь щит, Горение удвоено!"
+    )
+    return burst
+
+
 DETONATIONS = {
     # Порядок = ПРИОРИТЕТ при общих статусах: детонация, потратившая общий статус,
     # гасит зависящие от него последующие (requires проверяется заново в DetonateEffect).
@@ -111,6 +125,12 @@ DETONATIONS = {
         "requires": ("wet", "poison"),
         "handler":  _acid,
         "log":      "[!!! ДЕТОНАЦИЯ: КИСЛОТА !!!]",
+    },
+    "poison_blast": {
+        "name":     "ЯДОВЗРЫВ",
+        "requires": ("poison", "ignited"),
+        "handler":  _poison_blast,
+        "log":      "[!!! ДЕТОНАЦИЯ: ЯДОВЗРЫВ !!!]",
     },
 }
 

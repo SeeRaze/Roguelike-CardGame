@@ -148,18 +148,19 @@ shock, shatter
   эффект-кирпич **`DetonateEffect`** (карты-детонаторы): подрывает ВСЕ готовые
   детонации на цели. Бурст — RAW `take_damage` через хелпер `_deal_raw` (НЕ через
   EffectCalculator, чтобы не рекурсить Шок/комбо). **Порядок в DETONATIONS = приоритет**
-  при общих статусах (requires проверяется заново перед каждым handler). 4 детонации:
+  при общих статусах (requires проверяется заново перед каждым handler). 5 детонаций:
   - **Электро-взрыв** (wet+shock): Шок×`ELECTRO_DAMAGE_PER_SHOCK`(6) AoE, снять wet+shock.
   - **Термовзрыв** (ignited+shock): (Горение+Шок)×`THERMO_DAMAGE_MULT`(3) по цели, снять оба.
   - **Лава** (shatter+ignited): Горение×`LAVA_DAMAGE_PER_IGNITE`(4) + намерение атаки //2, снять оба.
   - **Кислота** (wet+poison): щит цели → 0, снять wet (яд ОСТАЁТСЯ тикать).
+  - **Ядовзрыв** (poison+ignited): весь Яд уроном СКВОЗЬ щит (в HP), снять Яд, Горение ×2.
   - Карты-детонаторы: «Перегрузка» (shock.py, урон+детонация), «Катализатор»
     (basic.py, нейтральный, чистый триггер). **Новая детонация = одна запись (+ опц. карта).**
 - Пассив Берсерка: бонус = `int((1 - hp/max_hp) * 10)`, применяется между шагом 2 (ярость) и шагом 3 (слабость), только `is_player_attack` и `type(attacker).__name__ == "Berserker"`
 
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
-- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** (air.py — стихия «Воздух», см. ниже). `DetonateEffect` (base.py) — подрывает детонационные комбо на цели (см. «Комбо — два реестра»).
+- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** и **`SpreadEffect`** (air.py — стихия «Воздух», см. ниже). `DetonateEffect` (base.py) — подрывает детонационные комбо на цели (см. «Комбо — два реестра»).
 - **Стихия «Воздух» / Поток** (`core/cards/air.py`, Сессия 36): `FlowEffect(count_base, count_upg)` — НЕ статус существа, а эффект-кирпич. При розыгрыше снижает `temp_cost` на 1 у `count` случайных карт в руке (переиспользует систему `temp_cost` Разбойника). «До конца хода» само: `DeckManager.discard_hand` чистит `temp_cost`. Разыгрываемую карту исключает через транзиентный `CombatManager._card_being_played`. Архетип — темпо/энергия.
 - **Фабрики карт** — функции `create_*()`, сгруппированы по модулям: `basic.py` (strike/defend/heavy_blade/iron_wall), `fire.py`, `water.py`, `poison.py`, `heal.py`, `buff/` (strength/thorns/regen/vampirism), `debuff/` (vulnerable/weak/bleed). Все реэкспортируются из `core/cards/__init__.py`.
 - `card_type` ∈ `"attack"`/`"defend"`/… — используется реликвиями (напр. СвинцовыйНабалдашник ловит первую `attack`).
@@ -175,8 +176,9 @@ shock, shatter
   +3 карты Земли (`core/cards/earth.py`): «Камнепад» (энейблер, Раскол 2(3)),
   «Дробящий удар» (урон 4(6), эксплойт Раскола по щиту), «Тектонический удар»
   (урон 6(8)+Раскол 2(3));
-  +3 карты Воздуха (`core/cards/air.py`): «Порыв ветра» (урон 4(6)+Поток),
-  «Восходящий поток» (Поток ×2(3), энейблер темпа), «Вихрь» (урон 7(9)+Поток).
+  +4 карты Воздуха (`core/cards/air.py`): «Порыв ветра» (урон 4(6)+Поток),
+  «Восходящий поток» (Поток ×2(3), энейблер темпа), «Вихрь» (урон 7(9)+Поток),
+  «Суховей» (`SpreadEffect`+Поток — разносит половину Горения/Яда на всех врагов).
 - `CLASS_FACTORIES = {"Summoner": [wolf, golem], "Warrior": [retribution]}` —
   классовые карты, выдаются в забеге ТОЛЬКО своему классу. Добавить классовую
   карту = одна строка сюда.

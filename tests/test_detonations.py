@@ -2,7 +2,8 @@
 # Фундамент детонационных комбо: DetonationRegistry + DetonateEffect.
 # Детонации — мгновенный эффект (бурст/AoE), в отличие от множительных комбо.
 from core.DetonationRegistry import (
-    DETONATIONS, all_detonations, _electro_blast, _lava, _thermo_blast, _acid,
+    DETONATIONS, all_detonations,
+    _electro_blast, _lava, _thermo_blast, _acid, _poison_blast,
     ELECTRO_DAMAGE_PER_SHOCK, LAVA_DAMAGE_PER_IGNITE, THERMO_DAMAGE_MULT,
 )
 from core.cards.base import DetonateEffect
@@ -93,10 +94,13 @@ def test_детонатор_без_боя_не_падает():
 # ═══════════════════════════════════════════════════════════
 
 def test_реестр_содержит_все_детонации():
-    assert set(DETONATIONS) == {"electro_blast", "thermo_blast", "lava", "acid"}
+    assert set(DETONATIONS) == {
+        "electro_blast", "thermo_blast", "lava", "acid", "poison_blast",
+    }
     assert DETONATIONS["thermo_blast"]["requires"] == ("ignited", "shock")
     assert DETONATIONS["lava"]["requires"] == ("shatter", "ignited")
     assert DETONATIONS["acid"]["requires"] == ("wet", "poison")
+    assert DETONATIONS["poison_blast"]["requires"] == ("poison", "ignited")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -155,6 +159,33 @@ def test_кислота_обнуляет_щит_и_оставляет_яд(make_
     assert target.shield == 0
     assert target.wet == 0                           # катализатор потрачен
     assert target.poison == 4                        # яд остаётся тикать
+
+
+# ═══════════════════════════════════════════════════════════
+# Ядовзрыв (Яд + Горение)
+# ═══════════════════════════════════════════════════════════
+
+def test_ядовзрыв_детонирует_яд_сквозь_щит_и_удваивает_горение(make_combat):
+    target = Creature("Цель", 50, 50)
+    target.shield = 30          # щит большой — но яд бьёт СКВОЗЬ него
+    target.poison = 7
+    target.ignited = 2
+    cm = make_combat(player=Creature("Игрок", 50, 50), enemy=target)
+    burst = _poison_blast(target, cm)
+    assert burst == 7
+    assert target.hp == 43      # 50 - 7 прямо в HP (щит не тронут)
+    assert target.shield == 30  # щит проигнорирован
+    assert target.poison == 0   # весь яд сдетонирован
+    assert target.ignited == 4  # горение удвоено (2 -> 4)
+
+
+def test_ядовзрыв_через_детонатор(make_combat):
+    target = Creature("Цель", 50, 50)
+    target.poison = 5
+    target.ignited = 1
+    cm = make_combat(player=Creature("Игрок", 50, 50), enemy=target)
+    DetonateEffect().execute(cm.player, target, cm, is_upgraded=False)
+    assert target.hp == 45 and target.poison == 0 and target.ignited == 2
 
 
 # ═══════════════════════════════════════════════════════════

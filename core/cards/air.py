@@ -53,6 +53,30 @@ class FlowEffect:
             )
 
 
+class SpreadEffect:
+    """Распространение (Воздух): ветер разносит половину стаков Горения и Яда
+    с цели на ВСЕХ ОСТАЛЬНЫХ живых врагов (копия, цель свои стаки сохраняет).
+    AoE-энейблер для огненных/ядовитых билдов на мульти-боях."""
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None:
+            return
+        ignited_half = enemy.get_status("ignited") // 2
+        poison_half  = enemy.get_status("poison") // 2
+        if ignited_half <= 0 and poison_half <= 0:
+            return
+        for other in getattr(combat_manager, "enemies", []):
+            if other is enemy or other.hp <= 0:
+                continue
+            if ignited_half > 0:
+                other.add_status("ignited", ignited_half, combat_manager)
+            if poison_half > 0:
+                other.add_status("poison", poison_half, combat_manager)
+        combat_manager.add_log_message(
+            " -> Суховей разносит пламя и отраву по врагам!"
+        )
+
+
 def create_gust():
     """«Порыв ветра» — урон 4(6) + Поток (1 удешевление). Дешёвый темпо-удар."""
     return Card(
@@ -92,6 +116,24 @@ def create_whirlwind():
         effects=[
             DamageEffect(7, 9),
             FlowEffect(1, 2),
+        ],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_sirocco():
+    """«Суховей» — Распространение + Поток. Ветер разносит половину Горения и Яда
+    с цели на остальных врагов; заодно удешевляет карту (идентичность Воздуха).
+    Связка: поджечь/отравить одного → разнести по группе."""
+    return Card(
+        name="Суховей",
+        cost=1,
+        card_type="skill",
+        description="Разносит половину Горения и Яда с цели на всех врагов. "
+                    "Поток: дешевле 1 карта.",
+        effects=[
+            SpreadEffect(),
+            FlowEffect(1, 1),
         ],
         rarity=Rarity.UNCOMMON,
     )

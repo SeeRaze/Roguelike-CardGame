@@ -2,7 +2,8 @@
 # Карты стихии «Воздух» (механика Поток / FlowEffect) + интеграция в каталог.
 # Поток — НЕ статус, а эффект-кирпич: снижает temp_cost случайных карт в руке.
 from core.cards.air import (
-    FlowEffect, create_gust, create_updraft, create_whirlwind,
+    FlowEffect, SpreadEffect,
+    create_gust, create_updraft, create_whirlwind, create_sirocco,
 )
 from core.cards.base import Card, DamageEffect
 from core.cards.catalog import GENERIC_FACTORIES, get_pool_for_class
@@ -138,3 +139,41 @@ def test_классификатор_относит_карту_воздуха_к_
     from ui.cards.classifier import classify_card
     assert classify_card(create_updraft()) == "air"
     assert classify_card(create_gust()) == "air"      # урон + Поток → всё равно air
+
+
+# ═══════════════════════════════════════════════════════════
+# SpreadEffect / «Суховей» — распространение Горения и Яда
+# ═══════════════════════════════════════════════════════════
+
+def test_spread_разносит_половину_горения_и_яда(make_combat, make_creature):
+    target = make_creature("Цель", 50, 50)
+    e2     = make_creature("Враг2", 50, 50)
+    e3     = make_creature("Враг3", 50, 50)
+    target.ignited = 4
+    target.poison = 6
+    cm = make_combat(player=make_creature("Игрок", 50, 50), enemy=target)
+    cm.enemies = [target, e2, e3]
+    SpreadEffect().execute(cm.player, target, cm, is_upgraded=False)
+    # На остальных — половина (4//2=2 горения, 6//2=3 яда); цель не тронута.
+    assert e2.ignited == 2 and e2.poison == 3
+    assert e3.ignited == 2 and e3.poison == 3
+    assert target.ignited == 4 and target.poison == 6   # источник сохраняет стаки
+
+
+def test_spread_без_статусов_ничего_не_делает(make_combat, make_creature):
+    target = make_creature("Цель", 50, 50)
+    e2     = make_creature("Враг2", 50, 50)
+    cm = make_combat(player=make_creature("Игрок", 50, 50), enemy=target)
+    cm.enemies = [target, e2]
+    SpreadEffect().execute(cm.player, target, cm, is_upgraded=False)
+    assert e2.ignited == 0 and e2.poison == 0
+
+
+def test_суховей_в_общем_пуле():
+    assert create_sirocco in GENERIC_FACTORIES
+
+
+def test_суховей_показывает_ключевые_слова():
+    from ui.cards.keywords import get_card_keywords
+    keys = [k for k, _ in get_card_keywords(create_sirocco())]
+    assert "spread" in keys and "flow" in keys
