@@ -25,6 +25,7 @@ from core.cards import (
     create_summon_wolf, create_summon_golem,
     create_retribution,
     create_boil,
+    create_echo_resonance, create_echo_strike, create_echo_cascade,
 )
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
@@ -43,6 +44,7 @@ GENERIC_FACTORIES = [
     create_regenerate, create_vitality, create_triage,
     create_drain, create_blood_feast, create_life_tap,
     create_lacerate, create_hemorrhage, create_open_wound,
+    create_echo_resonance, create_echo_strike, create_echo_cascade,
 ]
 
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────

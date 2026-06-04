@@ -7,6 +7,7 @@ from core.cards.base import (
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect, SpreadEffect
+from core.cards.echo import EchoEffect
 from core.StatusRegistry import STATUSES
 from ui.cards.data import _EXTRA_KEYWORDS
 
@@ -44,6 +45,9 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
         elif isinstance(effect, SpreadEffect):
             key = "spread"
             val = 0
+        elif isinstance(effect, EchoEffect):
+            key = "echo"
+            val = effect.upgrade_val if card.upgraded else effect.base_val
 
         if key and key not in seen:
             if key in STATUSES or key in _EXTRA_KEYWORDS:

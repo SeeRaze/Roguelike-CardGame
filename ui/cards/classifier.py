@@ -8,12 +8,13 @@ from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect
+from core.cards.echo import EchoEffect, EchoPayoffEffect
 
 
 def classify_card(card) -> str:
     """Определяет класс карты по составу эффектов. Возвращает ключ из data._C."""
     effects = card.effects
-    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect)) for e in effects)
+    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
     has_bleed    = any(isinstance(e, BleedEffect) for e in effects)
     has_poison   = any(isinstance(e, PoisonEffect) for e in effects)
@@ -23,6 +24,7 @@ def classify_card(card) -> str:
     has_buff     = any(isinstance(e, BuffEffect) for e in effects)
     has_flow     = any(isinstance(e, FlowEffect) for e in effects)
     has_detonate = any(isinstance(e, DetonateEffect) for e in effects)
+    has_echo     = any(isinstance(e, EchoEffect) for e in effects)
 
     has_ignited  = any(isinstance(e, StatusEffect) and e.status_type == "ignited" for e in effects)
     has_wet      = any(isinstance(e, StatusEffect) and e.status_type == "wet"     for e in effects)
@@ -49,6 +51,8 @@ def classify_card(card) -> str:
         return "earth"
     if has_flow:
         return "air"
+    if has_echo:
+        return "echo"
     if has_regen:
         return "regen"
     if has_heal:

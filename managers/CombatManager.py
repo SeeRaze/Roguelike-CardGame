@@ -140,6 +140,20 @@ class CombatManager:
         # читает её, чтобы НЕ удешевлять саму себя (она ещё в руке во время apply).
         self._card_being_played = selected_card
         selected_card.apply(self.player, target, self)
+
+        # Эхо (ретриггер): каждый заряд эха на игроке заставляет карту
+        # сработать повторно. Заряды снимаются ДО повторов — карта, генерирующая
+        # эхо сама, НЕ зациклится (новые заряды лягут уже после всех повторов).
+        echo_stacks = self.player.echo
+        if echo_stacks > 0:
+            self.player.echo = 0
+            for i in range(echo_stacks):
+                selected_card.apply(self.player, target, self)
+                self.add_log_message(
+                    f"[ЭХО] {selected_card.name} срабатывает повторно "
+                    f"({i + 1}/{echo_stacks})!"
+                )
+
         self._card_being_played = None
 
         self.player.on_card_played_passive(selected_card, self)
