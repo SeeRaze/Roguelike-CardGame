@@ -5,6 +5,25 @@ import random
 from managers.MapGenerator import FLOORS_PER_ACT
 from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy
 
+# ─── Кривая сложности (тюнится балансером, см. managers/balance/) ────────────
+# Цель: плавный скейл к 100-му этажу, который почти непроходим. Рост статов
+# НЕЛИНЕЙНЫЙ — ускоряется к поздним актам через tier² (5 актов по 20 этажей).
+#   hp  = HP_BASE  + floor*HP_PER_FLOOR  + tier² * HP_PER_TIER2
+#   dmg = DMG_BASE + tier²*DMG_PER_TIER2 + floor//DMG_FLOOR_DIV
+#   shld= SHLD_BASE + tier*SHLD_PER_TIER
+HP_BASE, HP_PER_FLOOR, HP_PER_TIER2 = 30, 4, 12
+DMG_BASE, DMG_PER_TIER2, DMG_FLOOR_DIV = 4, 2, 4
+SHLD_BASE, SHLD_PER_TIER = 3, 1
+
+# Пороги ввода групп (этаж, с которого появляется N-й враг). Мультивраги
+# вводятся позже, чем раньше (этаж 5), чтобы не было ранней «стены».
+GROUP_2_FROM = 7    # с этого этажа возможны 2 врага
+GROUP_3_FROM = 26   # с этого этажа возможны 3 врага
+
+# Множители статов на одного врага в группе (плавный рост суммарной угрозы).
+GROUP_HP_MULT  = {2: 0.55, 3: 0.40}
+GROUP_DMG_MULT = {2: 0.60, 3: 0.50}
+
 # Реестр типов рядовых врагов: имя -> класс.
 # Добавление нового врага: класс в core/enemies/ + строка сюда.
 ENEMY_REGISTRY = {
@@ -31,9 +50,9 @@ def build_enemy(current_floor: int, is_elite: bool = False):
     local_step = (floor - 1) % FLOORS_PER_ACT + 1
     tier       = (floor - 1) // FLOORS_PER_ACT + 1
 
-    enemy_hp   = 35 + (floor * 5) + (tier * 15)
-    enemy_dmg  = 5  + (tier * 2)  + (floor // 3)
-    enemy_shld = 3  + (tier * 1)
+    enemy_hp   = HP_BASE  + (floor * HP_PER_FLOOR)   + (tier * tier * HP_PER_TIER2)
+    enemy_dmg  = DMG_BASE + (tier * tier * DMG_PER_TIER2) + (floor // DMG_FLOOR_DIV)
+    enemy_shld = SHLD_BASE + (tier * SHLD_PER_TIER)
     is_boss    = (local_step == FLOORS_PER_ACT)
 
     if is_elite:
@@ -72,8 +91,9 @@ def build_enemy(current_floor: int, is_elite: bool = False):
 def build_enemy_group(current_floor: int, is_elite: bool = False):
     """Собрать группу врагов для этажа.
     Возвращает список из 1–3 врагов. Босс всегда один.
-    Этажи 1–4: 1 враг. Этажи 5–8: 2 врага. Этажи 9+: 3 врага.
-    HP каждого уменьшен пропорционально размеру группы."""
+    Пороги ввода групп — GROUP_2_FROM / GROUP_3_FROM (мультивраги вводятся
+    плавно, чтобы не было ранней «стены»). HP/урон каждого уменьшены
+    пропорционально размеру группы (GROUP_HP_MULT / GROUP_DMG_MULT)."""
     local_step = (current_floor - 1) % FLOORS_PER_ACT + 1
     is_boss    = (local_step == FLOORS_PER_ACT)
 
@@ -82,9 +102,9 @@ def build_enemy_group(current_floor: int, is_elite: bool = False):
         return [build_enemy(current_floor, is_elite)]
 
     # Размер группы по этажу
-    if current_floor <= 4:
+    if current_floor < GROUP_2_FROM:
         group_size = 1
-    elif current_floor <= 8:
+    elif current_floor < GROUP_3_FROM:
         group_size = 2
     else:
         group_size = 3
@@ -96,14 +116,13 @@ def build_enemy_group(current_floor: int, is_elite: bool = False):
     enemies = []
     for i in range(group_size):
         enemy = build_enemy(current_floor, is_elite)
-        # Уменьшаем HP пропорционально размеру группы
-        enemy.hp     = max(1, int(enemy.hp * 0.6) if group_size == 2
-                                     else int(enemy.hp * 0.4))
-        enemy.max_hp = enemy.hp
-        # Лёгкое уменьшение урона, чтобы группа не ваншотала
-        enemy.base_test_damage = max(3, int(enemy.base_test_damage * 0.75))
-        # Добавляем номер к имени для различия
         if group_size > 1:
+            # Уменьшаем HP/урон пропорционально размеру группы
+            enemy.hp     = max(1, int(enemy.hp * GROUP_HP_MULT[group_size]))
+            enemy.max_hp = enemy.hp
+            enemy.base_test_damage = max(
+                3, int(enemy.base_test_damage * GROUP_DMG_MULT[group_size])
+            )
             enemy.name = f"{enemy.name} ({i + 1}/{group_size})"
         enemies.append(enemy)
 

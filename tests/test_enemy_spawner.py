@@ -1,27 +1,43 @@
 # tests/test_enemy_spawner.py
 # Проверяем процедурную сборку врага: формулы статов, множители элиты/босса.
-from managers.EnemySpawner import build_enemy
+# Ожидаемые статы считаются из констант формулы (устойчиво к тюнингу баланса).
+from managers.EnemySpawner import (
+    build_enemy,
+    HP_BASE, HP_PER_FLOOR, HP_PER_TIER2,
+    DMG_BASE, DMG_PER_TIER2, DMG_FLOOR_DIV,
+    SHLD_BASE, SHLD_PER_TIER,
+)
 from managers.MapGenerator import FLOORS_PER_ACT
 
 
+def _expected_stats(floor: int):
+    """Базовые статы врага по формулам build_enemy (без множителей)."""
+    tier = (floor - 1) // FLOORS_PER_ACT + 1
+    hp   = HP_BASE  + floor * HP_PER_FLOOR        + tier * tier * HP_PER_TIER2
+    dmg  = DMG_BASE + tier * tier * DMG_PER_TIER2 + floor // DMG_FLOOR_DIV
+    shld = SHLD_BASE + tier * SHLD_PER_TIER
+    return hp, dmg, shld
+
+
 def test_обычный_враг_первого_этажа():
-    # floor=1, tier=1: hp=35+5+15=55, dmg=5+2+0=7, shld=3+1=4.
+    hp, dmg, shld = _expected_stats(1)
     e = build_enemy(1, is_elite=False)
-    assert e.hp == 55
-    assert e.base_test_damage == 7
-    assert e.base_test_shield == 4
+    assert e.hp == hp
+    assert e.base_test_damage == dmg
+    assert e.base_test_shield == shld
     assert e.is_elite is False
     assert e.shield == 0        # обычный враг не начинает со щитом
 
 
 def test_элита_усиливает_статы():
     # Множители элиты: hp×1.5, dmg×1.4, shld×1.5 (с округлением вниз).
+    hp, dmg, shld = _expected_stats(1)
     e = build_enemy(1, is_elite=True)
-    assert e.hp == 82           # int(55 * 1.5)
-    assert e.base_test_damage == 9   # int(7 * 1.4)
-    assert e.base_test_shield == 6   # int(4 * 1.5)
+    assert e.hp == int(hp * 1.5)
+    assert e.base_test_damage == int(dmg * 1.4)
+    assert e.base_test_shield == int(shld * 1.5)
     assert e.is_elite is True
-    assert e.shield == 6        # элита начинает со щитом
+    assert e.shield == int(shld * 1.5)   # элита начинает со щитом
 
 
 def test_босс_сильнее_и_подписан():
