@@ -9,6 +9,7 @@
 # Добавить классовую карту = одна строка в CLASS_FACTORIES.
 from core.cards import (
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
+    create_catalyst,
     create_ignite, create_fire_breath,
     create_splash, create_rain_cloud,
     create_shock_bolt, create_chain_lightning, create_thunder_strike, create_overload,
@@ -29,6 +30,7 @@ from core.cards import (
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
 GENERIC_FACTORIES = [
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
+    create_catalyst,
     create_ignite, create_fire_breath,
     create_splash, create_rain_cloud,
     create_shock_bolt, create_chain_lightning, create_thunder_strike, create_overload,

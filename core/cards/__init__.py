@@ -1,5 +1,7 @@
 from core.cards.base import Card
-from core.cards.basic import create_strike, create_defend, create_heavy_blade, create_iron_wall
+from core.cards.basic import (
+    create_strike, create_defend, create_heavy_blade, create_iron_wall, create_catalyst,
+)
 from core.cards.fire import create_ignite, create_fire_breath
 from core.cards.water import create_splash, create_rain_cloud
 from core.cards.shock import (

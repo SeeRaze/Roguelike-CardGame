@@ -13,40 +13,104 @@
 # + handler(target, combat_manager) (что сделать; сам снимает потраченные статусы)
 # + log. Будущее меж-стихийное комбо = одна запись здесь (+ опц. карта-детонатор).
 
-# Урон Электро-взрыва за каждый стак Шока (тюнится здесь).
-ELECTRO_DAMAGE_PER_SHOCK = 6
+# ─── Константы тюнинга детонаций ─────────────────────────────────────────────
+ELECTRO_DAMAGE_PER_SHOCK = 6     # Электро-взрыв: урон за стак Шока
+LAVA_DAMAGE_PER_IGNITE   = 4     # Лава: урон за стак Горения
+THERMO_DAMAGE_MULT       = 3     # Термовзрыв: множитель (Горение+Шок)
+
+
+def _deal_raw(target, amount, combat_manager, aoe=False):
+    """Нанести RAW-урон (через take_damage, БЕЗ EffectCalculator — детонация не
+    рекурсит Шок/комбо). aoe=True бьёт всех живых врагов, иначе только цель."""
+    player = getattr(combat_manager, "player", None)
+    if aoe:
+        victims = [e for e in getattr(combat_manager, "enemies", []) if e.hp > 0]
+    else:
+        victims = [target]
+    for v in victims:
+        v.take_damage(amount, attacker=player, combat_manager=combat_manager)
 
 
 def _electro_blast(target, combat_manager):
     """Электро-взрыв (Мокрый + Шок): мокрая цель проводит разряд — урон
-    = Шок × ELECTRO_DAMAGE_PER_SHOCK по ВСЕМ живым врагам. Затем снять Мокрый
-    и Шок с цели (потрачены во взрыве).
-
-    Урон — RAW (через take_damage напрямую), НЕ через EffectCalculator: детонация
-    не должна рекурсивно тянуть бонус Шока/комбо/уязвимость с самой себя."""
-    shock = target.get_status("shock")
-    burst = shock * ELECTRO_DAMAGE_PER_SHOCK
-    player = getattr(combat_manager, "player", None)
-
-    for enemy in list(getattr(combat_manager, "enemies", [])):
-        if enemy.hp > 0:
-            enemy.take_damage(burst, attacker=player, combat_manager=combat_manager)
-
+    = Шок × ELECTRO_DAMAGE_PER_SHOCK по ВСЕМ живым врагам. Снять Мокрый и Шок."""
+    burst = target.get_status("shock") * ELECTRO_DAMAGE_PER_SHOCK
+    _deal_raw(target, burst, combat_manager, aoe=True)
     target.set_status("wet", 0)
     target.set_status("shock", 0)
-
     combat_manager.add_log_message(
         f" -> Электро-взрыв: {burst} урона по всем врагам!"
     )
     return burst
 
 
+def _lava(target, combat_manager):
+    """Лава (Раскол + Горение): мгновенный урон = Горение × LAVA_DAMAGE_PER_IGNITE
+    по цели + снижение её намерения атаки вдвое (расплавленная не может бить в
+    полную силу). Снять Раскол и Горение."""
+    burst = target.get_status("ignited") * LAVA_DAMAGE_PER_IGNITE
+    _deal_raw(target, burst, combat_manager)
+
+    intent = getattr(target, "intent", None)
+    if intent is not None and getattr(intent, "type", None) == "attack":
+        intent.value = intent.value // 2
+        combat_manager.add_log_message(
+            f" -> Лава: намерение атаки {target.name} ослаблено до {intent.value}."
+        )
+
+    target.set_status("shatter", 0)
+    target.set_status("ignited", 0)
+    combat_manager.add_log_message(f" -> Лава: {burst} урона!")
+    return burst
+
+
+def _thermo_blast(target, combat_manager):
+    """Термодинамический взрыв (Горение + Шок): мгновенный урон
+    = (Горение + Шок) × THERMO_DAMAGE_MULT по цели. Снять Горение и Шок."""
+    burst = (target.get_status("ignited")
+             + target.get_status("shock")) * THERMO_DAMAGE_MULT
+    _deal_raw(target, burst, combat_manager)
+    target.set_status("ignited", 0)
+    target.set_status("shock", 0)
+    combat_manager.add_log_message(f" -> Термовзрыв: {burst} урона!")
+    return burst
+
+
+def _acid(target, combat_manager):
+    """Кислота (Мокрый + Яд): растворяет броню — щит цели в ноль. Снять Мокрый
+    (катализатор потрачен); Яд ОСТАЁТСЯ тикать сквозь обнулённый щит."""
+    target.shield = 0
+    target.set_status("wet", 0)
+    combat_manager.add_log_message(f" -> Кислота: щит {target.name} растворён!")
+    return 0
+
+
 DETONATIONS = {
+    # Порядок = ПРИОРИТЕТ при общих статусах: детонация, потратившая общий статус,
+    # гасит зависящие от него последующие (requires проверяется заново в DetonateEffect).
     "electro_blast": {
         "name":     "ЭЛЕКТРО-ВЗРЫВ",
-        "requires": ("wet", "shock"),    # оба должны быть > 0 на цели
+        "requires": ("wet", "shock"),
         "handler":  _electro_blast,
         "log":      "[!!! ДЕТОНАЦИЯ: ЭЛЕКТРО-ВЗРЫВ !!!]",
+    },
+    "thermo_blast": {
+        "name":     "ТЕРМОВЗРЫВ",
+        "requires": ("ignited", "shock"),
+        "handler":  _thermo_blast,
+        "log":      "[!!! ДЕТОНАЦИЯ: ТЕРМОВЗРЫВ !!!]",
+    },
+    "lava": {
+        "name":     "ЛАВА",
+        "requires": ("shatter", "ignited"),
+        "handler":  _lava,
+        "log":      "[!!! ДЕТОНАЦИЯ: ЛАВА !!!]",
+    },
+    "acid": {
+        "name":     "КИСЛОТА",
+        "requires": ("wet", "poison"),
+        "handler":  _acid,
+        "log":      "[!!! ДЕТОНАЦИЯ: КИСЛОТА !!!]",
     },
 }
 
