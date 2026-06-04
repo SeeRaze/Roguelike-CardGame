@@ -6,6 +6,13 @@ class CombatManager:
     """Менеджер боя, адаптированный под графический движок Pygame.
     Поддерживает как одного врага, так и группу (self.enemies — список)."""
 
+    # Потолок ПЕРЕНОСА стаи между боями (Призыватель). Внутри боя призыв не
+    # ограничен — лимит только на то, сколько выживших уносится в следующий бой.
+    # Без него союзники (враги их не бьют) копились бы вечно → бесконечный
+    # снежный ком. Это ручка тюнинга баланса Призывателя (см. Этап 5).
+    # Замер чувствительности (эт.25 дошёл): cap4=10% · cap6=33% · cap8=56%.
+    MAX_PERSISTENT_ALLIES = 6
+
     def __init__(self, player, enemies, starting_deck, game_manager=None):
         self.gm = game_manager
         self.player = player
@@ -15,6 +22,7 @@ class CombatManager:
         else:
             self.enemies = [enemies]
         self.allies: list = []          # призванные союзники
+        self._restore_persistent_allies()
         self.deck_manager = DeckManager(starting_deck)
         self.turn_count = 1
 
@@ -212,6 +220,11 @@ class CombatManager:
                 self.gm.stats["monsters_killed"] = \
                     self.gm.stats.get("monsters_killed", 0) + 1
 
+        # Бой выигран (все враги повержены) — сохранить стаю до следующего боя.
+        # Единая точка для всех путей победы (карта/союзник/статус добил врага).
+        if all(e.hp <= 0 for e in self.enemies):
+            self._persist_allies()
+
     def _check_ally_death(self, ally):
         """Удалить мёртвого союзника из списка."""
         if ally.hp > 0:
@@ -219,6 +232,29 @@ class CombatManager:
         self.add_log_message(f"[СОЮЗНИК] {ally.name} пал в бою!")
         if ally in self.allies:
             self.allies.remove(ally)
+
+    def _restore_persistent_allies(self):
+        """Восстановить выживших союзников из прошлого боя (Призыватель).
+        Транзиентное боевое состояние (щит/статусы) обнуляем — переносим
+        только саму единицу с её текущим HP."""
+        carried = getattr(self.player, 'persistent_allies', None)
+        if not carried:
+            return
+        for ally in carried:
+            if ally.hp <= 0:
+                continue
+            ally.shield = 0
+            for key in ally.statuses:
+                ally.statuses[key] = 0
+            self.allies.append(ally)
+
+    def _persist_allies(self):
+        """Сохранить выживших союзников до следующего боя (вызывается при
+        победе). Переносим не больше MAX_PERSISTENT_ALLIES — сильнейших
+        (по HP, затем по атаке), чтобы стая не копилась безгранично."""
+        survivors = [a for a in self.allies if a.hp > 0]
+        survivors.sort(key=lambda a: (a.hp, a.attack_power), reverse=True)
+        self.player.persistent_allies = survivors[:self.MAX_PERSISTENT_ALLIES]
 
     def check_player_defeat(self) -> bool:
         """Проверка смерти игрока и запуск конца игры.

@@ -5,7 +5,7 @@
 from unittest.mock import patch
 from types import SimpleNamespace
 
-from core.players import Warrior, Rogue
+from core.players import Warrior, Rogue, Summoner
 from core.enemies.cultist import Cultist
 from core.cards import create_strike, create_defend
 from core.relics import ПроклятаяКорона
@@ -170,3 +170,71 @@ def test_смерть_игрока_переводит_в_leaderboard():
     assert cm.player.hp == 0          # не уходит в минус
     assert gm.current_state == "LEADERBOARD"
     mock_lb.load_data.assert_called_once()
+
+
+# ═══════════════════════════════════════════════════════════
+# Персистентность стаи (Призыватель): союзники переживают бои
+# ═══════════════════════════════════════════════════════════
+
+def _make_wolf(player, hp=15, attack_power=5):
+    from core.Summon import Summon
+    return Summon(name="Волк", hp=hp, attack_power=attack_power, owner=player)
+
+
+def test_выжившие_союзники_переносятся_в_следующий_бой():
+    """При победе живые союзники сохраняются и восстанавливаются в новом бою."""
+    summoner = Summoner()
+    cm = CombatManager(summoner, Cultist("Культист", 1, 1), _simple_deck())
+    cm.allies.append(_make_wolf(summoner))
+    # Добиваем врага -> единая точка персиста в _check_enemy_death
+    cm.enemies[0].hp = 0
+    cm._check_enemy_death(cm.enemies[0])
+    assert len(summoner.persistent_allies) == 1
+
+    # Новый бой восстанавливает стаю
+    cm2 = CombatManager(summoner, Cultist("Культист", 30, 30), _simple_deck())
+    assert len(cm2.allies) == 1
+
+
+def test_мёртвые_союзники_не_переносятся():
+    """Павший в бою союзник не попадает в persistent_allies."""
+    summoner = Summoner()
+    cm = CombatManager(summoner, Cultist("Культист", 1, 1), _simple_deck())
+    dead = _make_wolf(summoner)
+    dead.hp = 0
+    cm.allies.append(dead)
+    cm.enemies[0].hp = 0
+    cm._check_enemy_death(cm.enemies[0])
+    assert summoner.persistent_allies == []
+
+
+def test_перенос_стаи_ограничен_потолком():
+    """Сохраняется не больше MAX_PERSISTENT_ALLIES — сильнейших по HP."""
+    summoner = Summoner()
+    cm = CombatManager(summoner, Cultist("Культист", 1, 1), _simple_deck())
+    cap = CombatManager.MAX_PERSISTENT_ALLIES
+    for hp in range(cap + 3):                 # заведомо больше потолка
+        cm.allies.append(_make_wolf(summoner, hp=10 + hp))
+    cm.enemies[0].hp = 0
+    cm._check_enemy_death(cm.enemies[0])
+    assert len(summoner.persistent_allies) == cap
+    # Перенесены именно сильнейшие (наибольшие HP)
+    carried_hp = sorted(a.hp for a in summoner.persistent_allies)
+    assert min(carried_hp) > 10               # самые слабые отброшены
+
+
+def test_восстановленный_союзник_теряет_щит_и_статусы():
+    """Транзиентное состояние (щит/статусы) обнуляется при переносе в новый бой."""
+    summoner = Summoner()
+    cm = CombatManager(summoner, Cultist("Культист", 1, 1), _simple_deck())
+    wolf = _make_wolf(summoner)
+    wolf.shield = 9
+    wolf.poison = 4
+    cm.allies.append(wolf)
+    cm.enemies[0].hp = 0
+    cm._check_enemy_death(cm.enemies[0])
+
+    cm2 = CombatManager(summoner, Cultist("Культист", 30, 30), _simple_deck())
+    restored = cm2.allies[0]
+    assert restored.shield == 0
+    assert restored.poison == 0

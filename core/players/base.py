@@ -17,6 +17,11 @@ class Player(Creature):
         # Активная способность класса -- устанавливается в подклассах
         self.active_ability = None
 
+        # Стая, переживающая бои (Призыватель): выжившие союзники переносятся
+        # между боями. Заполняется CombatManager при победе, восстанавливается
+        # при старте следующего боя. Потолок переноса — в CombatManager.
+        self.persistent_allies: list = []
+
     def get_starter_deck(self) -> list:
         return self._starter_deck_factory() + list(self._extra_starter_cards)
 
