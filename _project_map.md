@@ -253,9 +253,26 @@ shock, shatter, echo, barrier, mastery, frenzy, virulence
 ### Реликвии — хуки
 `on_combat_start`, `on_turn_start`, `on_damage_calculated(base_dmg, is_player_attack=True)`,
 `on_tick_ignited`, `on_wet_applied`, `on_card_played`, `on_shield_gained(amount, creature, combat_manager=None)`,
-`on_kill` (заглушка), `on_combat_end`, `on_bleed_tick`, `on_heal`, `on_chest_opened`
+`on_kill` (заглушка), `on_combat_end`, `on_boss_defeated`, `on_bleed_tick`, `on_heal`, `on_chest_opened`
 
 `on_turn_start` вызывается в `CombatManager.start_turn_phase` ПОСЛЕ сброса щита.
+
+### Персистентный слой по забегу (шаг №5 framework)
+Хук **`on_boss_defeated(player, combat_manager)`** — триггерит на босс-этажах
+(20/40/60/80/100, `local_step == FLOORS_PER_ACT`). Вызовы зеркальны в двух местах:
+`GameManager.distribute_combat_rewards` (игра, при `is_boss`) и
+`managers/balance/runner.py` (сим — предусловие [[boss-filter-ladder]]: симулятор
+обязан видеть чекпойнты, иначе тюнинг вслепую). Назначение — единственный источник
+кат.4-компаунда, который переносится МЕЖДУ боями (внутрибоевые движки
+barrier/mastery/echo/virulence сбрасываются `reset_combat_statuses`): растущие
+реликвии копят множитель через забег, бустя НАКЛОН кривой игрока (модель R(f)).
+- **`КоронаВознесения`** (EPIC, `core/relics/advanced/persistent.py`) — флагман: каждый
+  босс ×`GROWTH_PER_BOSS`(=1.25) к урону атак игрока (компаунд по забегу, ×1.25^5≈3.05
+  за 5 боссов). Состояние `_mult` на инстансе → свежий инстанс/забег = авто-сброс.
+  `on_damage_calculated` ОКРУГЛЯЕТ (не усекает) — мелкий урон не теряет бонус.
+  Замер-свип: механизм флипает наклон (Маг пробивает эт.100 при ×2.0/босс); ×1.25 =
+  «заметно, но не ломает» для ОДНОЙ реликвии. A/B (+Корона): Warrior wr50 80→98%,
+  Mage 91→97%, у Druid медиана почти не движется (стена оборонительная — [[balance-findings-druid-engine]]).
 
 ### Реликвии — UI в бою (инвентарь)
 - Полоса сверху (`ui/combat/panels.py::draw_relic_bar`): компактные **бейджи** (квадрат с рамкой
@@ -418,10 +435,11 @@ SHLD: SHLD_BASE(3.5) * SHLD_GROWTH(1.008) ** floor
 ## Реализованные системы (после Сессии 27)
 Все 14 пунктов плана масштабируемости (A–N) ВЫПОЛНЕНЫ.
 
-Реликвии — 21 итого:
+Реликвии — 22 итого:
 - COMMON: LuckyClover, SpikedBracelet, ТочильныйКамень, СтараяПиявка, СчастливаяМонетка, ЗасохшийКлевер, Заплатка, ЗаточенныйОсколок
 - UNCOMMON: ДревнееОгниво, НамокшаяРукавица, ОкровавленныйШприц, ФлаконСЖелчью, СвинцовыйНабалдашник, ШипастаяБроня, ТрофейныйКлык
 - RARE: ЭнергоЯдро, СердцеТитана, ГнилойКлык, ЖелезнаяВоля, БерсеркМедальон
+- EPIC: КоронаВознесения (`persistent.py` — растущая, ×1.25 урон/босс по забегу)
 - LEGENDARY: ПроклятаяКорона
 
 ## Важные детали и грабли

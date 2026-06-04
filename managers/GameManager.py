@@ -134,6 +134,12 @@ class GameManager:
         is_elite   = getattr(getattr(self.active_combat, 'enemy', None),
                              'is_elite', False)
 
+        # Хук on_boss_defeated — персистентный слой по забегу (растущие реликвии:
+        # «каждый босс ×N»). Триггерит только на босс-этажах (20/40/60/80/100).
+        if is_boss:
+            for relic in self.relics:
+                relic.on_boss_defeated(self.player, self.active_combat)
+
         # Статистика убийств теперь в CombatManager._check_enemy_death
 
         # Расчёт наград (золото/реликвия/ключ) -- в RewardManager.

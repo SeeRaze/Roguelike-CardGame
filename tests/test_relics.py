@@ -9,10 +9,10 @@ from core.relics import (
 )
 
 
-def test_в_пуле_21_уникальная_реликвия():
-    assert len(ALL_RELICS) == 21
+def test_в_пуле_22_уникальные_реликвии():
+    assert len(ALL_RELICS) == 22
     имена = [r().name for r in ALL_RELICS]
-    assert len(set(имена)) == 21
+    assert len(set(имена)) == 22
 
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):

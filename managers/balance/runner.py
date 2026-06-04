@@ -94,6 +94,14 @@ def run_single_run(player_class, max_floor: int = 100, *,
         if not survived or player.hp <= 0:
             return {"death_floor": floor, "hp_by_floor": hp_by_floor}
 
+        # Персистентный слой по забегу: хук on_boss_defeated на босс-этажах
+        # (20/40/60/80/100) — растущие реликвии копят компаунд по забегу.
+        # Зеркалит GameManager.distribute_combat_rewards (предусловие boss-filter:
+        # сим обязан видеть чекпойнты-ворота, иначе тюнинг вслепую).
+        if local_step == FLOORS_PER_ACT:
+            for relic in relic_objs:
+                relic.on_boss_defeated(player, combat)
+
         # Сброс боевых статусов между боями (как distribute_combat_rewards в игре):
         # внутрибоевые движки (barrier/mastery/echo) НЕ переносятся по забегу.
         player.reset_combat_statuses()

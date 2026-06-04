@@ -15,6 +15,8 @@ class Relic:
       on_shield_gained     <- Creature.gain_shield
       on_kill              <- CombatManager.end_turn_phase (заглушка)
       on_combat_end        <- GameManager.distribute_combat_rewards
+      on_boss_defeated     <- GameManager.distribute_combat_rewards (только босс-этаж)
+                              + managers/balance/runner.py (сим, босс-этаж)
       on_bleed_tick        <- Creature.take_damage (при bleed > 0)
       on_heal              <- Creature.heal (после фактического хила)
       on_chest_opened      <- ui/chest/common.py (при открытии сундука)
@@ -39,6 +41,7 @@ class Relic:
     def on_shield_gained(self, amount, creature, combat_manager=None): pass
     def on_kill(self, enemy, combat_manager):           pass
     def on_combat_end(self, player, combat_manager=None): pass
+    def on_boss_defeated(self, player, combat_manager=None): pass
     def on_bleed_tick(self, bleed_dmg, creature,
                       combat_manager):                  return bleed_dmg
     def on_heal(self, healed_amount, creature):         pass
