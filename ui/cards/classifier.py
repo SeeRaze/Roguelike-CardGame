@@ -7,6 +7,7 @@ from core.cards.base import (
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect
+from core.cards.air import FlowEffect
 
 
 def classify_card(card) -> str:
@@ -20,6 +21,7 @@ def classify_card(card) -> str:
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
     has_regen    = any(isinstance(e, RegenEffect) for e in effects)
     has_buff     = any(isinstance(e, BuffEffect) for e in effects)
+    has_flow     = any(isinstance(e, FlowEffect) for e in effects)
 
     has_ignited  = any(isinstance(e, StatusEffect) and e.status_type == "ignited" for e in effects)
     has_wet      = any(isinstance(e, StatusEffect) and e.status_type == "wet"     for e in effects)
@@ -44,6 +46,8 @@ def classify_card(card) -> str:
         return "shock"
     if has_shatter:
         return "earth"
+    if has_flow:
+        return "air"
     if has_regen:
         return "regen"
     if has_heal:

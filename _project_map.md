@@ -57,7 +57,7 @@ main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/wo
 
 core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py
 
-core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, shock.py, earth.py, heal.py
+core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, shock.py, earth.py, air.py, heal.py
 
 core/cards/buff/init.py, strength.py, thorns.py, regen.py, vampirism.py
 
@@ -139,7 +139,8 @@ shock, shatter
 
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
-- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`.
+- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** (air.py — стихия «Воздух», см. ниже).
+- **Стихия «Воздух» / Поток** (`core/cards/air.py`, Сессия 36): `FlowEffect(count_base, count_upg)` — НЕ статус существа, а эффект-кирпич. При розыгрыше снижает `temp_cost` на 1 у `count` случайных карт в руке (переиспользует систему `temp_cost` Разбойника). «До конца хода» само: `DeckManager.discard_hand` чистит `temp_cost`. Разыгрываемую карту исключает через транзиентный `CombatManager._card_being_played`. Архетип — темпо/энергия.
 - **Фабрики карт** — функции `create_*()`, сгруппированы по модулям: `basic.py` (strike/defend/heavy_blade/iron_wall), `fire.py`, `water.py`, `poison.py`, `heal.py`, `buff/` (strength/thorns/regen/vampirism), `debuff/` (vulnerable/weak/bleed). Все реэкспортируются из `core/cards/__init__.py`.
 - `card_type` ∈ `"attack"`/`"defend"`/… — используется реликвиями (напр. СвинцовыйНабалдашник ловит первую `attack`).
 - `exile=True` — карта уходит в `exile_pile` после розыгрыша (до конца боя).
@@ -152,7 +153,9 @@ shock, shatter
   молний» (3×2(3) мульти-хит, дренит заряды), «Громовой удар» (урон 6(8)+Шок 2(3));
   +3 карты Земли (`core/cards/earth.py`): «Камнепад» (энейблер, Раскол 2(3)),
   «Дробящий удар» (урон 4(6), эксплойт Раскола по щиту), «Тектонический удар»
-  (урон 6(8)+Раскол 2(3)).
+  (урон 6(8)+Раскол 2(3));
+  +3 карты Воздуха (`core/cards/air.py`): «Порыв ветра» (урон 4(6)+Поток),
+  «Восходящий поток» (Поток ×2(3), энейблер темпа), «Вихрь» (урон 7(9)+Поток).
 - `CLASS_FACTORIES = {"Summoner": [wolf, golem], "Warrior": [retribution]}` —
   классовые карты, выдаются в забеге ТОЛЬКО своему классу. Добавить классовую
   карту = одна строка сюда.
@@ -170,7 +173,7 @@ shock, shatter
 ### Бой: цикл хода (CombatManager)
 `CombatManager.__init__(player, enemies, starting_deck, game_manager=None)` — принимает список врагов (или одного, автоматически оборачивается). Хранит `self.enemies: list`, `self.allies: list`. Compat-свойство `self.enemy` → первый враг (для старого кода).
 - **`start_turn_phase`**: цикл по всем живым врагам → `choose_intent()` → пассив игрока считает carry щита → `_iron_will_shield = shield`; сброс щита до carry → `energy = max_energy` → добор `5 + bonus_draw` → (Разбойник: случайной карте `temp_cost -= 1`) → хуки реликвий `on_turn_start` → `ability.on_turn_start` (штрафы).
-- **`play_card_by_index(idx, target=None)`**: проверка энергии → если цель не передана: `get_target_enemy()` (первый живой враг) → `card.apply(player, target, self)` → пассив `on_card_played_passive` → реликвии `on_card_played` → карта в `discard_pile`/`exile_pile`.
+- **`play_card_by_index(idx, target=None)`**: проверка энергии → если цель не передана: `get_target_enemy()` (первый живой враг) → ставит `self._card_being_played = card` → `card.apply(player, target, self)` → `_card_being_played = None` → пассив `on_card_played_passive` → реликвии `on_card_played` → карта в `discard_pile`/`exile_pile`. `_card_being_played` нужен `FlowEffect` (стихия Воздух), чтобы не удешевлять саму разыгрываемую карту.
 - **`end_turn_phase`**: сброс руки → цикл по живым врагам: `shield=0`, `execute_intent()`, `tick_statuses()`, `_check_enemy_death()` (вызывает `on_kill` на реликвиях + стата) → игрок `tick_statuses()` → цикл по союзникам: `choose_action()`, `execute_action()`, `tick_statuses()`, `_check_ally_death()` → проверка победы: `all(e.hp <= 0)` → `check_player_defeat()`.
 - **Мульти-враги**: этажи 1–4: 1 враг, 5–8: 2 врага, 9+: 3 врага. HP каждого уменьшен пропорционально. Босс всегда один.
 - **Таргетинг**: клик по вражеской панели меняет `_target_index`. Жёлтая рамка вокруг выбранной цели. `play_card_by_index` получает цель из `TargetingSystem.get_current_target()`.

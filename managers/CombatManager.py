@@ -133,7 +133,11 @@ class CombatManager:
         if target is None or target.hp <= 0:
             self.add_log_message("[!] Нет целей для атаки!")
             return False
+        # Транзиентная ссылка на разыгрываемую карту: FlowEffect (стихия Воздух)
+        # читает её, чтобы НЕ удешевлять саму себя (она ещё в руке во время apply).
+        self._card_being_played = selected_card
         selected_card.apply(self.player, target, self)
+        self._card_being_played = None
 
         self.player.on_card_played_passive(selected_card, self)
 
