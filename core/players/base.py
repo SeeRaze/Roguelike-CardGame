@@ -37,7 +37,7 @@ class Player(Creature):
     _COMBAT_RESET_KEYS = (
         "weak", "vulnerable", "wet", "ignited", "poison", "shock", "shatter",
         "strength", "thorns", "regen", "bleed", "vampire",
-        "echo", "barrier", "mastery", "frenzy",
+        "echo", "barrier", "mastery", "frenzy", "virulence",
     )
 
     def reset_combat_statuses(self) -> None:

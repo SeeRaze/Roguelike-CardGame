@@ -3,7 +3,7 @@ from core.players.abilities import DruidAbility
 from core.cards import (
     create_strike, create_defend,
     create_bandage, create_regenerate, create_vitality,
-    create_poison_stab, create_toxic_cloud,
+    create_poison_stab, create_toxic_cloud, create_virulent_strain,
 )
 
 
@@ -11,11 +11,12 @@ def get_druid_deck():
     return [
         create_strike(), create_strike(),
         create_defend(), create_defend(),
-        create_bandage(), create_bandage(),
+        create_bandage(),
         create_regenerate(),
         create_vitality(),
         create_poison_stab(),
         create_toxic_cloud(),
+        create_virulent_strain(),   # классовая: движок кат.4 (Вирулентность)
     ]
 
 
@@ -37,6 +38,18 @@ class Druid(Player):
     def on_turn_start_passive(self, combat_manager) -> None:
         # Сброс бюджета яда на новый ход (тормоз против бесконечного накопления).
         self._poison_budget = self.POISON_CAP_PER_TURN
+
+    def on_card_played_passive(self, card, combat_manager) -> None:
+        # «Вирулентность»: каждый сыгранный СКИЛЛ растит virulence на 1 (движок
+        # кат.4). virulence усиливает все будущие наложения Яда (PoisonEffect),
+        # а яд Друида загнивает (не убывает на враге) — вместе нарастающий dot.
+        if card is None or not combat_manager:
+            return
+        if card.card_type == "skill":
+            self.add_status("virulence", 1, combat_manager)
+            combat_manager.add_log_message(
+                f" [ДРУИД] Вирулентность растёт: {self.virulence}."
+            )
 
     def on_heal_passive(self, healed_amount: int, combat_manager) -> None:
         # «Токсичный круговорот»: часть исцеления Друид ЖЕРТВУЕТ — отдаёт это

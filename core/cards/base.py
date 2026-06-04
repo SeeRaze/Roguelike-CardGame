@@ -102,6 +102,9 @@ class PoisonEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         val = self.upgrade_val if is_upgraded else self.base_val
+        # Вирулентность (движок кат.4 Друида): +N к каждому наложению яда.
+        # У не-Друидов virulence=0 (никогда не растёт) → класс-чек не нужен.
+        val += getattr(player, 'virulence', 0)
         enemy.poison += val
         if combat_manager:
             combat_manager.add_log_message(

@@ -16,6 +16,7 @@ from core.cards import (
     create_open_wound, create_hemorrhage, create_battle_cry,
     create_bloodlust, create_serrated_edge,
     create_summon_wolf, create_summon_golem,
+    create_virulent_strain,
 )
 from core.cards.base import (
     DamageEffect, ShieldEffect, StatusEffect, PoisonEffect,
@@ -28,6 +29,7 @@ from core.cards.debuff.bleed import BleedEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import MasteryEffect
 from core.cards.rogue import FrenzyEffect
+from core.cards.druid import VirulenceEffect
 from core.relics import (
     ПроклятаяКорона, ЭнергоЯдро, ТочильныйКамень, ЖелезнаяВоля, ШипастаяБроня,
     ДревнееОгниво, ФлаконСЖелчью, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
@@ -62,7 +64,8 @@ CLASS_CORES = {
         [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень, ПроклятаяКорона],
     ),
     "Druid": (
-        [create_toxic_cloud, create_poison_stab, create_toxic_cloud],
+        [create_virulent_strain, create_toxic_cloud, create_poison_stab,
+         create_toxic_cloud, create_toxic_cloud],
         [ФлаконСЖелчью, СердцеТитана, ЭнергоЯдро],
     ),
     "Rogue": (
@@ -87,7 +90,7 @@ def _card_themes(card) -> set:
     «больше урона»). Сустейн-колода ценит хил/щит, ядовитая — яд и т.д."""
     t = set()
     for e in card.effects:
-        if isinstance(e, (PoisonEffect,)):
+        if isinstance(e, (PoisonEffect, VirulenceEffect)):
             t.add("poison")
         elif isinstance(e, StatusEffect):
             t.add(e.status_type)
@@ -155,6 +158,8 @@ def _card_score(card) -> float:
             value += e.base_val * 2.5           # несгораемый щит (компаунд)
         elif isinstance(e, FrenzyEffect):
             value += e.base_val * 2             # усиливает все будущие bleed
+        elif isinstance(e, VirulenceEffect):
+            value += e.base_val * 2             # усиливает все будущие наложения яда
     return value / max(1, card.cost)            # отдача за единицу энергии
 
 

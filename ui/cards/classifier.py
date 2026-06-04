@@ -12,6 +12,7 @@ from core.cards.air import FlowEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import MasteryEffect
 from core.cards.rogue import FrenzyEffect
+from core.cards.druid import VirulenceEffect
 
 
 def classify_card(card) -> str:
@@ -20,7 +21,7 @@ def classify_card(card) -> str:
     has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
     has_bleed    = any(isinstance(e, (BleedEffect, FrenzyEffect)) for e in effects)
-    has_poison   = any(isinstance(e, PoisonEffect) for e in effects)
+    has_poison   = any(isinstance(e, (PoisonEffect, VirulenceEffect)) for e in effects)
     has_shield   = any(isinstance(e, ShieldEffect) for e in effects)
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
     has_regen    = any(isinstance(e, RegenEffect) for e in effects)
