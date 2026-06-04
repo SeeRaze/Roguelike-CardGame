@@ -3,12 +3,17 @@ from managers.network_manager import send_run_record
 
 
 class CombatManager:
-    """Менеджер боя, адаптированный под графический движок Pygame."""
+    """Менеджер боя, адаптированный под графический движок Pygame.
+    Поддерживает как одного врага, так и группу (self.enemies — список)."""
 
-    def __init__(self, player, enemy, starting_deck, game_manager=None):
+    def __init__(self, player, enemies, starting_deck, game_manager=None):
         self.gm = game_manager
         self.player = player
-        self.enemy = enemy
+        # Приводим к списку: если передали одного врага — заворачиваем
+        if isinstance(enemies, list):
+            self.enemies = enemies
+        else:
+            self.enemies = [enemies]
         self.deck_manager = DeckManager(starting_deck)
         self.turn_count = 1
 
@@ -30,13 +35,36 @@ class CombatManager:
 
         self.start_turn_phase()
 
+    # --- Обратная совместимость: старый код читает self.enemy ---
+    @property
+    def enemy(self):
+        """Первый враг в списке (для совместимости со старым кодом)."""
+        return self.enemies[0] if self.enemies else None
+
+    @enemy.setter
+    def enemy(self, value):
+        if self.enemies:
+            self.enemies[0] = value
+        else:
+            self.enemies.append(value)
+
+    def get_target_enemy(self):
+        """Первый живой враг — цель для авто-таргетинга."""
+        for e in self.enemies:
+            if e.hp > 0:
+                return e
+        return None
+
     def add_log_message(self, message):
         self.combat_log.append(message)
         if len(self.combat_log) > 6:
             self.combat_log.pop(0)
 
     def start_turn_phase(self):
-        self.enemy.choose_intent()
+        # Все живые враги выбирают намерение
+        for e in self.enemies:
+            if e.hp > 0:
+                e.choose_intent()
 
         # Пассивка считает carry ДО сброса щита
         self.player.on_turn_start_passive(self)
@@ -89,7 +117,11 @@ class CombatManager:
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
         self._steam_combo_triggered = False
-        selected_card.apply(self.player, self.enemy, self)
+        target = self.get_target_enemy()
+        if target is None:
+            self.add_log_message("[!] Нет целей для атаки!")
+            return False
+        selected_card.apply(self.player, target, self)
 
         self.player.on_card_played_passive(selected_card, self)
 
@@ -114,15 +146,23 @@ class CombatManager:
         self.add_log_message("Вы завершили ход.")
         self.deck_manager.discard_hand()
 
-        if self.enemy.hp > 0:
-            self.enemy.shield = 0
-            self.enemy.execute_intent(self.player, self)
-            self.enemy.tick_statuses(self)
+        # Враги действуют: сброс щита → исполнение намерения → тик статусов
+        for e in self.enemies:
+            if e.hp <= 0:
+                continue
+            e.shield = 0
+            e.execute_intent(self.player, self)
+            e.tick_statuses(self)
+            self._check_enemy_death(e)
+            # Если игрок умер от действий врага — прерываем
+            if self.player.hp <= 0:
+                break
 
         self.player.tick_statuses(self)
 
-        if self.enemy.hp <= 0:
-            self.add_log_message("=== ВРАГ ПОВЕРЖЕН! ===")
+        # Проверка: все враги мертвы?
+        if all(e.hp <= 0 for e in self.enemies):
+            self.add_log_message("=== ВСЕ ВРАГИ ПОВЕРЖЕНЫ! ===")
             return
 
         if self.player.hp > 0:
@@ -130,6 +170,32 @@ class CombatManager:
             self.start_turn_phase()
 
         self.check_player_defeat()
+
+    def _check_enemy_death(self, enemy):
+        """Вызывается после каждого источника урона врагу.
+        Если враг умер — вызывает on_kill на всех реликвиях и обновляет статистику."""
+        if enemy.hp > 0:
+            return
+        # Уже обработан — не дёргаем повторно
+        if getattr(enemy, '_death_processed', False):
+            return
+        enemy._death_processed = True
+
+        self.add_log_message(f"=== {enemy.name} ПОВЕРЖЕН! ===")
+
+        # Хук on_kill -- реликвии
+        if self.gm and hasattr(self.gm, 'relics'):
+            for relic in self.gm.relics:
+                relic.on_kill(enemy, self)
+
+        # Статистика
+        if self.gm and hasattr(self.gm, 'stats'):
+            if getattr(enemy, 'is_boss', False):
+                self.gm.stats["bosses_killed"] = \
+                    self.gm.stats.get("bosses_killed", 0) + 1
+            else:
+                self.gm.stats["monsters_killed"] = \
+                    self.gm.stats.get("monsters_killed", 0) + 1
 
     def check_player_defeat(self) -> bool:
         """Проверка смерти игрока и запуск конца игры.

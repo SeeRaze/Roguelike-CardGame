@@ -33,7 +33,8 @@ class FakeCombat:
     """
     def __init__(self, player, enemy, relics=None):
         self.player = player
-        self.enemy = enemy
+        self.enemy = enemy          # compat (старые тесты читают .enemy)
+        self.enemies = [enemy]      # новый код проверяет self in cm.enemies
         self.gm = FakeGM(relics)
         self._elemental_blocked = False
         self._steam_combo_triggered = False

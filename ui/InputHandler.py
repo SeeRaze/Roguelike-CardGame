@@ -12,7 +12,7 @@ def _handle_combat(view, mouse_pos):
         RelicPanel.handle_click(view, mouse_pos)
         return
 
-    if view.gm.active_combat.enemy.hp <= 0:
+    if all(e.hp <= 0 for e in view.gm.active_combat.enemies):
         if view.gm.current_state == "COMBAT":
             view.gm.distribute_combat_rewards()
         return

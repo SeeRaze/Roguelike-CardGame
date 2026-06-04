@@ -43,7 +43,7 @@ class Creature:
         if (key in _ELEMENTAL_KEYS
                 and combat_manager is not None
                 and getattr(combat_manager, '_elemental_blocked', False)
-                and self is getattr(combat_manager, 'enemy', None)):
+                and self in getattr(combat_manager, 'enemies', [])):
             combat_manager.add_log_message(
                 f"[МАГ] Стихийный барьер: {key} заблокирован!"
             )

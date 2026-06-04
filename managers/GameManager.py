@@ -136,10 +136,7 @@ class GameManager:
         is_elite   = getattr(getattr(self.active_combat, 'enemy', None),
                              'is_elite', False)
 
-        if is_boss:
-            self.stats["bosses_killed"] += 1
-        else:
-            self.stats["monsters_killed"] += 1
+        # Статистика убийств теперь в CombatManager._check_enemy_death
 
         # Расчёт наград (золото/реликвия/ключ) -- в RewardManager.
         self.pending_rewards = build_rewards(self, is_boss, is_elite)

@@ -11,7 +11,7 @@ class BotCombatManager(CombatManager):
 
     def run_bot_loop(self):
         """Прогоняет бой до конца. Вызывается после __init__."""
-        while self.player.hp > 0 and self.enemy.hp > 0:
+        while self.player.hp > 0 and any(e.hp > 0 for e in self.enemies):
             # Ход игрока: разыгрываем карты
             while True:
                 hand = self.deck_manager.hand
@@ -22,10 +22,13 @@ class BotCombatManager(CombatManager):
                     break
                 card = random.choice(playable)
                 self.player.use_energy(card.cost)
-                card.apply(self.player, self.enemy, self)
+                target = self.get_target_enemy()
+                if target is None:
+                    break
+                card.apply(self.player, target, self)
                 hand.remove(card)
                 self.deck_manager.discard_pile.append(card)
-                if self.enemy.hp <= 0:
+                if all(e.hp <= 0 for e in self.enemies):
                     return
             # Конец хода
             self.end_turn_phase()
