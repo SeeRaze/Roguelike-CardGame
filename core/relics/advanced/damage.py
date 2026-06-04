@@ -60,3 +60,37 @@ class СвинцовыйНабалдашник(Relic):
 
     def on_turn_start(self, combat_manager):
         self._used_this_turn = False
+
+
+class ТрофейныйКлык(Relic):
+    """При убийстве врага: +1 Сила до конца боя."""
+
+    def __init__(self):
+        super().__init__(
+            "Трофейный Клык",
+            "Каждый раз, когда вы убиваете врага,\nполучаете +1 Силы до конца боя.",
+            Rarity.UNCOMMON,
+        )
+
+    def on_kill(self, enemy, combat_manager):
+        combat_manager.player.strength += 1
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': +1 Сила (текущая: {combat_manager.player.strength})!"
+        )
+
+
+class БерсеркМедальон(Relic):
+    """При убийстве врага: +1 Энергия."""
+
+    def __init__(self):
+        super().__init__(
+            "Берсерк-Медальон",
+            "Каждый раз, когда вы убиваете врага,\nвосстанавливаете +1 Энергию.",
+            Rarity.RARE,
+        )
+
+    def on_kill(self, enemy, combat_manager):
+        combat_manager.player.energy += 1
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': +1 Энергия!"
+        )

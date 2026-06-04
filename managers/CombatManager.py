@@ -103,7 +103,9 @@ class CombatManager:
         if ability:
             ability.on_turn_start(self)
 
-    def play_card_by_index(self, card_index):
+    def play_card_by_index(self, card_index, target=None):
+        """Разыграть карту по индексу в руке.
+        Если target передан — используется указанный враг, иначе авто-таргетинг."""
         if card_index < 0 or card_index >= len(self.deck_manager.hand):
             return False
 
@@ -118,8 +120,9 @@ class CombatManager:
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
         self._steam_combo_triggered = False
-        target = self.get_target_enemy()
         if target is None:
+            target = self.get_target_enemy()
+        if target is None or target.hp <= 0:
             self.add_log_message("[!] Нет целей для атаки!")
             return False
         selected_card.apply(self.player, target, self)

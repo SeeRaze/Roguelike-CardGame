@@ -2,6 +2,7 @@ import pygame
 from ui.chest import Chest
 from ui.shop import Shop
 from ui.Campfire import Campfire
+from ui.combat.targeting import TargetingSystem
 
 
 def _handle_combat(view, mouse_pos):
@@ -22,6 +23,10 @@ def _handle_combat(view, mouse_pos):
     ov  = getattr(view, 'relic_overflow_rect', None)
     if (btn and btn.collidepoint(mouse_pos)) or (ov and ov.collidepoint(mouse_pos)):
         RelicPanel.open(view)
+        return
+
+    # Клик по вражеской панели — выбор цели
+    if TargetingSystem.handle_target_click(view, mouse_pos):
         return
 
     # Клик по активной реликвии (бейдж на полосе)
@@ -52,7 +57,8 @@ def _handle_combat(view, mouse_pos):
             card_x, view.base_y, view.card_width, view.card_height
         )
         if card_rect.collidepoint(mouse_pos):
-            view.gm.active_combat.play_card_by_index(index)
+            target = TargetingSystem.get_current_target(view.gm.active_combat)
+            view.gm.active_combat.play_card_by_index(index, target=target)
             break
 
 

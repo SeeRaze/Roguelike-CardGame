@@ -6,6 +6,7 @@ from ui.combat.hud import CombatHUD
 from ui.combat.layout import _BG
 from ui.combat import panels, bottom
 from ui.combat.relic_panel import RelicPanel
+from ui.combat.targeting import TargetingSystem
 
 
 class CombatInterface:
@@ -43,6 +44,15 @@ class CombatInterface:
         panels.draw_relic_bar(view, screen)
         panels.draw_player_panel(view, screen, player, intent_dmg)
         panels.draw_enemy_panels(view, screen, enemies, player, hover_dmg)
+
+        # Индикатор выбранной цели
+        target_idx = getattr(combat, '_target_index', 0)
+        if hasattr(view, 'enemy_panel_rects') and \
+                0 <= target_idx < len(view.enemy_panel_rects):
+            target_rect = view.enemy_panel_rects[target_idx]
+            if enemies[target_idx].hp > 0:
+                TargetingSystem.draw_target_indicator(screen, target_rect)
+
         panels.draw_ally_panels(view, screen, combat.allies)
         panels.draw_combat_log(view, screen, combat)
         bottom.draw_hand(view, screen, dm, enemies, player)
