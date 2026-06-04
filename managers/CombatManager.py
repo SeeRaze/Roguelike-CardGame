@@ -14,6 +14,7 @@ class CombatManager:
             self.enemies = enemies
         else:
             self.enemies = [enemies]
+        self.allies: list = []          # призванные союзники
         self.deck_manager = DeckManager(starting_deck)
         self.turn_count = 1
 
@@ -160,6 +161,17 @@ class CombatManager:
 
         self.player.tick_statuses(self)
 
+        # Союзники действуют: выбор цели → атака → тик статусов
+        for ally in self.allies:
+            if ally.hp <= 0:
+                continue
+            target = ally.choose_action(self)
+            if target:
+                ally.execute_action(target, self)
+                self._check_enemy_death(target)
+            ally.tick_statuses(self)
+            self._check_ally_death(ally)
+
         # Проверка: все враги мертвы?
         if all(e.hp <= 0 for e in self.enemies):
             self.add_log_message("=== ВСЕ ВРАГИ ПОВЕРЖЕНЫ! ===")
@@ -196,6 +208,14 @@ class CombatManager:
             else:
                 self.gm.stats["monsters_killed"] = \
                     self.gm.stats.get("monsters_killed", 0) + 1
+
+    def _check_ally_death(self, ally):
+        """Удалить мёртвого союзника из списка."""
+        if ally.hp > 0:
+            return
+        self.add_log_message(f"[СОЮЗНИК] {ally.name} пал в бою!")
+        if ally in self.allies:
+            self.allies.remove(ally)
 
     def check_player_defeat(self) -> bool:
         """Проверка смерти игрока и запуск конца игры.

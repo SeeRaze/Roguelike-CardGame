@@ -43,6 +43,7 @@ class CombatInterface:
         panels.draw_relic_bar(view, screen)
         panels.draw_player_panel(view, screen, player, intent_dmg)
         panels.draw_enemy_panels(view, screen, enemies, player, hover_dmg)
+        panels.draw_ally_panels(view, screen, combat.allies)
         panels.draw_combat_log(view, screen, combat)
         bottom.draw_hand(view, screen, dm, enemies, player)
         bottom.draw_piles(view, screen, dm)

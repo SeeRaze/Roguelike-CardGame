@@ -200,6 +200,66 @@ def draw_enemy_panels(view, screen, enemies, player, hover_dmg):
     view.enemy_badge_rects = all_badges
 
 
+def draw_ally_panels(view, screen, allies):
+    """Отрисовка панелей союзников в центральной зоне (x=590..1330)."""
+    if not allies:
+        view.ally_panel_rects = []
+        return
+
+    # Мини-панель союзника
+    ally_w = 160
+    ally_h = 180
+    gap = 20
+    start_x = 610                     # левый край центральной зоны + отступ
+    start_y = _PANEL_TOP + 10
+
+    view.ally_panel_rects = []
+
+    for i, ally in enumerate(allies):
+        if ally.hp <= 0:
+            continue
+
+        px = start_x + i * (ally_w + gap)
+        py = start_y
+        panel_rect = pygame.Rect(px, py, ally_w, ally_h)
+        view.ally_panel_rects.append(panel_rect)
+
+        # Фон и рамка (зеленоватый оттенок для союзников)
+        ally_bg = (20, 40, 20)
+        pygame.draw.rect(screen, ally_bg, panel_rect, border_radius=10)
+        pygame.draw.rect(screen, (60, 140, 60), panel_rect, 2, border_radius=10)
+
+        x, y = px + 10, py + 10
+
+        # Имя (обрезаем если длинное)
+        name_text = ally.name[:14]
+        screen.blit(view.card_desc_font.render(name_text, True, _GREEN), (x, y))
+
+        # HP-бар
+        y += 26
+        bar_w = ally_w - 20
+        CombatHUD.draw_hp_bar(
+            screen, x, y, bar_w, 16,
+            ally.hp, ally.max_hp, ally.shield,
+        )
+        y += 20
+        hp_text = f"HP:{ally.hp}/{ally.max_hp}"
+        if ally.shield > 0:
+            hp_text += f" +{ally.shield}щ"
+        screen.blit(view.card_desc_font.render(hp_text, True, _WHITE), (x, y))
+
+        # Атака
+        y += 24
+        atk_text = f"Атака: {ally.attack_power}"
+        screen.blit(view.card_desc_font.render(atk_text, True, _GOLD), (x, y))
+
+        # Статусы (компактно)
+        y += 24
+        CombatHUD.draw_status_badges(
+            screen, view.card_desc_font, ally, x, y
+        )
+
+
 def draw_combat_log(view, screen, combat):
     # Позиция: под панелями врагов (если есть enemy_panel_rects) или фиксированно
     if hasattr(view, 'enemy_panel_rects') and view.enemy_panel_rects:
