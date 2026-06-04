@@ -118,11 +118,9 @@ class GameManager:
         if self.current_state != "COMBAT":
             return
 
-        # Сброс боевого состояния игрока
+        # Сброс боевого состояния игрока (щит + все боевые статусы)
         self.player.energy = self.player.max_energy
-        self.player.shield = 0
-        for key in ("weak", "vulnerable", "wet", "ignited", "strength"):
-            self.player.statuses[key] = 0
+        self.player.reset_combat_statuses()
 
         # Хук on_combat_end — передаём active_combat для полного доступа
         for relic in self.relics:

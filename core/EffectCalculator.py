@@ -30,6 +30,14 @@ class EffectCalculator:
                       f"+{attacker.strength} к урону!")
             base_damage += attacker.strength
 
+        # 2c. МАСТЕРСТВО СТИХИЙ (Маг): +N к урону за каждое комбо в этом бою
+        if is_player_attack:
+            mastery = getattr(attacker, 'mastery', 0)
+            if mastery > 0:
+                base_damage += mastery
+                if not dry_run:
+                    print(f" [МАСТЕРСТВО] +{mastery} к урону (стихийный резонанс).")
+
         # 2b. ПАССИВ БЕРСЕРКА: бонус урона от недостатка HP
         if is_player_attack and type(attacker).__name__ == "Berserker":
             if attacker.max_hp > 0:

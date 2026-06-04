@@ -11,7 +11,7 @@ import random
 
 from core.cards import (
     create_retribution, create_iron_wall, create_steel_barricade, create_bastion,
-    create_boil, create_ignite,
+    create_boil, create_arcane_focus, create_elemental_surge, create_ignite,
     create_splash, create_toxic_cloud, create_poison_stab, create_lacerate,
     create_open_wound, create_hemorrhage, create_battle_cry,
     create_summon_wolf, create_summon_golem,
@@ -52,7 +52,8 @@ CLASS_CORES = {
         [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро, ПроклятаяКорона],
     ),
     "Mage": (
-        [create_boil, create_ignite, create_splash, create_boil],
+        [create_boil, create_ignite, create_splash, create_arcane_focus,
+         create_elemental_surge],
         [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень, ПроклятаяКорона],
     ),
     "Druid": (

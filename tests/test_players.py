@@ -226,7 +226,8 @@ def test_закипание_в_стартовой_колоде_мага():
     deck = m.get_starter_deck()
     names = [c.name for c in deck]
     assert "Закипание" in names
-    assert len(deck) == 8  # 2 Удар + 3 Защита + Поджог + Всплеск + Закипание
+    assert "Тайное сосредоточение" in names
+    assert len(deck) == 9  # 2 Удар + 3 Защита + Поджог + Всплеск + Закипание + Сосредоточение
 
 
 def test_закипание_вешает_и_мокрый_и_горение(make_combat, make_creature):

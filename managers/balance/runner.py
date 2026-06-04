@@ -94,6 +94,10 @@ def run_single_run(player_class, max_floor: int = 100, *,
         if not survived or player.hp <= 0:
             return {"death_floor": floor, "hp_by_floor": hp_by_floor}
 
+        # Сброс боевых статусов между боями (как distribute_combat_rewards в игре):
+        # внутрибоевые движки (barrier/mastery/echo) НЕ переносятся по забегу.
+        player.reset_combat_statuses()
+
         # Прогрессия колоды: карта-награда за бой (стратегия драфта).
         draft(deck, class_name)
 
