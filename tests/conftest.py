@@ -43,6 +43,13 @@ class FakeCombat:
     def add_log_message(self, message):
         self.log.append(message)
 
+    def get_target_enemy(self):
+        """Первый живой враг (как в CombatManager) — для авто-таргетинга."""
+        for e in self.enemies:
+            if e.hp > 0:
+                return e
+        return None
+
 
 @pytest.fixture
 def make_creature():

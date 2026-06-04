@@ -3,9 +3,19 @@
 # Дефолт-бот играл случайно и не жал способности — из-за этого классы (особенно
 # Призыватель) мерились искусственно слабыми. Политика делает бота КОМПЕТЕНТНЫМ:
 # он играет к ядру своего класса. Цель — честный замер, а не оптимальный ИИ.
+#
+# Синергийный слой (общий для всех классов): синергийные карты (Шок/Раскол/Поток/
+# детонаторы) лежат в generic-пуле, поэтому их получает как награду ЛЮБОЙ класс.
+# Случайная игра занижает их ценность (бот тащит энейблеры как мусор) → симулятор
+# искусственно роняет глубокие классы. `_synergy_pick` пилотирует эти карты
+# осмысленно. Он срабатывает ТОЛЬКО при наличии синергии в руке; иначе выбор падает
+# в `_class_pick` (random или класс-специфика) — несинергийные прогоны не меняются.
 import random
 
-from core.cards.base import ShieldEffect, DamageEffect, StatusEffect
+from core.cards.base import (
+    ShieldEffect, DamageEffect, StatusEffect, DetonateEffect,
+)
+from core.cards.air import FlowEffect
 from core.cards.summon import SummonEffect
 from core.cards.warrior import ShieldDamageEffect
 
@@ -28,12 +38,85 @@ def _ability(combat):
     return ab if (ab and ab.is_ready()) else None
 
 
+# ─── Синергийный слой: детекторы карт (по ТИПУ эффекта — устойчиво к новым картам) ──
+
+def _has_effect(card, effect_cls) -> bool:
+    """В карте есть эффект указанного типа."""
+    return any(isinstance(e, effect_cls) for e in card.effects)
+
+
+def _status_types(card) -> set:
+    """Множество status_type всех StatusEffect карты."""
+    return {e.status_type for e in card.effects if isinstance(e, StatusEffect)}
+
+
+def _is_pure_enabler(card, status_type) -> bool:
+    """Карта-энейблер: вешает нужный статус и НЕ наносит урон (чистый сетап,
+    сама по себе бесполезна — её и тащит как мусор случайный бот)."""
+    return status_type in _status_types(card) and not _has_effect(card, DamageEffect)
+
+
+def _ready_detonation(target) -> bool:
+    """У цели готова хотя бы одна детонация (все requires-статусы > 0)."""
+    from core.DetonationRegistry import all_detonations
+    return any(
+        all(target.get_status(req) > 0 for req in det["requires"])
+        for det in all_detonations().values()
+    )
+
+
 class BotPolicy:
     """База: случайный выбор карты, способность не используется.
-    Подклассы переопределяют нужное."""
+    Подклассы переопределяют `_class_pick`/`on_turn_*`."""
 
     def pick_card(self, playable, combat):
+        """Шаблон: сначала синергия (общая для всех), затем класс-специфика."""
+        synergy = self._synergy_pick(playable, combat)
+        if synergy is not None:
+            return synergy
+        return self._class_pick(playable, combat)
+
+    def _class_pick(self, playable, combat):
+        """Класс-специфичный/дефолтный выбор. База — случайно."""
         return random.choice(playable)
+
+    def _synergy_pick(self, playable, combat):
+        """Осмысленная игра синергийных карт из generic-пула. Возвращает карту
+        или None (тогда выбор делает `_class_pick`). Приоритет — по «отдаче»:
+        детонация (мгновенный бурст) → сетап Раскола/Шока → темпо Потока."""
+        target = combat.get_target_enemy()
+        if target is None:
+            return None
+
+        # 1) Готовая детонация на цели — подрываем (наибольшая отдача).
+        if _ready_detonation(target):
+            detonators = [c for c in playable if _has_effect(c, DetonateEffect)]
+            if detonators:
+                return detonators[0]
+
+        # 2) Сетап Раскола: только пока у цели есть щит (Раскол множит урон ×3,
+        #    лишь пока щит > 0) и Раскол ещё не наложен.
+        if target.shield > 0 and target.get_status("shatter") == 0:
+            enablers = [c for c in playable if _is_pure_enabler(c, "shatter")]
+            if enablers:
+                return enablers[0]
+
+        # 3) Сетап Шока: Шок не тикает и копится — любой последующий удар дренит
+        #    +3 урона/заряд. Вешаем, пока на цели нет заряда.
+        if target.get_status("shock") == 0:
+            enablers = [c for c in playable if _is_pure_enabler(c, "shock")]
+            if enablers:
+                return enablers[0]
+
+        # 4) Темпо Потока: чистый энейблер Потока удешевляет остаток руки —
+        #    играем рано, если есть что удешевлять (ещё ≥1 карта в playable).
+        if len(playable) > 1:
+            flow = [c for c in playable
+                    if _has_effect(c, FlowEffect) and not _has_effect(c, DamageEffect)]
+            if flow:
+                return flow[0]
+
+        return None
 
     def on_turn_begin(self, combat) -> None:
         """Проактивные способности (до розыгрыша карт)."""
@@ -45,7 +128,7 @@ class BotPolicy:
 class SummonerPolicy(BotPolicy):
     """Ядро класса — собрать стаю: призывы в приоритет, «Подкрепление» сразу."""
 
-    def pick_card(self, playable, combat):
+    def _class_pick(self, playable, combat):
         summons = [c for c in playable
                    if any(isinstance(e, SummonEffect) for e in c.effects)]
         return random.choice(summons) if summons else random.choice(playable)
@@ -70,7 +153,7 @@ class WarriorPolicy(BotPolicy):
     """Ядро Воина — «защита = атака»: копим щит, затем конвертируем в урон
     («Возмездие» = щит, «Щитовой удар» = 50% щита)."""
 
-    def pick_card(self, playable, combat):
+    def _class_pick(self, playable, combat):
         shield = combat.player.shield
         retribution = [c for c in playable
                        if any(isinstance(e, ShieldDamageEffect) for e in c.effects)]
@@ -113,7 +196,7 @@ class MagePolicy(BotPolicy):
     """«Стихийный барьер» — при достаточной сумме стихийных стаков.
     pick_card: сетап комбо энейблером → атаки для детонации → фолбэк."""
 
-    def pick_card(self, playable, combat):
+    def _class_pick(self, playable, combat):
         enemy = combat.enemy
         has_both = (getattr(enemy, "wet", 0) > 0
                     and getattr(enemy, "ignited", 0) > 0)
