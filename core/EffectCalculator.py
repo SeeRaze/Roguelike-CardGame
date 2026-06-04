@@ -1,5 +1,8 @@
 class EffectCalculator:
 
+    # Бонус урона за один заряд Шока, расходуемый при ударе (см. шаг 6).
+    SHOCK_DAMAGE_PER_STACK = 3
+
     @staticmethod
     def calculate_damage(attacker, target, base_damage,
                          game_manager=None, combat_manager=None,
@@ -59,6 +62,20 @@ class EffectCalculator:
                     if combat_manager:
                         combat_manager.add_log_message(combo["log"])
                         combat_manager._combo_triggered = True
+
+        # 6. ШОК цели — флатовый разряд: +SHOCK_DAMAGE_PER_STACK за удар, −1 заряд.
+        # Добавляется ПОСЛЕ множителей (уязвимость/комбо), чтобы оставаться плоским
+        # и предсказуемым. Каждый отдельный удар (каждый DamageEffect карты) дренит
+        # один заряд — отсюда синергия с мульти-хит/микро-атаками.
+        if target.shock > 0:
+            final_damage += EffectCalculator.SHOCK_DAMAGE_PER_STACK
+            if not dry_run:
+                target.shock = max(0, target.shock - 1)
+                if combat_manager:
+                    combat_manager.add_log_message(
+                        f"[ШОК] Разряд: +{EffectCalculator.SHOCK_DAMAGE_PER_STACK} "
+                        f"урона (зарядов осталось: {target.shock})."
+                    )
 
         if not dry_run and game_manager and hasattr(game_manager, 'stats'):
             if final_damage > game_manager.stats.get("max_damage_dealt", 0):

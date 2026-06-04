@@ -179,3 +179,66 @@ def test_комбо_не_уходит_ниже_нуля_стаков(make_combat
     calc(atk, tgt, 10, combat_manager=cm)
     assert tgt.wet == 0
     assert tgt.ignited == 0
+
+
+# ═══════════════════════════════════════════════════════════
+# Шок — разряд при ударе (+3 урона/удар, −1 заряд)
+# ═══════════════════════════════════════════════════════════
+
+def test_шок_добавляет_урон_и_снимает_заряд(make_combat):
+    # Один удар по заряженной цели: +3 урона, заряд −1.
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shock = 2
+    cm = make_combat(player=atk, enemy=tgt)
+    assert calc(atk, tgt, 10, combat_manager=cm) == 13   # 10 + 3
+    assert tgt.shock == 1                                 # один заряд истрачен
+
+
+def test_шок_не_добавляет_урон_без_зарядов():
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    assert calc(atk, tgt, 10) == 10
+    assert tgt.shock == 0
+
+
+def test_шок_dry_run_не_расходует_заряд():
+    # Превью урона на карте не должно тратить заряды.
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shock = 3
+    assert calc(atk, tgt, 10, dry_run=True) == 13    # бонус в превью виден
+    assert tgt.shock == 3                             # но заряд на месте
+
+
+def test_шок_плоский_не_множится_уязвимостью(make_combat):
+    # Уязвимость множит базу (×1.5), Шок добавляется ПОСЛЕ — плоским +3.
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.vulnerable = 1
+    tgt.shock = 1
+    cm = make_combat(player=atk, enemy=tgt)
+    # int(10 * 1.5) = 15, затем + 3 = 18
+    assert calc(atk, tgt, 10, combat_manager=cm) == 18
+
+
+def test_шок_несколько_ударов_дренят_по_заряду(make_combat):
+    # Каждый отдельный удар снимает по заряду (синергия мульти-хита).
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shock = 3
+    cm = make_combat(player=atk, enemy=tgt)
+    assert calc(atk, tgt, 2, combat_manager=cm) == 5   # 2+3, shock→2
+    assert calc(atk, tgt, 2, combat_manager=cm) == 5   # 2+3, shock→1
+    assert calc(atk, tgt, 2, combat_manager=cm) == 5   # 2+3, shock→0
+    assert calc(atk, tgt, 2, combat_manager=cm) == 2   # зарядов нет, без бонуса
+    assert tgt.shock == 0
+
+
+def test_шок_не_уходит_ниже_нуля(make_combat):
+    atk = Creature("Атакующий", 50, 50)
+    tgt = Creature("Цель", 50, 50)
+    tgt.shock = 1
+    cm = make_combat(player=atk, enemy=tgt)
+    calc(atk, tgt, 5, combat_manager=cm)
+    assert tgt.shock == 0
