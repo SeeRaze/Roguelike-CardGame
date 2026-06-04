@@ -8,7 +8,7 @@
 #   «Разряд»       — дешёвый энейблер, чистое наложение Шока.
 #   «Серия молний» — мульти-хит пейофф (3 удара → дренит до 3 зарядов за карту).
 #   «Громовой удар» — гибрид: бьёт сейчас и подзаряжает Шок на следующие удары.
-from core.cards.base import Card, DamageEffect, StatusEffect
+from core.cards.base import Card, DamageEffect, StatusEffect, DetonateEffect
 from core.rarity import Rarity
 
 
@@ -53,6 +53,23 @@ def create_thunder_strike():
         effects=[
             DamageEffect(6, 8),
             StatusEffect("shock", 2, 3),
+        ],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_overload():
+    """«Перегрузка» — урон 3(4) + ДЕТОНАЦИЯ. Если цель Мокрая и под Шоком —
+    срабатывает Электро-взрыв (Шок×6 урона по всем врагам, см. DetonationRegistry).
+    Меж-стихийный детонатор: связка Вода → Шок → Перегрузка."""
+    return Card(
+        name="Перегрузка",
+        cost=1,
+        card_type="attack",
+        description="Урон 3(4). Детонация: Мокрый + Шок -> Электро-взрыв по всем врагам.",
+        effects=[
+            DamageEffect(3, 4),
+            DetonateEffect(),
         ],
         rarity=Rarity.UNCOMMON,
     )

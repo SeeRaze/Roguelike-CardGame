@@ -109,6 +109,24 @@ class PoisonEffect:
             )
 
 
+class DetonateEffect:
+    """Подрывает все ГОТОВЫЕ детонации на цели (см. core/DetonationRegistry.py):
+    для каждой записи, чьи requires-статусы все > 0, вызывает handler. Карта с
+    этим кирпичом — «детонатор» (напр. «Перегрузка»). Статусы тратит handler.
+
+    requires проверяется заново перед каждым handler — детонация, потратившая
+    статусы, корректно гасит зависящие от них последующие."""
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None:
+            return
+        from core.DetonationRegistry import all_detonations
+        for det in all_detonations().values():
+            if all(enemy.get_status(req) > 0 for req in det["requires"]):
+                combat_manager.add_log_message(det["log"])
+                det["handler"](enemy, combat_manager)
+
+
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
                  rarity=Rarity.COMMON, exile=False, card_class=None):

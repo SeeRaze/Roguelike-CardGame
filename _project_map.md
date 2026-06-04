@@ -55,7 +55,7 @@ while is_running:
 ## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
 main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
 
-core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py
+core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py, core/ComboRegistry.py, core/DetonationRegistry.py
 
 core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, shock.py, earth.py, air.py, heal.py
 
@@ -135,11 +135,25 @@ shock, shatter
 - **Шаг 6 — Шок**: если у цели `shock>0`, +`SHOCK_DAMAGE_PER_STACK`(3) к урону
   ПЛОСКО (после уязвимости/комбо, чтобы не множился), и −1 заряд. `dry_run` бонус
   показывает, но заряд НЕ тратит.
+
+### Комбо — ДВА реестра (два архетипа)
+Стихийные синергии живут в двух data-driven реестрах (каждое комбо = одна запись):
+- **`core/ComboRegistry.py` — МНОЖИТЕЛЬНЫЕ** (×N к урону ТЕКУЩЕЙ атаки). Запись:
+  `{requires, multiplier, consume, log}`. Срабатывает в `EffectCalculator.calculate_damage`
+  (шаг 5): если все requires-статусы цели >0 → урон ×multiplier, снять `consume` стаков.
+  Пример: ПАР (wet+ignited ×3.0). Поднимает `cm._combo_triggered` (пассив Мага).
+- **`core/DetonationRegistry.py` — ДЕТОНАЦИОННЫЕ** (мгновенный эффект: бурст/AoE/
+  обнуление щита), Сессия 36. Запись: `{name, requires, handler(target, cm), log}` —
+  `handler` сам делает эффект и снимает потраченные статусы. Срабатывает через
+  эффект-кирпич **`DetonateEffect`** (карты-детонаторы, напр. «Перегрузка»): подрывает
+  ВСЕ готовые детонации на цели. Бурст — RAW `take_damage` (НЕ через EffectCalculator,
+  чтобы не рекурсить Шок/комбо). Пример: Электро-взрыв (wet+shock → Шок×6 AoE,
+  снять wet+shock). **Новая детонация = одна запись в DETONATIONS (+ опц. карта).**
 - Пассив Берсерка: бонус = `int((1 - hp/max_hp) * 10)`, применяется между шагом 2 (ярость) и шагом 3 (слабость), только `is_player_attack` и `type(attacker).__name__ == "Berserker"`
 
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
-- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** (air.py — стихия «Воздух», см. ниже).
+- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** (air.py — стихия «Воздух», см. ниже). `DetonateEffect` (base.py) — подрывает детонационные комбо на цели (см. «Комбо — два реестра»).
 - **Стихия «Воздух» / Поток** (`core/cards/air.py`, Сессия 36): `FlowEffect(count_base, count_upg)` — НЕ статус существа, а эффект-кирпич. При розыгрыше снижает `temp_cost` на 1 у `count` случайных карт в руке (переиспользует систему `temp_cost` Разбойника). «До конца хода» само: `DeckManager.discard_hand` чистит `temp_cost`. Разыгрываемую карту исключает через транзиентный `CombatManager._card_being_played`. Архетип — темпо/энергия.
 - **Фабрики карт** — функции `create_*()`, сгруппированы по модулям: `basic.py` (strike/defend/heavy_blade/iron_wall), `fire.py`, `water.py`, `poison.py`, `heal.py`, `buff/` (strength/thorns/regen/vampirism), `debuff/` (vulnerable/weak/bleed). Все реэкспортируются из `core/cards/__init__.py`.
 - `card_type` ∈ `"attack"`/`"defend"`/… — используется реликвиями (напр. СвинцовыйНабалдашник ловит первую `attack`).
@@ -149,8 +163,9 @@ shock, shatter
 ### Каталог карт и классовые пулы (core/cards/catalog.py) — НОВОЕ (Сессия 32)
 ЕДИНЫЙ источник правды о том, какие карты существуют и кому доступны:
 - `GENERIC_FACTORIES` — нейтральные карты (доступны всем классам). Сессия 36:
-  +3 карты Шока (`core/cards/shock.py`): «Разряд» (энейблер, Шок 3(4)), «Серия
-  молний» (3×2(3) мульти-хит, дренит заряды), «Громовой удар» (урон 6(8)+Шок 2(3));
+  +4 карты Шока (`core/cards/shock.py`): «Разряд» (энейблер, Шок 3(4)), «Серия
+  молний» (3×2(3) мульти-хит, дренит заряды), «Громовой удар» (урон 6(8)+Шок 2(3)),
+  «Перегрузка» (урон 3(4)+детонатор Электро-взрыва);
   +3 карты Земли (`core/cards/earth.py`): «Камнепад» (энейблер, Раскол 2(3)),
   «Дробящий удар» (урон 4(6), эксплойт Раскола по щиту), «Тектонический удар»
   (урон 6(8)+Раскол 2(3));

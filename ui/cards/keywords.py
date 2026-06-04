@@ -1,7 +1,9 @@
 # ui/cards/keywords.py
 # Сбор ключевых слов карты и отрисовка тултипа-глоссария.
 import pygame
-from core.cards.base import StatusEffect, PoisonEffect, RegenEffect, HealEffect
+from core.cards.base import (
+    StatusEffect, PoisonEffect, RegenEffect, HealEffect, DetonateEffect,
+)
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect
@@ -36,6 +38,9 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
         elif isinstance(effect, FlowEffect):
             key = "flow"
             val = effect.upgrade_val if card.upgraded else effect.base_val
+        elif isinstance(effect, DetonateEffect):
+            key = "detonate"
+            val = 0
 
         if key and key not in seen:
             if key in STATUSES or key in _EXTRA_KEYWORDS:
