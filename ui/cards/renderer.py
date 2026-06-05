@@ -62,10 +62,49 @@ class CardRenderer:
                 card.upgraded
             )
 
+        CardRenderer._draw_forge_marks(surface, card, player, rect, font_desc)
+
         if not can_afford:
             CardRenderer._draw_unaffordable_overlay(surface, rect)
 
         return rect
+
+    @staticmethod
+    def _draw_forge_marks(surface, card, player, rect, font):
+        """Метки прокачки карты (39.5): бейдж уровня (сверху-справа) + точки-теги
+        снизу-слева. Золотая точка — легендарный ×mult (истинный компаунд),
+        серебряная — ранний +mult; число рядом = grade Гипер-заряда. Полные
+        условия тегов — в будущей итерации тултипа/иконок (HUD-читаемость)."""
+        if player is None:
+            return
+        from core.ForgeRegistry import resolve_forge_record, TAGS
+        rec = resolve_forge_record(card, player)
+        if not rec:
+            return
+
+        level = rec.get("level", 0)
+        if level > 0:
+            badge = font.render(f"Ур.{level}", True, (120, 220, 120))
+            bx = rect.right - badge.get_width() - 12
+            bg = pygame.Surface((badge.get_width() + 8, badge.get_height() + 4),
+                                pygame.SRCALPHA)
+            bg.fill((0, 0, 0, 150))
+            surface.blit(bg, (bx - 4, rect.y + 8))
+            surface.blit(badge, (bx, rect.y + 10))
+
+        dot_x = rect.x + 12
+        dot_y = rect.bottom - 20
+        for slot in rec.get("slots") or []:
+            spec = TAGS.get(slot.get("tag_id"), {})
+            col = (235, 200, 80) if spec.get("kind") == "mult" else (200, 200, 210)
+            pygame.draw.circle(surface, col, (dot_x + 5, dot_y + 5), 6)
+            pygame.draw.circle(surface, (0, 0, 0), (dot_x + 5, dot_y + 5), 6, 1)
+            grade = slot.get("grade", 0)
+            if grade:
+                g = font.render(str(grade), True, (255, 240, 180))
+                surface.blit(g, (dot_x + 12, dot_y - 2))
+                dot_x += g.get_width() + 4
+            dot_x += 18
 
     @staticmethod
     def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
