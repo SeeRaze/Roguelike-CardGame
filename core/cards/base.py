@@ -167,8 +167,16 @@ class DetonateEffect:
         if combat_manager is None:
             return
         from core.DetonationRegistry import all_detonations
+        # Предохранитель глубины (§10.2): каждый сработавший handler — событие
+        # триггера, считается суммарно с Эхо за розыгрыш; на потолке цепочка рвётся.
+        guard = getattr(combat_manager, "_trigger_guard", None)
         for det in all_detonations().values():
             if all(enemy.get_status(req) > 0 for req in det["requires"]):
+                if guard is not None and not guard.enter():
+                    combat_manager.add_log_message(
+                        "[ПРЕДОХРАНИТЕЛЬ] Каскад детонаций оборван (глубина)."
+                    )
+                    break
                 combat_manager.add_log_message(det["log"])
                 det["handler"](enemy, combat_manager)
 

@@ -1,5 +1,6 @@
 from managers.DeckManager import DeckManager
 from managers.network_manager import send_run_record
+from core.forge import TriggerGuard
 
 
 class CombatManager:
@@ -38,6 +39,10 @@ class CombatManager:
         # на момент намерения (§10.6) — предикаты тегов читают снимок, не живое поле.
         self._card_being_played = None
         self._play_snapshot = None
+        # Предохранитель глубины триггеров (§10.2): считает ВСЕ ретриггеры (Эхо) +
+        # детонации суммарно за один розыгрыш карты, обрывает на MAX_TRIGGER_DEPTH —
+        # анти-∞-цикл и анти-переполнение чисел в реал-тайме. Сброс на каждом розыгрыше.
+        self._trigger_guard = TriggerGuard()
 
         self.add_log_message("=== БОЙ НАЧАЛСЯ ===")
 
@@ -152,6 +157,9 @@ class CombatManager:
         # читают ЕГО, а не живое поле — заморожен до того, как apply/эхо/детонации
         # изменят руку/статусы/цель. Считается ОДИН раз за розыгрыш.
         self._play_snapshot = self._build_play_snapshot(target)
+        # Сброс предохранителя на новый розыгрыш: детонации/Эхо этой карты считаются
+        # с нуля (§10.2). Первичный apply — не триггер, бюджет не тратит.
+        self._trigger_guard.depth = 0
         selected_card.apply(self.player, target, self)
 
         # Эхо (ретриггер): каждый заряд эха на игроке заставляет карту
@@ -161,6 +169,13 @@ class CombatManager:
         if echo_stacks > 0:
             self.player.echo = 0
             for i in range(echo_stacks):
+                # Каждый ретриггер — событие триггера: предохранитель обрывает
+                # цепочку на MAX_TRIGGER_DEPTH (суммарно с детонациями розыгрыша).
+                if not self._trigger_guard.enter():
+                    self.add_log_message(
+                        "[ПРЕДОХРАНИТЕЛЬ] Каскад триггеров оборван (глубина)."
+                    )
+                    break
                 selected_card.apply(self.player, target, self)
                 self.add_log_message(
                     f"[ЭХО] {selected_card.name} срабатывает повторно "
