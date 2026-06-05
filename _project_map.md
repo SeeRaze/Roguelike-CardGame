@@ -52,6 +52,19 @@ while is_running:
 
 `GameManager` — «глобальный мозг»: хранит `current_state`, `player`, `relics`, `current_deck`, прогрессию этажей/карты, `active_combat` (текущий `CombatManager`).
 
+### Экономика (Этап C, Сессия 38+)
+- **Костёр** (`ui/Campfire.py`, sub_state MAIN/FORGE/SACRIFICE): 3 опции —
+  Отдых (хил = 30% недостающего HP, `Creature.rest_heal_amount`), Кузница (апгрейд
+  карты), **Ритуал крови** (удалить карту за −10 HP сквозь щит,
+  `Creature.lose_hp`; кнопка гаснет при HP≤цены / ≤1 карты). Одно действие за визит
+  → `setup_next_floor`.
+- **Урон сквозь щит**: `Creature.lose_hp(amount)` — прямо в HP минуя `shield`, без
+  боевых хуков. Идиом: `berserker.py`, `DetonationRegistry`, яд. Реюз для будущего
+  (Проклятый сундук, карты «Истязания»).
+- Магазин (`ui/shop/`): утилизация `get_removal_price` = `(15+floor·2)+removal·25`,
+  ×2 от «Проклятой Короны». Ключи `player_keys` (босс даёт 1, тратится на закрытый
+  сундук). Расширение витрины — C2. Sim-моделирование экономики — C3.
+
 ## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
 main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
 

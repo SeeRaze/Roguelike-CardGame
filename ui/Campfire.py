@@ -2,34 +2,47 @@ import pygame
 
 
 class Campfire:
-    """Экран Костра -- тёплая тема, стиль EventView."""
-    sub_state        = "MAIN"
-    is_rest_hovered  = False
-    is_forge_hovered = False
+    """Экран Костра -- тёплая тема, стиль EventView.
+    Три опции: Отдых (30% недостающего HP) / Кузница (апгрейд) /
+    Ритуал крови (удалить карту ценой HP)."""
+    sub_state         = "MAIN"
+    is_rest_hovered   = False
+    is_forge_hovered  = False
+    is_ritual_hovered = False
+
+    # Цена «Ритуала крови»: HP сквозь щит за удаление одной карты из колоды.
+    _BLOOD_RITUAL_COST = 10
 
     _BG_COLOR        = (15,  10,  10)
     _PANEL_COLOR     = (35,  20,  15)
     _BTN_COLOR       = (70,  40,  20)
     _BTN_HOVER_COLOR = (120, 70,  30)
+    _BTN_DISABLED    = (45,  35,  30)
     _BTN_BORDER      = (220, 140, 60)
     _TITLE_COLOR     = (255, 180, 60)
     _TEXT_COLOR      = (210, 200, 185)
     _HP_COLOR        = (100, 220, 100)
+    _BLOOD_COLOR     = (220, 80,  70)
 
     @staticmethod
     def reset():
-        Campfire.sub_state        = "MAIN"
-        Campfire.is_rest_hovered  = False
-        Campfire.is_forge_hovered = False
+        Campfire.sub_state         = "MAIN"
+        Campfire.is_rest_hovered   = False
+        Campfire.is_forge_hovered  = False
+        Campfire.is_ritual_hovered = False
+
+    @staticmethod
+    def _ritual_available(view) -> bool:
+        """Ритуал доступен, только если HP хватает пережить цену и в колоде
+        есть что приносить в жертву (защита от суицида / пустой колоды)."""
+        return (view.gm.player.hp > Campfire._BLOOD_RITUAL_COST
+                and len(view.gm.current_deck) > 1)
 
     @staticmethod
     def draw_screen(view):
         C         = Campfire
         screen    = view.screen
-        W, H      = screen.get_size()
-        mouse_pos = pygame.mouse.get_pos()
         screen.fill(C._BG_COLOR)
-        _hovered_card_data = None
 
         title_font = pygame.font.SysFont("Arial", 42, bold=True)
         text_font  = pygame.font.SysFont("Arial", 28)
@@ -37,114 +50,200 @@ class Campfire:
         small_font = pygame.font.SysFont("Arial", 18, bold=True)
 
         if Campfire.sub_state == "MAIN":
-            # Центральная панель (компактная для главного экрана)
-            panel = pygame.Rect(W // 2 - 480, 60, 960, 600)
-            pygame.draw.rect(screen, C._PANEL_COLOR, panel, border_radius=16)
-            pygame.draw.rect(screen, C._BTN_BORDER,  panel, 2, border_radius=16)
-
-            title = title_font.render(
-                f"ЭТАЖ {view.gm.current_floor}: У КОСТРА", True, C._TITLE_COLOR)
-            screen.blit(title, (W // 2 - title.get_width() // 2, 110))
-
-            hp_surf = text_font.render(
-                f"Здоровье: {view.gm.player.hp} / {view.gm.player.max_hp}",
-                True, C._HP_COLOR)
-            screen.blit(hp_surf, (W // 2 - hp_surf.get_width() // 2, 185))
-
-            view.btn_rest_rect = pygame.Rect(W // 2 - 300, 300, 600, 80)
-            Campfire.is_rest_hovered = view.btn_rest_rect.collidepoint(mouse_pos)
-            col = C._BTN_HOVER_COLOR if Campfire.is_rest_hovered else C._BTN_COLOR
-            pygame.draw.rect(screen, col, view.btn_rest_rect, border_radius=12)
-            pygame.draw.rect(screen, C._BTN_BORDER, view.btn_rest_rect, 2, border_radius=12)
-            lbl = btn_font.render("ОТДОХНУТЬ  (+25 HP)", True, (255, 255, 255))
-            screen.blit(lbl, (view.btn_rest_rect.centerx - lbl.get_width() // 2,
-                               view.btn_rest_rect.centery - lbl.get_height() // 2))
-
-            view.btn_forge_rect = pygame.Rect(W // 2 - 300, 420, 600, 80)
-            Campfire.is_forge_hovered = view.btn_forge_rect.collidepoint(mouse_pos)
-            col = C._BTN_HOVER_COLOR if Campfire.is_forge_hovered else C._BTN_COLOR
-            pygame.draw.rect(screen, col, view.btn_forge_rect, border_radius=12)
-            pygame.draw.rect(screen, C._BTN_BORDER, view.btn_forge_rect, 2, border_radius=12)
-            lbl = btn_font.render("КУЗНИЦА  (Улучшить карту)", True, (255, 255, 255))
-            screen.blit(lbl, (view.btn_forge_rect.centerx - lbl.get_width() // 2,
-                               view.btn_forge_rect.centery - lbl.get_height() // 2))
-
+            Campfire._draw_main(view, screen, title_font, text_font, btn_font)
         elif Campfire.sub_state == "FORGE":
-            panel = pygame.Rect(40, 20, W - 80, H - 40)
-            pygame.draw.rect(screen, C._PANEL_COLOR, panel, border_radius=16)
-            pygame.draw.rect(screen, C._BTN_BORDER,  panel, 2, border_radius=16)
+            Campfire._draw_card_grid(
+                view, screen, title_font, text_font, small_font,
+                title="КУЗНИЦА: ВЫБЕРИТЕ КАРТУ",
+                hint="Кликните по карте для улучшения  |  Колесо мыши -- прокрутка",
+                mark_upgraded=True,
+            )
+        elif Campfire.sub_state == "SACRIFICE":
+            Campfire._draw_card_grid(
+                view, screen, title_font, text_font, small_font,
+                title="РИТУАЛ КРОВИ: ВЫБЕРИТЕ ЖЕРТВУ",
+                hint=f"Удалить карту из колоды ценой -{Campfire._BLOOD_RITUAL_COST} HP"
+                     "  |  Колесо мыши -- прокрутка",
+                mark_upgraded=False,
+            )
 
-            title = title_font.render("КУЗНИЦА: ВЫБЕРИТЕ КАРТУ", True, C._TITLE_COLOR)
-            screen.blit(title, (W // 2 - title.get_width() // 2, 45))
+    # ------------------------------------------------------------------
+    # MAIN: три кнопки-опции
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _draw_main(view, screen, title_font, text_font, btn_font):
+        C         = Campfire
+        W, _      = screen.get_size()
+        mouse_pos = pygame.mouse.get_pos()
 
-            hint = text_font.render(
-                "Кликните по карте для улучшения  |  Колесо мыши -- прокрутка",
-                True, C._TEXT_COLOR)
-            screen.blit(hint, (W // 2 - hint.get_width() // 2, 110))
+        panel = pygame.Rect(W // 2 - 480, 60, 960, 600)
+        pygame.draw.rect(screen, C._PANEL_COLOR, panel, border_radius=16)
+        pygame.draw.rect(screen, C._BTN_BORDER,  panel, 2, border_radius=16)
 
-            cards_per_row = 7
-            card_w    = view.card_width
-            card_h    = view.card_height
-            spacing_x = card_w + 24
-            spacing_y = card_h + 36
-            total_w   = cards_per_row * spacing_x - 24
-            start_x   = W // 2 - total_w // 2
-            start_y   = 165
+        title = title_font.render(
+            f"ЭТАЖ {view.gm.current_floor}: У КОСТРА", True, C._TITLE_COLOR)
+        screen.blit(title, (W // 2 - title.get_width() // 2, 100))
 
-            clip_rect = pygame.Rect(60, start_y, W - 120, H - start_y - 30)
-            screen.set_clip(clip_rect)
+        hp_surf = text_font.render(
+            f"Здоровье: {view.gm.player.hp} / {view.gm.player.max_hp}",
+            True, C._HP_COLOR)
+        screen.blit(hp_surf, (W // 2 - hp_surf.get_width() // 2, 165))
 
-            _hovered_card_data = None
-            view.forge_card_rects = []
+        heal_preview = view.gm.player.rest_heal_amount(
+            view.gm.player.hp, view.gm.player.max_hp)
 
-            for index, card in enumerate(view.gm.current_deck):
-                row    = index // cards_per_row
-                col    = index % cards_per_row
-                card_x = start_x + col * spacing_x
-                card_y = start_y + 10 + row * spacing_y - view.scroll_y
-                card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
-                view.forge_card_rects.append((card_rect, index))
+        # (rect-атрибут, лейбл, флаг ховера, активна?)
+        view.btn_rest_rect   = pygame.Rect(W // 2 - 300, 250, 600, 76)
+        view.btn_forge_rect  = pygame.Rect(W // 2 - 300, 360, 600, 76)
+        view.btn_ritual_rect = pygame.Rect(W // 2 - 300, 470, 600, 76)
+        ritual_ok = Campfire._ritual_available(view)
 
-                is_hov = card_rect.collidepoint(mouse_pos)
-                if is_hov:
-                    _hovered_card_data = (card, card_rect)
-                draw_y = card_y - 10 if is_hov else card_y
-                view.draw_card_by_data(card, card_x, draw_y)
+        Campfire.is_rest_hovered   = view.btn_rest_rect.collidepoint(mouse_pos)
+        Campfire.is_forge_hovered  = view.btn_forge_rect.collidepoint(mouse_pos)
+        Campfire.is_ritual_hovered = (ritual_ok
+                                      and view.btn_ritual_rect.collidepoint(mouse_pos))
 
-                if card.upgraded:
-                    lbl = small_font.render("[МАКС]", True, C._HP_COLOR)
-                    screen.blit(lbl, (card_x + 8, draw_y + card_h - 26))
+        Campfire._draw_button(screen, btn_font, view.btn_rest_rect,
+                              f"ОТДОХНУТЬ  (+{heal_preview} HP, 30% недостающего)",
+                              Campfire.is_rest_hovered, True)
+        Campfire._draw_button(screen, btn_font, view.btn_forge_rect,
+                              "КУЗНИЦА  (Улучшить карту)",
+                              Campfire.is_forge_hovered, True)
+        ritual_lbl = (f"РИТУАЛ КРОВИ  (Удалить карту, -{Campfire._BLOOD_RITUAL_COST} HP)"
+                      if ritual_ok else "РИТУАЛ КРОВИ  (недоступно)")
+        Campfire._draw_button(screen, btn_font, view.btn_ritual_rect,
+                              ritual_lbl, Campfire.is_ritual_hovered, ritual_ok,
+                              border=Campfire._BLOOD_COLOR)
 
-            screen.set_clip(None)
+    @staticmethod
+    def _draw_button(screen, font, rect, label, hovered, enabled, border=None):
+        C = Campfire
+        if not enabled:
+            col = C._BTN_DISABLED
+        elif hovered:
+            col = C._BTN_HOVER_COLOR
+        else:
+            col = C._BTN_COLOR
+        pygame.draw.rect(screen, col, rect, border_radius=12)
+        pygame.draw.rect(screen, border or C._BTN_BORDER, rect, 2, border_radius=12)
+        txt_col = (255, 255, 255) if enabled else (140, 130, 125)
+        lbl = font.render(label, True, txt_col)
+        screen.blit(lbl, (rect.centerx - lbl.get_width() // 2,
+                          rect.centery - lbl.get_height() // 2))
 
-            # Тултип поверх clip -- последним
-            if _hovered_card_data:
-                card, rect = _hovered_card_data
-                from ui.cards import CardRenderer
-                CardRenderer.draw_card_keyword_tooltip(
-                    screen, view.card_font, view.card_desc_font, card, rect
-                )
+    # ------------------------------------------------------------------
+    # FORGE / SACRIFICE: общая прокручиваемая сетка карт колоды
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _draw_card_grid(view, screen, title_font, text_font, small_font,
+                        *, title, hint, mark_upgraded):
+        C         = Campfire
+        W, H      = screen.get_size()
+        mouse_pos = pygame.mouse.get_pos()
 
+        panel = pygame.Rect(40, 20, W - 80, H - 40)
+        pygame.draw.rect(screen, C._PANEL_COLOR, panel, border_radius=16)
+        pygame.draw.rect(screen, C._BTN_BORDER,  panel, 2, border_radius=16)
+
+        t = title_font.render(title, True, C._TITLE_COLOR)
+        screen.blit(t, (W // 2 - t.get_width() // 2, 45))
+        h = text_font.render(hint, True, C._TEXT_COLOR)
+        screen.blit(h, (W // 2 - h.get_width() // 2, 110))
+
+        cards_per_row = 7
+        card_w, card_h = view.card_width, view.card_height
+        spacing_x = card_w + 24
+        spacing_y = card_h + 36
+        total_w   = cards_per_row * spacing_x - 24
+        start_x   = W // 2 - total_w // 2
+        start_y   = 165
+
+        clip_rect = pygame.Rect(60, start_y, W - 120, H - start_y - 30)
+        screen.set_clip(clip_rect)
+
+        hovered_card_data    = None
+        view.campfire_card_rects = []
+
+        for index, card in enumerate(view.gm.current_deck):
+            row    = index // cards_per_row
+            col    = index % cards_per_row
+            card_x = start_x + col * spacing_x
+            card_y = start_y + 10 + row * spacing_y - view.scroll_y
+            card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
+            view.campfire_card_rects.append((card_rect, index))
+
+            is_hov = card_rect.collidepoint(mouse_pos)
+            if is_hov:
+                hovered_card_data = (card, card_rect)
+            draw_y = card_y - 10 if is_hov else card_y
+            view.draw_card_by_data(card, card_x, draw_y)
+
+            if mark_upgraded and card.upgraded:
+                lbl = small_font.render("[МАКС]", True, C._HP_COLOR)
+                screen.blit(lbl, (card_x + 8, draw_y + card_h - 26))
+
+        screen.set_clip(None)
+
+        if hovered_card_data:
+            card, rect = hovered_card_data
+            from ui.cards import CardRenderer
+            CardRenderer.draw_card_keyword_tooltip(
+                screen, view.card_font, view.card_desc_font, card, rect
+            )
+
+    # ------------------------------------------------------------------
+    # Обработка кликов
+    # ------------------------------------------------------------------
     @staticmethod
     def handle_clicks(view, mouse_pos):
         if Campfire.sub_state == "MAIN":
-            if hasattr(view, 'btn_rest_rect') and view.btn_rest_rect.collidepoint(mouse_pos):
-                view.gm.player.hp = min(view.gm.player.hp + 25, view.gm.player.max_hp)
-                view.gm.current_floor += 1
-                view.gm.setup_next_floor()
-
-            elif hasattr(view, 'btn_forge_rect') and view.btn_forge_rect.collidepoint(mouse_pos):
-                view.scroll_y = 0
-                Campfire.sub_state = "FORGE"
-
+            Campfire._handle_main(view, mouse_pos)
         elif Campfire.sub_state == "FORGE":
-            if hasattr(view, 'forge_card_rects'):
-                for card_rect, index in view.forge_card_rects:
-                    if card_rect.collidepoint(mouse_pos):
-                        card = view.gm.current_deck[index]
-                        if not card.upgraded:
-                            card.upgrade()
-                            Campfire.sub_state = "MAIN"
-                            view.gm.current_floor += 1
-                            view.gm.setup_next_floor()
-                        break
+            Campfire._handle_forge(view, mouse_pos)
+        elif Campfire.sub_state == "SACRIFICE":
+            Campfire._handle_sacrifice(view, mouse_pos)
+
+    @staticmethod
+    def _handle_main(view, mouse_pos):
+        if hasattr(view, 'btn_rest_rect') and view.btn_rest_rect.collidepoint(mouse_pos):
+            player = view.gm.player
+            amount = player.rest_heal_amount(player.hp, player.max_hp)
+            player.heal(amount)
+            Campfire._advance(view)
+
+        elif hasattr(view, 'btn_forge_rect') and view.btn_forge_rect.collidepoint(mouse_pos):
+            view.scroll_y = 0
+            Campfire.sub_state = "FORGE"
+
+        elif hasattr(view, 'btn_ritual_rect') \
+                and view.btn_ritual_rect.collidepoint(mouse_pos) \
+                and Campfire._ritual_available(view):
+            view.scroll_y = 0
+            Campfire.sub_state = "SACRIFICE"
+
+    @staticmethod
+    def _handle_forge(view, mouse_pos):
+        for card_rect, index in getattr(view, 'campfire_card_rects', []):
+            if card_rect.collidepoint(mouse_pos):
+                card = view.gm.current_deck[index]
+                if not card.upgraded:
+                    card.upgrade()
+                    Campfire._advance(view)
+                break
+
+    @staticmethod
+    def _handle_sacrifice(view, mouse_pos):
+        for card_rect, index in getattr(view, 'campfire_card_rects', []):
+            if card_rect.collidepoint(mouse_pos):
+                removed = view.gm.current_deck.pop(index)
+                view.gm.player.lose_hp(Campfire._BLOOD_RITUAL_COST)
+                print(f"[РИТУАЛ КРОВИ] Карта '{removed.name}' принесена в жертву.")
+                Campfire._advance(view)
+                break
+
+    @staticmethod
+    def _advance(view):
+        """Костёр -- одно действие за визит: применили и идём на след. этаж."""
+        Campfire.sub_state = "MAIN"
+        view.gm.current_floor += 1
+        view.gm.setup_next_floor()

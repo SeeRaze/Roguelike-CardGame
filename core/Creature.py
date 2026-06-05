@@ -11,6 +11,9 @@ class Creature:
     # Режет перекормленные стаки регена, не трогая одиночные хил-карты.
     REGEN_HEAL_CAP_PER_TURN = 6
 
+    # Доля НЕДОСТАЮЩЕГО HP, восстанавливаемая «Отдыхом» у костра (см. rest_heal_amount).
+    REST_HEAL_PCT = 0.30
+
     def __init__(self, name, hp, max_hp):
         self.name   = name
         self.hp     = hp
@@ -79,6 +82,24 @@ class Creature:
                 self.on_heal_passive(healed, combat_manager)
 
         return healed
+
+    def lose_hp(self, amount: int) -> int:
+        """Прямой урон СКВОЗЬ ЩИТ — напрямую в HP, минуя shield.
+        Идиом из berserker.py / DetonationRegistry / яд («сквозь щит»).
+        Переиспользуется вне боя (Ритуал крови костра, Проклятый сундук)
+        и не дёргает боевые хуки (шипы/вампир). Возвращает фактический урон."""
+        lost = max(0, min(amount, self.hp))
+        self.hp -= lost
+        print(f"[{self.name}] теряет {lost} HP сквозь щит. "
+              f"Текущее HP: {self.hp}/{self.max_hp}")
+        return lost
+
+    @staticmethod
+    def rest_heal_amount(hp: int, max_hp: int) -> int:
+        """Лечение «Отдыха» у костра: 30% от НЕДОСТАЮЩЕГО HP (Balatro-стиль —
+        чем ближе к смерти, тем эффективнее). Пьюр-формула без побочек,
+        тестируется без pygame. При полном HP вернёт 0."""
+        return int((max_hp - hp) * Creature.REST_HEAL_PCT)
 
     def gain_shield(self, amount, combat_manager=None):
         self.shield += amount
