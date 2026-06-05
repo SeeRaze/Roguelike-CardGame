@@ -38,7 +38,8 @@ def _get_base_damage(description: str, is_upgraded: bool) -> int:
 
 
 def _resolve_description(description: str, is_upgraded: bool,
-                         player=None, enemy=None) -> tuple[str, bool]:
+                         player=None, enemy=None,
+                         base_override=None) -> tuple[str, bool]:
     is_combo = False
     if is_upgraded:
         cleaned = re.sub(r'\d+\s*\((\d+)\)', r'\1', description)
@@ -48,33 +49,40 @@ def _resolve_description(description: str, is_upgraded: bool,
     if player is None or enemy is None:
         return cleaned, is_combo
 
-    is_combo   = getattr(enemy, 'wet', 0) > 0 and getattr(enemy, 'ignited', 0) > 0
-    is_boosted = (
-        getattr(player, 'strength', 0) > 0
-        or getattr(enemy, 'vulnerable', 0) > 0
-        or is_combo
-    )
+    is_combo = getattr(enemy, 'wet', 0) > 0 and getattr(enemy, 'ignited', 0) > 0
 
-    if not is_boosted:
-        return cleaned, is_combo
-
-    base_dmg = _get_base_damage(description, is_upgraded)
+    # База урона = ЗНАЧЕНИЕ ЭФФЕКТА карты (base_override), а не число из строки:
+    # ковка (+δ) бампит эффект, но НЕ строку описания. printed_base — что напечатано
+    # в строке (для решения, надо ли подсветить изменённое число).
+    printed_base = _get_base_damage(description, is_upgraded)
+    base_dmg = base_override if base_override is not None else printed_base
     if base_dmg == 0:
         return cleaned, is_combo
 
+    # Фактический урон под ДЕТЕРМИНИРОВАННЫМИ модификаторами: Ярость/Уязвимость/комбо
+    # считает calculate_damage, Заточка = player.atk_mult (в dry_run is_player_attack
+    # ложно — домножаем вручную). Условные forge-теги ситуативны (зависят от стола
+    # боя) → показаны точками (этап 6), в число НЕ входят. Игрок видит то, что нанесёт.
     predicted = EffectCalculator.calculate_damage(
         attacker=player, target=enemy,
         base_damage=base_dmg, dry_run=True,
     )
-    resolved = re.sub(
-        r'\d+', DMG_MARKER + str(predicted), cleaned, count=1
-    )
-    return resolved, is_combo
+    atk_mult = getattr(player, "atk_mult", 1.0)
+    if atk_mult != 1.0:
+        predicted = int(predicted * atk_mult)
+
+    # Подсвечиваем число, только если оно отличается от напечатанного (есть модификатор
+    # ИЛИ уровень ковки) — иначе показываем строку как есть.
+    if predicted != printed_base:
+        resolved = re.sub(r'\d+', DMG_MARKER + str(predicted), cleaned, count=1)
+        return resolved, is_combo
+    return cleaned, is_combo
 
 
 def draw_smart_description(surface, description, font, card_rect,
-                           is_upgraded, player=None, enemy=None):
-    text, is_combo = _resolve_description(description, is_upgraded, player, enemy)
+                           is_upgraded, player=None, enemy=None, base_override=None):
+    text, is_combo = _resolve_description(
+        description, is_upgraded, player, enemy, base_override)
     color_digit = COLOR_COMBO if is_combo else COLOR_DMG
     font_big = pygame.font.SysFont("Arial", font.size("0")[1] + 4, bold=True)
 

@@ -52,9 +52,12 @@ class CardRenderer:
         description.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
 
         if card.card_type == "attack" and player is not None and enemy is not None:
+            # База урона для превью — из ЭФФЕКТА (учитывает уровень ковки +δ), а не
+            # из строки описания (которая ковкой не обновляется). 39.5 хотфикс.
             description.draw_smart_description(
                 surface, card.description, font_desc, rect,
-                card.upgraded, player=player, enemy=enemy
+                card.upgraded, player=player, enemy=enemy,
+                base_override=CardRenderer._card_base_damage(card),
             )
         else:
             description.draw_smart_description(
@@ -68,6 +71,18 @@ class CardRenderer:
             CardRenderer._draw_unaffordable_overlay(surface, rect)
 
         return rect
+
+    @staticmethod
+    def _card_base_damage(card):
+        """Текущее значение урона карты из ЭФФЕКТА (а не из строки описания):
+        upgrade_val если карта улучшена/прокачана, иначе base_val. Учитывает
+        линейный слой ковки (+δ бампит base_val/upgrade_val). None, если карта без
+        урона. Используется для корректного превью числа на карте (39.5 хотфикс)."""
+        from core.cards.base import DamageEffect
+        for e in card.effects:
+            if isinstance(e, DamageEffect):
+                return e.upgrade_val if card.upgraded else e.base_val
+        return None
 
     @staticmethod
     def _draw_forge_marks(surface, card, player, rect, font):
