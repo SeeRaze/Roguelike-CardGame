@@ -29,10 +29,12 @@ def _send_in_background(payload: dict):
     except requests.RequestException as e:
         print(f"[СЕТЬ] Ошибка отправки: {e}")
 
-def send_run_record(max_floor: int, kills: int, max_damage: int):
+def send_run_record(max_floor: int, kills: int, max_damage: int,
+                    player_class: str = "—"):
     """БАГ 5: запускает отправку в фоновом потоке — игра не зависает."""
     payload = {
         "username": _get_username(),
+        "class": player_class,
         "max_floor": max_floor,
         "kills": kills,
         "max_damage": max_damage,

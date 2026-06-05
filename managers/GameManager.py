@@ -2,6 +2,7 @@ import os
 from managers.MapGenerator    import generate_map, FLOORS_PER_ACT
 from managers.EnemySpawner    import build_enemy_group, ENEMY_REGISTRY
 from managers.RewardManager   import build_rewards
+from managers                 import SaveManager
 from core.players             import Warrior
 from core.forge               import assign_forge_uid, combat_fp_gain, next_cap_for_boss
 
@@ -19,6 +20,10 @@ class GameManager:
             self.player_name = "Искатель"
 
         print(f"--- GameManager: Авторизован пользователь ОС: {self.player_name} ---")
+
+        # Мета-прогрессия: «игра помнит тебя» между забегами (Сессия 40).
+        # Ленивая загрузка с диска (битый/чужой файл → дефолт, без падения).
+        self.meta = SaveManager.get_meta()
 
         self.stats = {
             "name":             self.player_name,
