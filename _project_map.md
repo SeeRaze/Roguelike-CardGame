@@ -71,7 +71,21 @@ while is_running:
 - **Ограбление** (`Shop._rob`, кнопка под слотом реликвии): риск-механика — шанс
   `ROB_SUCCESS_CHANCE`(0.30) забрать реликвию бесплатно и сбежать; провал →
   `current_state="COMBAT"` + `spawn_procedural_enemy(is_elite=True)` (элитный страж,
-  этаж продвинет победа). Sim-моделирование экономики — C3.
+  этаж продвинет победа).
+- **Sim-моделирование экономики** (`managers/balance/economy.py`, шаг №6 фреймворка):
+  до C3 симулятор НЕ видел золото/удаление. `EconomyPolicy` — слой между-боевых
+  решений (зеркало `BotPolicy`): `on_combat_won` копит золото (`gold_reward` =
+  зеркало `RewardManager.build_rewards`: `randint(20,35)+floor·3`, элита ×1.5,
+  Корона→0), `between_acts` (у костра) тратит на удаление слабейшей карты
+  (`_removal_target` по `_card_score`, тай-брейк — нетематичная). `_StubGM` получил
+  поля `player_gold/keys/removal_count` + `get_removal_price` (зеркало GameManager).
+  `run_single_run(..., economy=None)` по умолчанию ВЫКЛ (A/B «с/без» чист);
+  `BalanceSimulator.run_dual(economy=...)` вливает в обе метрики. **Замер-вывод:**
+  прореживание — почти нейтральный рычаг (свип `MAX_REMOVALS_PER_ACT` 1→4 двигает
+  медиану на ±1-2 этажа, в шуме): цена удаления растёт быстро + добор 5/ход с
+  перемешиванием → потеря 1-3 слабых карт из ~30 не ускоряет сборку компаунда.
+  Реальный регулятор скорости сборки — драфт реликвий/карт (уже моделируется), не
+  прореживание. → [[balance-findings-economy-thinning]].
 
 ## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
 main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml

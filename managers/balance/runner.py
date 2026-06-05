@@ -34,12 +34,18 @@ def default_draft(deck: list, class_name: str) -> None:
 
 class _StubGM:
     """Минимальный игровой контекст для боя вне UI.
-    CombatManager читает gm.stats / gm.relics / gm.current_floor."""
+    CombatManager читает gm.stats / gm.relics / gm.current_floor.
+    Экономические поля (gold/keys/removal_count) — зеркало GameManager,
+    нужны EconomyPolicy (шаг №6 фреймворка); в бою не используются."""
 
     def __init__(self, relics=None):
         self.relics        = relics if relics is not None else []
         self.current_floor = 1
         self.current_state = "COMBAT"
+        # Экономика (зеркало GameManager). Дефолты совпадают с реальной игрой.
+        self.player_gold   = 100
+        self.player_keys   = 0
+        self.removal_count = 0
         self.stats = {
             "monsters_killed":  0,
             "bosses_killed":    0,
@@ -47,9 +53,17 @@ class _StubGM:
             "max_floor":        1,
         }
 
+    def get_removal_price(self) -> int:
+        """Цена удаления карты — точное зеркало GameManager.get_removal_price
+        (растёт с этажом и числом прошлых удалений; Корона удваивает)."""
+        base = (15 + self.current_floor * 2) + self.removal_count * 25
+        if any(r.name == "Проклятая Корона" for r in self.relics):
+            base *= 2
+        return base
+
 
 def run_single_run(player_class, max_floor: int = 100, *,
-                   draft=None, extra_cards=None, relics=None) -> dict:
+                   draft=None, extra_cards=None, relics=None, economy=None) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -61,6 +75,10 @@ def run_single_run(player_class, max_floor: int = 100, *,
       relics      — список ФАБРИК/классов реликвий; инстанцируются на забег и
                     кладутся в gm.relics (хуки реликвий работают в бою).
                     По умолчанию пусто.
+      economy     — EconomyPolicy или None. Если задана: после боя начисляется
+                    золото, раз в акт оно тратится на удаление слабых карт
+                    (шаг №6 фреймворка). По умолчанию None → экономика выключена
+                    (регресс-нейтрально, A/B «с/без» чист).
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
@@ -106,12 +124,19 @@ def run_single_run(player_class, max_floor: int = 100, *,
         # внутрибоевые движки (barrier/mastery/echo) НЕ переносятся по забегу.
         player.reset_combat_statuses()
 
+        # Экономика (шаг №6): начислить золото за бой (зеркало build_rewards).
+        if economy is not None:
+            economy.on_combat_won(gm, floor)
+
         # Прогрессия колоды: карта-награда за бой (стратегия драфта).
         draft(deck, class_name)
 
-        # Костёр на предбоссовом этаже: частичное лечение.
+        # Костёр на предбоссовом этаже: частичное лечение + экономика акта.
         if local_step == FLOORS_PER_ACT - 1:
             heal = int(player.max_hp * _CAMPFIRE_HEAL)
             player.hp = min(player.max_hp, player.hp + heal)
+            # Раз в акт: потратить накопленное золото на прореживание колоды.
+            if economy is not None:
+                economy.between_acts(gm, deck, class_name)
 
     return {"death_floor": None, "hp_by_floor": hp_by_floor}

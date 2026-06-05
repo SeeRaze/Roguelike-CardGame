@@ -14,6 +14,7 @@ import builtins
 from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner
 from managers.balance import (
     run_single_run, get_ceiling_build, summarize, format_dual_report,
+    EconomyPolicy,
 )
 
 ALL_CLASSES = [Warrior, Rogue, Mage, Druid, Berserker, Summoner]
@@ -29,18 +30,22 @@ def _silently(fn, *args, **kwargs):
         builtins.print = _print
 
 
-def run_dual(player_class, number_of_runs=200, max_floor=100):
-    """Прогнать обе метрики (wall + ceiling) и напечатать сравнительный отчёт."""
+def run_dual(player_class, number_of_runs=200, max_floor=100, *, economy=None):
+    """Прогнать обе метрики (wall + ceiling) и напечатать сравнительный отчёт.
+
+    economy — EconomyPolicy (золото+прореживание, шаг №6) или None. Вливается в
+    ОБЕ метрики: прореживание ускоряет сборку и стены, и потолка."""
     name = player_class.__name__
 
     def _wall():
-        return [run_single_run(player_class, max_floor)
+        return [run_single_run(player_class, max_floor, economy=economy)
                 for _ in range(number_of_runs)]
 
     def _ceiling():
         draft, extra, relics = get_ceiling_build(name)
         return [run_single_run(player_class, max_floor,
-                               draft=draft, extra_cards=extra, relics=relics)
+                               draft=draft, extra_cards=extra, relics=relics,
+                               economy=economy)
                 for _ in range(number_of_runs)]
 
     wall_stats    = summarize(_silently(_wall), max_floor)
@@ -50,5 +55,6 @@ def run_dual(player_class, number_of_runs=200, max_floor=100):
 
 
 if __name__ == "__main__":
+    economy = EconomyPolicy()      # золото + прореживание (шаг №6 фреймворка)
     for cls in ALL_CLASSES:
-        run_dual(cls, number_of_runs=200, max_floor=100)
+        run_dual(cls, number_of_runs=200, max_floor=100, economy=economy)
