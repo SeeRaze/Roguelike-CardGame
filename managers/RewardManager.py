@@ -39,6 +39,14 @@ def _pick_relic(gm, rarity: Rarity):
     return random.choice(available_relics)()
 
 
+def pick_shop_relic(gm):
+    """Реликвия для витрины магазина: редкость как у обычного боя (средние/слабые,
+    см. _roll_relic_rarity), фильтр уже имеющихся. Возвращает инстанс или None
+    (если все реликвии уже собраны). Логика реликвий — единым источником здесь."""
+    rarity = _roll_relic_rarity(is_boss=False, is_elite=False)
+    return _pick_relic(gm, rarity)
+
+
 def build_rewards(gm, is_boss: bool, is_elite: bool) -> list:
     """Сформировать список наград за победу.
 
