@@ -33,7 +33,7 @@ class Relic:
     # --- Пассивные хуки ---
     def on_combat_start(self, combat_manager):          pass
     def on_turn_start(self, combat_manager):            pass
-    def on_damage_calculated(self, base_dmg, is_player_attack=True):
+    def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
         return base_dmg
     def on_tick_ignited(self, creature):                return 0
     def on_wet_applied(self, combat_manager):           pass

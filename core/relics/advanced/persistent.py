@@ -42,7 +42,7 @@ class КоронаВознесения(Relic):
                 f"[Реликвия] '{self.name}': урон атак +{pct}% до конца забега!"
             )
 
-    def on_damage_calculated(self, base_dmg, is_player_attack=True):
+    def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
         if is_player_attack and self._mult > 1.0:
             # Округляем (не усекаем): иначе ×1.1 на мелком уроне (5→5.5) терялся бы
             # в ноль на ранних боссах. Согласовано с int()-множителями EffectCalculator.

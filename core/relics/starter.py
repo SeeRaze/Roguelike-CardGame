@@ -19,7 +19,7 @@ class ТочильныйКамень(Relic):
     def __init__(self):
         super().__init__("Точильный Камень", "Увеличивает урон всех ваших атак на +2.", Rarity.COMMON)
 
-    def on_damage_calculated(self, base_dmg, is_player_attack=True):
+    def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
         if is_player_attack:
             return base_dmg + 2
         return base_dmg

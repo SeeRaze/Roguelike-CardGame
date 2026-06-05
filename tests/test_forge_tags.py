@@ -255,8 +255,10 @@ def test_calculate_damage_neutral_without_forge_state():
     assert dmg == 10
 
 
-def test_calculate_damage_dry_run_skips_tags():
-    # Превью (dry_run) не применяет теговый множитель.
+def test_calculate_damage_dry_run_applies_tags_without_side_effects():
+    # Новая семантика (аудит механик): dry_run гасит ТОЛЬКО побочки, но считает
+    # детерминированный теговый множитель — превью совпадает с ударом. Чтобы убрать
+    # теги из «гарантированного» числа карты, используется include_forge=False.
     player = Creature("Игрок", 50, 50)
     target = Creature("Враг", 100, 100)
     card = _atk("Удар", 10)
@@ -264,7 +266,11 @@ def test_calculate_damage_dry_run_skips_tags():
     player.deck_forge_state = {1: {"level": 15, "slots": [{"tag_id": "empty_hand"}]}}
     cm = _FakeCombat(player)
     cm._card_being_played = card
-    cm._play_snapshot = {"hand_after": 0}
-    dmg = EffectCalculator.calculate_damage(
-        player, target, 10, combat_manager=cm, dry_run=True)
-    assert dmg == 10
+    cm._play_snapshot = {"hand_after": 0}     # пустая рука → ×2
+    # dry_run ПРИМЕНЯЕТ тег (число превью = число удара)
+    assert EffectCalculator.calculate_damage(
+        player, target, 10, combat_manager=cm, dry_run=True) == 20
+    # include_forge=False убирает тег из «гарантированного» числа
+    assert EffectCalculator.calculate_damage(
+        player, target, 10, combat_manager=cm, dry_run=True,
+        include_forge=False) == 10

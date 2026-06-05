@@ -208,24 +208,26 @@ class CombatManager:
             self.deck_manager.discard_pile.append(selected_card)
         return True
 
-    def _build_play_snapshot(self, target) -> dict:
+    def _build_play_snapshot(self, target, card=None) -> dict:
         """Снимок контекста на момент намерения разыграть карту (§10.6). Предикаты
         тегов прокачки (core/ForgeRegistry.py) читают ТОЛЬКО его — заморожен до
         apply/эха/детонаций. Цель тоже заморожена → null-safe (§10.7): даже если
         враг погибнет в каскаде, снимок хранит прежний стак яда/крови. Ключи
-        совпадают с тем, что читают предикаты ForgeRegistry."""
+        совпадают с тем, что читают предикаты ForgeRegistry. `card` — разыгрываемая
+        (или наведённая, для превью) карта; по умолчанию — текущая транзиентная."""
         p = self.player
+        card = card if card is not None else self._card_being_played
         max_hp = getattr(p, "max_hp", 0) or 1
         # Рука ПОСЛЕ изъятия текущей карты (для empty_hand): карта ещё в hand на
         # момент снимка, поэтому −1.
         hand_after = max(0, len(self.deck_manager.hand) - 1)
         # Сколько АТАКУЮЩИХ карт осталось бы в руке (для оборонного тега bulwark:
         # «рука только из защиты»). Считаем по наличию DamageEffect, исключая
-        # текущую разыгрываемую карту.
+        # саму разыгрываемую/наведённую карту.
         from core.cards.base import DamageEffect
         hand_attack = sum(
             1 for c in self.deck_manager.hand
-            if c is not self._card_being_played
+            if c is not card
             and any(isinstance(e, DamageEffect) for e in getattr(c, "effects", []))
         )
         return {
@@ -240,6 +242,12 @@ class CombatManager:
             "tgt_poison": getattr(target, "poison", 0),
             "tgt_bleed":  getattr(target, "bleed", 0),
         }
+
+    def build_preview_snapshot(self, card, target) -> dict:
+        """Снимок для ПРЕВЬЮ урона на карте (UI): тот же контент, что у розыгрыша,
+        но для произвольной наведённой карты и БЕЗ установки живых транзиентов
+        (_card_being_played/_play_snapshot). Используется EffectCalculator.preview."""
+        return self._build_play_snapshot(target, card=card)
 
     def end_turn_phase(self):
         self.add_log_message("Вы завершили ход.")

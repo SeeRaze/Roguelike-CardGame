@@ -170,7 +170,10 @@ def test_calculate_damage_atk_mult_neutral_default():
     assert EffectCalculator.calculate_damage(player, target, 10, combat_manager=cm) == 10
 
 
-def test_calculate_damage_atk_mult_dry_run_skips():
+def test_calculate_damage_atk_mult_applies_in_dry_run():
+    # Аудит механик (С40): dry_run гасит ТОЛЬКО побочки, но считает Заточку —
+    # превью на карте теперь совпадает с фактическим ударом (костыль в
+    # description.py больше не нужен).
     player = Creature("Игрок", 50, 50)
     player.atk_mult = 2.0
     target = Creature("Враг", 100, 100)
@@ -182,4 +185,4 @@ def test_calculate_damage_atk_mult_dry_run_skips():
     cm.player = player
     dmg = EffectCalculator.calculate_damage(player, target, 10, combat_manager=cm,
                                             dry_run=True)
-    assert dmg == 10                               # превью не применяет Заточку
+    assert dmg == 20                               # превью применяет Заточку ×2.0

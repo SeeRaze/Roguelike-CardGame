@@ -12,7 +12,7 @@ class ПроклятаяКорона(Relic):
             Rarity.LEGENDARY,
         )
 
-    def on_damage_calculated(self, base_dmg, is_player_attack=True):
+    def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
         if is_player_attack:
             return base_dmg * 2
         return base_dmg
@@ -30,9 +30,11 @@ class ЗаточенныйОсколок(Relic):
     def on_combat_start(self, combat_manager):
         self._used_this_combat = False
 
-    def on_damage_calculated(self, base_dmg, is_player_attack=True):
+    def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
         if is_player_attack and not self._used_this_combat:
-            self._used_this_combat = True
+            # В превью (dry_run) показываем бонус, но НЕ расходуем одноразовый заряд.
+            if not dry_run:
+                self._used_this_combat = True
             return base_dmg + 3
         return base_dmg
 
