@@ -1,9 +1,11 @@
 import pygame
 
+from core import forge as forge_mod
+
 
 class Campfire:
     """Экран Костра -- тёплая тема, стиль EventView.
-    Три опции: Отдых (30% недостающего HP) / Кузница (апгрейд) /
+    Опции: Отдых (30% недостающего HP) / Кузница (ковка карт за FP) /
     Ритуал крови (удалить карту ценой HP)."""
     sub_state         = "MAIN"
     is_rest_hovered   = False
@@ -54,9 +56,9 @@ class Campfire:
         elif Campfire.sub_state == "FORGE":
             Campfire._draw_card_grid(
                 view, screen, title_font, text_font, small_font,
-                title="КУЗНИЦА: ВЫБЕРИТЕ КАРТУ",
-                hint="Кликните по карте для улучшения  |  Колесо мыши -- прокрутка",
-                mark_upgraded=True,
+                title="КУЗНИЦА: КОВКА КАРТ",
+                hint="Клик по карте: +1 уровень за FP  |  Колесо мыши -- прокрутка",
+                mark_upgraded=False, forge_view=True,
             )
         elif Campfire.sub_state == "SACRIFICE":
             Campfire._draw_card_grid(
@@ -107,7 +109,7 @@ class Campfire:
                               f"ОТДОХНУТЬ  (+{heal_preview} HP, 30% недостающего)",
                               Campfire.is_rest_hovered, True)
         Campfire._draw_button(screen, btn_font, view.btn_forge_rect,
-                              "КУЗНИЦА  (Улучшить карту)",
+                              f"КУЗНИЦА  (Ковка за FP: {view.gm.player.forge_points})",
                               Campfire.is_forge_hovered, True)
         ritual_lbl = (f"РИТУАЛ КРОВИ  (Удалить карту, -{Campfire._BLOOD_RITUAL_COST} HP)"
                       if ritual_ok else "РИТУАЛ КРОВИ  (недоступно)")
@@ -136,10 +138,11 @@ class Campfire:
     # ------------------------------------------------------------------
     @staticmethod
     def _draw_card_grid(view, screen, title_font, text_font, small_font,
-                        *, title, hint, mark_upgraded):
+                        *, title, hint, mark_upgraded, forge_view=False):
         C         = Campfire
         W, H      = screen.get_size()
         mouse_pos = pygame.mouse.get_pos()
+        player    = view.gm.player
 
         panel = pygame.Rect(40, 20, W - 80, H - 40)
         pygame.draw.rect(screen, C._PANEL_COLOR, panel, border_radius=16)
@@ -150,13 +153,26 @@ class Campfire:
         h = text_font.render(hint, True, C._TEXT_COLOR)
         screen.blit(h, (W // 2 - h.get_width() // 2, 110))
 
+        # Режим ковки: шапка с балансом FP/капом + кнопка «Завершить» (вне клипа).
+        if forge_view:
+            info = text_font.render(
+                f"FP: {player.forge_points}    Кап уровня: {player.forge_level_cap}",
+                True, C._TITLE_COLOR)
+            screen.blit(info, (W // 2 - info.get_width() // 2, 138))
+            view.btn_forge_done_rect = pygame.Rect(W - 40 - 226, 42, 210, 56)
+            done_hov = view.btn_forge_done_rect.collidepoint(mouse_pos)
+            Campfire._draw_button(screen, small_font, view.btn_forge_done_rect,
+                                  "← ГОТОВО", done_hov, True)
+        else:
+            view.btn_forge_done_rect = None
+
         cards_per_row = 7
         card_w, card_h = view.card_width, view.card_height
         spacing_x = card_w + 24
         spacing_y = card_h + 36
         total_w   = cards_per_row * spacing_x - 24
         start_x   = W // 2 - total_w // 2
-        start_y   = 165
+        start_y   = 175 if forge_view else 165
 
         clip_rect = pygame.Rect(60, start_y, W - 120, H - start_y - 30)
         screen.set_clip(clip_rect)
@@ -178,7 +194,10 @@ class Campfire:
             draw_y = card_y - 10 if is_hov else card_y
             view.draw_card_by_data(card, card_x, draw_y)
 
-            if mark_upgraded and card.upgraded:
+            if forge_view:
+                Campfire._draw_forge_overlay(screen, small_font, player, card,
+                                             card_x, draw_y, card_w, card_h)
+            elif mark_upgraded and card.upgraded:
                 lbl = small_font.render("[МАКС]", True, C._HP_COLOR)
                 screen.blit(lbl, (card_x + 8, draw_y + card_h - 26))
 
@@ -190,6 +209,37 @@ class Campfire:
             CardRenderer.draw_card_keyword_tooltip(
                 screen, view.card_font, view.card_desc_font, card, rect
             )
+
+    @staticmethod
+    def _draw_forge_overlay(screen, font, player, card, card_x, draw_y,
+                            card_w, card_h):
+        """Поверх карты в Кузнице: бейдж уровня (сверху) + цена/статус следующей
+        ковки (снизу). Зелёный — по карману, красный — не хватает FP, золотой —
+        упёрлись в кап. Звезда — следующий уровень открывает теговый слот."""
+        C     = Campfire
+        level = forge_mod.forge_level(player, card)
+        cap   = player.forge_level_cap
+
+        badge = font.render(f"Ур.{level}", True,
+                            C._HP_COLOR if level > 0 else C._TEXT_COLOR)
+        bg = pygame.Rect(card_x + 6, draw_y + 6, badge.get_width() + 10,
+                         badge.get_height() + 6)
+        pygame.draw.rect(screen, (0, 0, 0), bg, border_radius=6)
+        screen.blit(badge, (bg.x + 5, bg.y + 3))
+
+        if level >= cap:
+            txt, col = f"кап {cap}", C._BTN_BORDER
+        else:
+            cost = forge_mod.level_cost(level)
+            affordable = player.forge_points >= cost
+            star = " *" if forge_mod.milestone_tier(level + 1) else ""
+            txt  = f"+ур: {cost} FP{star}"
+            col  = C._HP_COLOR if affordable else C._BLOOD_COLOR
+        line = font.render(txt, True, col)
+        lbg = pygame.Rect(card_x + 4, draw_y + card_h - 26,
+                          line.get_width() + 8, line.get_height() + 4)
+        pygame.draw.rect(screen, (0, 0, 0), lbg, border_radius=6)
+        screen.blit(line, (lbg.x + 4, lbg.y + 2))
 
     # ------------------------------------------------------------------
     # Обработка кликов
@@ -223,12 +273,21 @@ class Campfire:
 
     @staticmethod
     def _handle_forge(view, mouse_pos):
+        # «Готово» — вернуться к выбору на костре (продвижение по этажу — за
+        # Отдыхом/Ритуалом на главном экране; ковка FP параллельна, как в симе).
+        done = getattr(view, 'btn_forge_done_rect', None)
+        if done is not None and done.collidepoint(mouse_pos):
+            view.scroll_y = 0
+            Campfire.sub_state = "MAIN"
+            return
+        # Клик по карте — поднять её на +1 уровень за FP (остаёмся на экране,
+        # можно ковать дальше, пока хватает FP / не упёрлись в кап).
+        player     = view.gm.player
+        class_name = type(player).__name__
         for card_rect, index in getattr(view, 'campfire_card_rects', []):
             if card_rect.collidepoint(mouse_pos):
                 card = view.gm.current_deck[index]
-                if not card.upgraded:
-                    card.upgrade()
-                    Campfire._advance(view)
+                forge_mod.forge_card_one_level(player, card, class_name)
                 break
 
     @staticmethod

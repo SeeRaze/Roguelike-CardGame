@@ -120,6 +120,64 @@ def assign_forge_uid(player, card):
     return card._fuid
 
 
+def forge_level(player, card) -> int:
+    """Текущий уровень ковки карты (0, если паспорта ещё нет)."""
+    uid = getattr(card, "_fuid", None)
+    if uid is None:
+        return 0
+    rec = player.deck_forge_state.get(uid)
+    return rec["level"] if rec else 0
+
+
+def can_forge(player, card) -> bool:
+    """Можно ли поднять карту ещё на +1 уровень: не упёрлись в кап И хватает FP."""
+    level = forge_level(player, card)
+    return level < player.forge_level_cap and player.forge_points >= level_cost(level)
+
+
+def forge_card_one_level(player, card, class_name: str = "") -> bool:
+    """ЖИВАЯ ковка карты на +1 уровень за FP (костёр, 39.5). Возвращает True при
+    успехе. Миграция линейного слоя: уровень 1 = бережно ручной «+» карты
+    (card.upgrade), уровни ≥2 = +δ (apply_linear_level). На майлстоуне (5/10/15)
+    открывает слот с АВТО-лучшим тегом (pick_tag по каналу карты; экран драфта
+    1-из-3 — позже); уровень >15, кратный s, — Гипер-заряд существующего тега.
+
+    NB: sim использует свой forge_between_acts (δ-only, без ручного «+») —
+    расхождение линейного слоя принято (_upgrade_design.md §2)."""
+    uid = getattr(card, "_fuid", None)
+    if uid is None:
+        return False
+    rec = player.deck_forge_state.get(uid) or {"level": 0, "slots": []}
+    level = rec["level"]
+    if level >= player.forge_level_cap:
+        return False
+    cost = level_cost(level)
+    if player.forge_points < cost:
+        return False
+
+    player.forge_points -= cost
+    player.deck_forge_state[uid] = rec          # закрепить паспорт (первая ковка)
+    rec["level"] = new_level = level + 1
+
+    # Линейный слой стены (миграция одноступенчатого upgrade).
+    if new_level == 1:
+        if hasattr(card, "upgrade"):
+            card.upgrade()                      # level 1 = текущий ручной «+»
+    else:
+        apply_linear_level(card, LINEAR_BONUS_PER_LEVEL)
+
+    # Слой потолка: майлстоун → слот+тег; >15 кратный s → Гипер-заряд.
+    tier = milestone_tier(new_level)
+    if tier is not None:
+        from core.ForgeRegistry import pick_tag
+        channel = card_forge_channel(card)
+        tag_id  = pick_tag(class_name, tier, channel)
+        rec["slots"].append({"tag_id": tag_id, "grade": 0})
+    elif is_overcharge_level(new_level):
+        overcharge_slot(rec)
+    return True
+
+
 def next_cap_for_boss(floor: int):
     """Новый кап уровня карты, открываемый победой над боссом этажа `floor`
     (увязка шкал §3). None, если этаж — не босс-чекпойнт."""
