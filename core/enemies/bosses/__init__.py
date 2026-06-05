@@ -7,6 +7,7 @@ from core.enemies.bosses.guardian import ThresholdGuardian
 from core.enemies.bosses.archivist import OblivionArchivist
 from core.enemies.bosses.elemental import VoidElemental
 from core.enemies.bosses.keeper import TimeKeeper
+from core.enemies.bosses.architect import TowerArchitect
 
 # Диспатч боссов по этажам. Используется EnemySpawner.build_enemy().
 # Этажи не в словаре → BossTitan (старый fallback).
@@ -15,6 +16,7 @@ BOSS_BY_FLOOR = {
     40: OblivionArchivist,
     60: VoidElemental,
     80: TimeKeeper,
+    100: TowerArchitect,
 }
 
 __all__ = [
@@ -23,5 +25,6 @@ __all__ = [
     "OblivionArchivist",
     "VoidElemental",
     "TimeKeeper",
+    "TowerArchitect",
     "BOSS_BY_FLOOR",
 ]
