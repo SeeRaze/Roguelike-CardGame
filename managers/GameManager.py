@@ -3,7 +3,7 @@ from managers.MapGenerator    import generate_map, FLOORS_PER_ACT
 from managers.EnemySpawner    import build_enemy_group, ENEMY_REGISTRY
 from managers.RewardManager   import build_rewards
 from core.players             import Warrior
-from core.forge               import assign_forge_uid
+from core.forge               import assign_forge_uid, combat_fp_gain, next_cap_for_boss
 
 # ENEMY_REGISTRY реэкспортируется для обратной совместимости (живёт в EnemySpawner).
 __all__ = ["GameManager", "ENEMY_REGISTRY"]
@@ -139,11 +139,22 @@ class GameManager:
         is_elite   = getattr(getattr(self.active_combat, 'enemy', None),
                              'is_elite', False)
 
+        # Приток FP за выжитый бой (ковка карт, 39.5): динамический по акту +
+        # бонус босса ×ARTIFACT_FP_MULT. Та же формула, что у sim-бота
+        # (core.forge.combat_fp_gain) ⇒ живая экономика = откалиброванная.
+        self.player.forge_points += combat_fp_gain(self.current_floor, is_boss)
+
         # Хук on_boss_defeated — персистентный слой по забегу (растущие реликвии:
         # «каждый босс ×N»). Триггерит только на босс-этажах (20/40/60/80/100).
         if is_boss:
             for relic in self.relics:
                 relic.on_boss_defeated(self.player, self.active_combat)
+            # Босс снимает кап уровня карты до следующего майлстоуна (увязка шкал
+            # §3): 20→5, 40→10, 60→15, 80→20, 100→25. До босса уровни заперты —
+            # железная защита ранней стены (×mult недостижим раньше этажа ~60).
+            new_cap = next_cap_for_boss(self.current_floor)
+            if new_cap is not None and new_cap > self.player.forge_level_cap:
+                self.player.forge_level_cap = new_cap
 
         # Статистика убийств теперь в CombatManager._check_enemy_death
 
