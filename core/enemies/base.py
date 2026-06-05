@@ -15,6 +15,10 @@ class IntentDebuff:
     type = "debuff"
     def __init__(self, value): self.value = value
 
+class IntentHeal:
+    type = "heal"
+    def __init__(self, value): self.value = value
+
 class IntentNone:
     type  = "none"
     value = 0
@@ -24,6 +28,7 @@ INTENT_REGISTRY = {
     "attack": IntentAttack,
     "defend": IntentDefend,
     "debuff": IntentDebuff,
+    "heal":   IntentHeal,
 }
 
 
@@ -116,4 +121,11 @@ class Enemy(Creature):
             if combat_manager:
                 combat_manager.add_log_message(
                     f" -> Накладывает на вас Слабость ({intent.value} х.)"
+                )
+
+        elif isinstance(intent, IntentHeal):
+            self.heal(intent.value, combat_manager)
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f" -> Восстанавливает {intent.value} HP."
                 )

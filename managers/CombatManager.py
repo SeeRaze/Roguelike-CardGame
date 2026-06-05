@@ -88,9 +88,13 @@ class CombatManager:
         # Новый ход — обнуляем счётчик сыгранных карт (предикаты first/nth card).
         self.cards_played_this_turn = 0
 
-        # Все живые враги выбирают намерение
+        # Все живые враги выбирают намерение.
+        # Хук on_turn_start: боссы обновляют состояние перед choose_intent
+        # (эскалация/Щит Пустоты/временной заряд). hasattr — duck-typing, как у реликвий.
         for e in self.enemies:
             if e.hp > 0:
+                if hasattr(e, 'on_turn_start'):
+                    e.on_turn_start(self.player, self)
                 e.choose_intent()
 
         # Пассивка считает carry ДО сброса щита
@@ -194,6 +198,11 @@ class CombatManager:
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
                 relic.on_card_played(selected_card, self)
+
+        # Хук боссов: реакция на розыгрыш карты (Архивариус: +щит за карту).
+        for e in self.enemies:
+            if e.hp > 0 and hasattr(e, 'on_card_played'):
+                e.on_card_played(selected_card, self.player, self)
 
         if hasattr(selected_card, 'temp_cost'):
             del selected_card.temp_cost
