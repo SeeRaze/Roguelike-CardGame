@@ -6,8 +6,8 @@
 from core.cards.base import Card, DamageEffect
 
 from managers.balance.forge import (
-    ForgePolicy, TriggerGuard, apply_linear_level,
-    FORGE_POINTS_PER_COMBAT, FORGE_POINTS_PER_BOSS, LINEAR_BONUS_PER_LEVEL,
+    ForgePolicy, TriggerGuard, apply_linear_level, fp_per_combat,
+    FORGE_POINTS_PER_ACT, FORGE_POINTS_PER_BOSS, LINEAR_BONUS_PER_LEVEL,
     INITIAL_LEVEL_CAP, BOSS_LEVEL_CAPS, MAX_TRIGGER_DEPTH,
 )
 
@@ -22,22 +22,31 @@ class _FakePlayer:
     pass
 
 
-# ─── Экономика FP ─────────────────────────────────────────────────────────────
+# ─── Экономика FP (динамический приток по актам) ──────────────────────────────
 
 def test_fp_accrual_per_combat():
     p = _FakePlayer()
     pol = ForgePolicy()
-    pol.on_combat_won(p, floor=3)
-    assert p.forge_points == FORGE_POINTS_PER_COMBAT
-    pol.on_combat_won(p, floor=4)
-    assert p.forge_points == 2 * FORGE_POINTS_PER_COMBAT
+    pol.on_combat_won(p, floor=3)            # акт 1 → 1 FP
+    assert p.forge_points == FORGE_POINTS_PER_ACT[0]
+    pol.on_combat_won(p, floor=4)            # акт 1 → ещё 1 FP
+    assert p.forge_points == 2 * FORGE_POINTS_PER_ACT[0]
+
+
+def test_fp_scales_by_act():
+    # Приток растёт по акту: этаж//20 → 1/2/3, кап на последнем элементе.
+    assert fp_per_combat(1)  == FORGE_POINTS_PER_ACT[0]   # акт 1
+    assert fp_per_combat(20) == FORGE_POINTS_PER_ACT[0]   # ещё акт 1 (граница)
+    assert fp_per_combat(21) == FORGE_POINTS_PER_ACT[1]   # акт 2
+    assert fp_per_combat(41) == FORGE_POINTS_PER_ACT[2]   # акт 3
+    assert fp_per_combat(99) == FORGE_POINTS_PER_ACT[-1]  # кап (акт 5 → 3)
 
 
 def test_fp_boss_bonus():
     p = _FakePlayer()
     pol = ForgePolicy()
-    pol.on_combat_won(p, floor=20, is_boss=True)
-    assert p.forge_points == FORGE_POINTS_PER_COMBAT + FORGE_POINTS_PER_BOSS
+    pol.on_combat_won(p, floor=20, is_boss=True)   # акт 1 бой (1) + босс (3)
+    assert p.forge_points == FORGE_POINTS_PER_ACT[0] + FORGE_POINTS_PER_BOSS
 
 
 def test_initial_cap():
@@ -46,13 +55,23 @@ def test_initial_cap():
     assert p.forge_level_cap == INITIAL_LEVEL_CAP
 
 
-# ─── Растущая цена уровня ─────────────────────────────────────────────────────
+# ─── Растущая цена уровня СО СБРОСОМ по тирам ─────────────────────────────────
 
-def test_level_cost_rises_within_tier():
-    # cost(level→level+1) = BASE + level·STEP = 1 + level·1
+def test_level_cost_resets_each_tier():
+    # cost = BASE + (level mod 5)·STEP = 1 + (level mod 5).
     assert ForgePolicy._level_cost(0) == 1
-    assert ForgePolicy._level_cost(1) == 2
     assert ForgePolicy._level_cost(4) == 5
+    assert ForgePolicy._level_cost(5) == 1     # новый тир → сброс крутизны
+    assert ForgePolicy._level_cost(9) == 5
+    assert ForgePolicy._level_cost(10) == 1    # снова сброс
+
+
+def test_invested_fp_per_tier():
+    # Каждый тир (5 уровней) = 1+2+3+4+5 = 15 FP. До 15-го → 45 (база Переплавки).
+    assert ForgePolicy.invested_fp(5)  == 15
+    assert ForgePolicy.invested_fp(10) == 30
+    assert ForgePolicy.invested_fp(15) == 45
+    assert ForgePolicy.invested_fp(0)  == 0
 
 
 # ─── Босс-капы (увязка шкал §3) ───────────────────────────────────────────────

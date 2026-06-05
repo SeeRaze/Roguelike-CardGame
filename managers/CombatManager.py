@@ -203,9 +203,19 @@ class CombatManager:
         # Рука ПОСЛЕ изъятия текущей карты (для empty_hand): карта ещё в hand на
         # момент снимка, поэтому −1.
         hand_after = max(0, len(self.deck_manager.hand) - 1)
+        # Сколько АТАКУЮЩИХ карт осталось бы в руке (для оборонного тега bulwark:
+        # «рука только из защиты»). Считаем по наличию DamageEffect, исключая
+        # текущую разыгрываемую карту.
+        from core.cards.base import DamageEffect
+        hand_attack = sum(
+            1 for c in self.deck_manager.hand
+            if c is not self._card_being_played
+            and any(isinstance(e, DamageEffect) for e in getattr(c, "effects", []))
+        )
         return {
             "play_index": self.cards_played_this_turn,   # 0 = первая карта за ход
             "hand_after": hand_after,
+            "hand_attack": hand_attack,
             "hp_frac":    p.hp / max_hp,
             "shield":     getattr(p, "shield", 0),
             "barrier":    getattr(p, "barrier", 0),

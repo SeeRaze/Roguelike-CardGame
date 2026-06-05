@@ -64,7 +64,7 @@ class _StubGM:
 
 def run_single_run(player_class, max_floor: int = 100, *,
                    draft=None, extra_cards=None, relics=None, economy=None,
-                   forge=None) -> dict:
+                   forge=None, events=None) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -84,6 +84,10 @@ def run_single_run(player_class, max_floor: int = 100, *,
                     задана: бот копит FP за бои, на костре прокачивает ядро билда
                     (линейный слой δ), боссы снимают кап уровня. По умолчанию
                     None → ковка выключена (регресс-нейтрально, baseline зелёный).
+      events      — EventPolicy или None (Сессия 39.3, «скачки» триединства). Если
+                    задана: на фикс. EVENT-этажах бот играет азартный %-размен
+                    (стохастический приток MaxHP/FP по акт-скейлу). По умолчанию
+                    None → события выключены (регресс-нейтрально, baseline зелёный).
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
@@ -141,12 +145,29 @@ def run_single_run(player_class, max_floor: int = 100, *,
         # Ковка (Сессия 39): начислить FP за выжитый бой (+бонус за босса).
         if forge is not None:
             forge.on_combat_won(player, floor, is_boss=is_boss)
+            # ПОСТ-БОСС ковка (каденция §3, _upgrade_design): сразу после босса
+            # игрок распределяет накопленный банк FP, не дожидаясь костра, —
+            # убирает мёртвую зону в 19 этажей. Кап только что поднят (выше) →
+            # ковка достигает свежеоткрытого майлстоуна в тот же миг.
+            if is_boss:
+                forge.forge_between_acts(player, deck, class_name)
 
         # Прогрессия колоды: карта-награда за бой (стратегия драфта).
         draft(deck, class_name)
 
+        # %-Событие (39.3, «скачки» триединства): на фикс. EVENT-этажах бот
+        # играет азартный размен (стохастический приток MaxHP/FP по акт-скейлу).
+        if events is not None:
+            events.maybe_event(player, gm, floor, max_floor)
+
         # Костёр на предбоссовом этаже: частичное лечение + экономика акта.
         if local_step == FLOORS_PER_ACT - 1:
+            # Закалка (Отдых, §3): если урон следующего акта угрожает ваншотом,
+            # бот ЖЕРТВУЕТ FP на +Max HP вместо ковки (фундамент под оборонные
+            # теги; особенно Берсерк). Решение принимается ДО ковки — потраченные
+            # на бак FP не уйдут в карты.
+            if forge is not None:
+                forge.temper_if_threatened(player, floor)
             heal = int(player.max_hp * _CAMPFIRE_HEAL)
             player.hp = min(player.max_hp, player.hp + heal)
             # Раз в акт: потратить накопленное золото на прореживание колоды.

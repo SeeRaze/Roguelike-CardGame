@@ -16,17 +16,24 @@ import random
 
 from managers.balance.builds import _card_score, _card_themes, _deck_themes
 
+# ─── ТРИЕДИНСТВО ЭКОНОМИКИ: PLACEHOLDER-ЗАГЛУШКА АРТЕФАКТОВ (С39.3) ────────────
+# Третья заглушка триединства (рядом с forge.ARTIFACT_FP_MULT / _MAX_HP_ADD):
+# глобальный масштабиратор золотого притока будущими реликвиями. Дефолт нейтрален
+# ⇒ baseline зелёный; свип/артефакты крутят вверх (запас под лейт-раскорм).
+ARTIFACT_GOLD_MULT = 1.0
+
 
 def gold_reward(floor: int, is_elite: bool, has_crown: bool) -> int:
     """Золото за выжитый бой — зеркало RewardManager.build_rewards (та же
     формула). «Проклятая Корона» обнуляет золото (осознанный размен: урон вместо
-    экономики) → у Корона-билдов нет средств на прореживание (важная синергия)."""
+    экономики) → у Корона-билдов нет средств на прореживание (важная синергия).
+    Приток масштабируется ARTIFACT_GOLD_MULT (заглушка-катализатор артефактов)."""
     if has_crown:
         return 0
     gold = random.randint(20, 35) + floor * 3
     if is_elite:
         gold = int(gold * 1.5)
-    return gold
+    return int(round(gold * ARTIFACT_GOLD_MULT))
 
 
 class EconomyPolicy:

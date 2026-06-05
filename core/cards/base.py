@@ -4,6 +4,15 @@ from core.StatusRegistry import STATUSES
 from core.rarity import Rarity
 
 
+def _forge_channel_mult(combat_manager, player, channel: str) -> float:
+    """Множитель тегов прокачки для оборонного/сустейн канала (shield/heal),
+    Развилка №1 (_upgrade_design.md §5). Универсальная ковка: тег на щитовой/
+    лечащей карте растит выживаемость `p`. Без ковки/карты/снимка → 1.0 (инертно,
+    регресс-нейтрально). Отложенный импорт — реестр тянет EffectCalculator косвенно."""
+    from core.ForgeRegistry import forge_effect_multiplier
+    return forge_effect_multiplier(combat_manager, player, channel)
+
+
 class DamageEffect:
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val
@@ -41,6 +50,10 @@ class ShieldEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         shield_amount = self.upgrade_val if is_upgraded else self.base_val
+        # Канал ЩИТА прокачки (Развилка №1): ×mult от оборонных тегов карты.
+        mult = _forge_channel_mult(combat_manager, player, "shield")
+        if mult != 1.0:
+            shield_amount = int(shield_amount * mult)
         player.gain_shield(shield_amount, combat_manager)  # ← добавить
         if combat_manager:
             combat_manager.add_log_message(
@@ -56,6 +69,10 @@ class HealEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         amount = self.upgrade_val if is_upgraded else self.base_val
+        # Канал ИСЦЕЛЕНИЯ прокачки (Развилка №1): ×mult от сустейн-тегов карты.
+        mult = _forge_channel_mult(combat_manager, player, "heal")
+        if mult != 1.0:
+            amount = int(amount * mult)
         healed = player.heal(amount, combat_manager)   # <-- передаём cm
         if combat_manager:
             combat_manager.add_log_message(
@@ -71,6 +88,10 @@ class RegenEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         amount = self.upgrade_val if is_upgraded else self.base_val
+        # Канал ИСЦЕЛЕНИЯ прокачки (Развилка №1): реген — растянутый хил.
+        mult = _forge_channel_mult(combat_manager, player, "heal")
+        if mult != 1.0:
+            amount = int(amount * mult)
         player.add_status("regen", amount, combat_manager)
         if combat_manager:
             combat_manager.add_log_message(
@@ -122,6 +143,11 @@ class BarrierEffect:
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         amount = self.upgrade_val if is_upgraded else self.base_val
+        # Канал ЩИТА прокачки (Развилка №1): Барьер = несгораемый щит, компаундит
+        # ход-за-ходом → ×mult здесь = истинная экспонента защиты.
+        mult = _forge_channel_mult(combat_manager, player, "shield")
+        if mult != 1.0:
+            amount = int(amount * mult)
         player.add_status("barrier", amount, combat_manager)
         if combat_manager:
             combat_manager.add_log_message(
