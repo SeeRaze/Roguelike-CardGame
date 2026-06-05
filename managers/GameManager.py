@@ -1,8 +1,9 @@
 import os
 from managers.MapGenerator    import generate_map, FLOORS_PER_ACT
-from managers.EnemySpawner    import build_enemy, build_enemy_group, ENEMY_REGISTRY
+from managers.EnemySpawner    import build_enemy_group, ENEMY_REGISTRY
 from managers.RewardManager   import build_rewards
 from core.players             import Warrior
+from core.forge               import assign_forge_uid
 
 # ENEMY_REGISTRY реэкспортируется для обратной совместимости (живёт в EnemySpawner).
 __all__ = ["GameManager", "ENEMY_REGISTRY"]
@@ -34,6 +35,9 @@ class GameManager:
         self.removal_count = 0
         self.relics        = []
         self.current_deck  = self.player.get_starter_deck()
+        # Паспорт ковки: каждой карте старт-колоды — стабильный uid инстанса (39.5).
+        for card in self.current_deck:
+            assign_forge_uid(self.player, card)
         self.current_state = "MAIN_MENU"
         self.active_combat = None
         self.event_result  = None
@@ -53,6 +57,7 @@ class GameManager:
         return base
 
     def add_card(self, card):
+        assign_forge_uid(self.player, card)   # стабильный uid паспорта ковки (39.5)
         self.current_deck.append(card)
 
     # --- НАВИГАЦИЯ ПО КАРТЕ ---

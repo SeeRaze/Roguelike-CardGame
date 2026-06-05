@@ -1,4 +1,5 @@
 from core.Creature import Creature
+from core.forge import INITIAL_LEVEL_CAP
 
 
 class Player(Creature):
@@ -21,6 +22,16 @@ class Player(Creature):
         # между боями. Заполняется CombatManager при победе, восстанавливается
         # при старте следующего боя. Потолок переноса — в CombatManager.
         self.persistent_allies: list = []
+
+        # ── КОВКА КАРТ (Сессия 39.5, _upgrade_design.md §2-3) ──────────────────
+        # Мета-прокачка живёт в ЕДИНОМ плоском словаре игрока (uid → запись), а не
+        # на объектах карт (sim-friendly, чистый рендер). Состояние персистентно
+        # ВЕСЬ забег — НЕ сбрасывается reset_combat_statuses (как persistent_allies).
+        self.deck_forge_state: dict = {}   # _fuid -> {"level": int, "slots": [..]}
+        self.forge_points    = 0           # валюта ковки FP (приток за бои/боссов)
+        self.forge_level_cap = INITIAL_LEVEL_CAP   # кап уровня карты (снимается боссами)
+        self._forge_uid_next = 0           # счётчик выдачи uid инстансам карт
+        self.atk_mult        = 1.0         # компаунд-множитель урона (Заточка; шаг 8)
 
     def get_starter_deck(self) -> list:
         return self._starter_deck_factory() + list(self._extra_starter_cards)

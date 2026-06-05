@@ -109,6 +109,17 @@ def reward_level_for_floor(floor: int) -> int:
     return level
 
 
+def assign_forge_uid(player, card):
+    """Выдать карте СТАБИЛЬНЫЙ uid инстанса для паспорта ковки, если его ещё нет
+    (§2: тег живёт на конкретном экземпляре). Зеркало ForgePolicy._record в симе.
+    Зовётся при входе карты в колоду забега (старт-колода + добор). Паспорт
+    (запись в deck_forge_state) создаётся лениво при первой ковке."""
+    if getattr(card, "_fuid", None) is None:
+        card._fuid = player._forge_uid_next
+        player._forge_uid_next += 1
+    return card._fuid
+
+
 def next_cap_for_boss(floor: int):
     """Новый кап уровня карты, открываемый победой над боссом этажа `floor`
     (увязка шкал §3). None, если этаж — не босс-чекпойнт."""
