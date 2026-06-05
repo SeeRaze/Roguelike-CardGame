@@ -63,7 +63,8 @@ class _StubGM:
 
 
 def run_single_run(player_class, max_floor: int = 100, *,
-                   draft=None, extra_cards=None, relics=None, economy=None) -> dict:
+                   draft=None, extra_cards=None, relics=None, economy=None,
+                   forge=None) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -79,6 +80,10 @@ def run_single_run(player_class, max_floor: int = 100, *,
                     золото, раз в акт оно тратится на удаление слабых карт
                     (шаг №6 фреймворка). По умолчанию None → экономика выключена
                     (регресс-нейтрально, A/B «с/без» чист).
+      forge       — ForgePolicy или None (Сессия 39, _upgrade_design.md). Если
+                    задана: бот копит FP за бои, на костре прокачивает ядро билда
+                    (линейный слой δ), боссы снимают кап уровня. По умолчанию
+                    None → ковка выключена (регресс-нейтрально, baseline зелёный).
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
@@ -112,13 +117,18 @@ def run_single_run(player_class, max_floor: int = 100, *,
         if not survived or player.hp <= 0:
             return {"death_floor": floor, "hp_by_floor": hp_by_floor}
 
+        is_boss = (local_step == FLOORS_PER_ACT)
+
         # Персистентный слой по забегу: хук on_boss_defeated на босс-этажах
         # (20/40/60/80/100) — растущие реликвии копят компаунд по забегу.
         # Зеркалит GameManager.distribute_combat_rewards (предусловие boss-filter:
         # сим обязан видеть чекпойнты-ворота, иначе тюнинг вслепую).
-        if local_step == FLOORS_PER_ACT:
+        if is_boss:
             for relic in relic_objs:
                 relic.on_boss_defeated(player, combat)
+            # Ковка (Сессия 39): босс снимает кап уровня карт (увязка шкал §3).
+            if forge is not None:
+                forge.on_boss_defeated(player, floor)
 
         # Сброс боевых статусов между боями (как distribute_combat_rewards в игре):
         # внутрибоевые движки (barrier/mastery/echo) НЕ переносятся по забегу.
@@ -127,6 +137,10 @@ def run_single_run(player_class, max_floor: int = 100, *,
         # Экономика (шаг №6): начислить золото за бой (зеркало build_rewards).
         if economy is not None:
             economy.on_combat_won(gm, floor)
+
+        # Ковка (Сессия 39): начислить FP за выжитый бой (+бонус за босса).
+        if forge is not None:
+            forge.on_combat_won(player, floor, is_boss=is_boss)
 
         # Прогрессия колоды: карта-награда за бой (стратегия драфта).
         draft(deck, class_name)
@@ -138,5 +152,8 @@ def run_single_run(player_class, max_floor: int = 100, *,
             # Раз в акт: потратить накопленное золото на прореживание колоды.
             if economy is not None:
                 economy.between_acts(gm, deck, class_name)
+            # Раз в акт: ковка ядра билда на накопленные FP (линейный слой δ).
+            if forge is not None:
+                forge.forge_between_acts(player, deck, class_name)
 
     return {"death_floor": None, "hp_by_floor": hp_by_floor}
