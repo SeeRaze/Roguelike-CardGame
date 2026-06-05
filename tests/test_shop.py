@@ -123,3 +123,32 @@ def test_утилизация_уводит_в_режим_remove(shop_setup):
     gm, view = shop_setup
     Shop._handle_main(view, view.btn_shop_remove_rect.center)
     assert Shop.sub_state == "REMOVE"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Ограбление — украсть реликвию (monkeypatch random.random)
+# ═══════════════════════════════════════════════════════════════════
+def test_ограбление_успех_забирает_реликвию_и_закрывает(shop_setup, monkeypatch):
+    gm, view = shop_setup
+    if Shop.relic_item is None:
+        pytest.skip("в этом сиде реликвия не сгенерилась")
+    relic = Shop.relic_item
+    n0, floor0 = len(gm.relics), gm.current_floor
+    monkeypatch.setattr("ui.shop.base.random.random", lambda: 0.0)  # < 0.30 → успех
+    Shop._rob(view)
+    assert relic in gm.relics and len(gm.relics) == n0 + 1
+    assert gm.current_floor == floor0 + 1     # сбежал на след. этаж
+    assert Shop.sub_state == "MAIN" and Shop.relic_item is None
+
+
+def test_ограбление_провал_зовёт_элитный_бой(shop_setup, monkeypatch):
+    gm, view = shop_setup
+    if Shop.relic_item is None:
+        pytest.skip("в этом сиде реликвия не сгенерилась")
+    n0, floor0 = len(gm.relics), gm.current_floor
+    monkeypatch.setattr("ui.shop.base.random.random", lambda: 0.99)  # >= 0.30 → провал
+    Shop._rob(view)
+    assert len(gm.relics) == n0              # реликвию не дали
+    assert gm.current_floor == floor0        # этаж не двигается (продвинет победа)
+    assert gm.current_state == "COMBAT"
+    assert gm.active_combat is not None      # элитный бой запущен

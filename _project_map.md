@@ -66,8 +66,12 @@ while is_running:
   редкости+этаж `get_relic_price`) + покупка ключа (`get_key_price` 30, беск. запас)
   + утилизация (`get_removal_price` = `(15+floor·2)+removal·25`, ×2 от «Проклятой
   Короны») + выход. Состояние-машина MAIN/REMOVE. `main_view.draw_main` → хелперы
-  `_draw_cards`/`_draw_relic_slot`/`_draw_key_slot`. Ограбление — след. под-шаг C2.
-  Sim-моделирование экономики — C3.
+  `_draw_cards`/`_draw_relic_slot`/`_draw_key_slot`/`_draw_rob_button`. Выход —
+  общий `Shop._leave` (reset + след. этаж).
+- **Ограбление** (`Shop._rob`, кнопка под слотом реликвии): риск-механика — шанс
+  `ROB_SUCCESS_CHANCE`(0.30) забрать реликвию бесплатно и сбежать; провал →
+  `current_state="COMBAT"` + `spawn_procedural_enemy(is_elite=True)` (элитный страж,
+  этаж продвинет победа). Sim-моделирование экономики — C3.
 
 ## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
 main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml

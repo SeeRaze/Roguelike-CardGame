@@ -7,7 +7,7 @@ from ui.combat.hud import CombatHUD
 from ui.shop.data import (
     _PANEL_COLOR, _BTN_COLOR, _BTN_HOVER_COLOR, _BTN_BORDER, _TITLE_COLOR,
     _GOLD_COLOR, _RED_COLOR, _GRAY_COLOR, _SOLD_COLOR, _TEXT_COLOR,
-    get_card_price, get_relic_price, get_key_price,
+    ROB_SUCCESS_CHANCE, get_card_price, get_relic_price, get_key_price,
 )
 
 
@@ -63,7 +63,7 @@ def _draw_relic_slot(shop, view, screen, fonts, mouse_pos):
     """Слот реликвии (слева в нижнем ряду). Возвращает True если под курсором."""
     W = screen.get_width()
     text_font, price_font = fonts["text"], fonts["price"]
-    rect = pygame.Rect(W // 2 - 470, 470, 450, 120)
+    rect = pygame.Rect(W // 2 - 470, 445, 450, 105)
     view.shop_relic_rect = rect
 
     if not shop.relic_item:
@@ -77,20 +77,39 @@ def _draw_relic_slot(shop, view, screen, fonts, mouse_pos):
     pygame.draw.rect(screen, bg, rect, border_radius=12)
     pygame.draw.rect(screen, rarity_c, rect, 2, border_radius=12)
 
-    badge = pygame.Rect(rect.x + 16, rect.centery - 36, 72, 72)
+    badge = pygame.Rect(rect.x + 16, rect.centery - 32, 64, 64)
     CombatHUD.draw_relic_badge(screen, relic, badge)
 
     name = text_font.render(relic.name, True, rarity_c)
-    screen.blit(name, (badge.right + 18, rect.y + 22))
+    screen.blit(name, (badge.right + 18, rect.y + 18))
     price = price_font.render(
         f"{get_relic_price(relic, view.gm.current_floor)} з.", True, _GOLD_COLOR)
-    screen.blit(price, (badge.right + 18, rect.y + 64))
+    screen.blit(price, (badge.right + 18, rect.y + 58))
     return hovered
+
+
+def _draw_rob_button(shop, view, screen, fonts, mouse_pos):
+    """Кнопка «Ограбить» под слотом реликвии — только если реликвия не продана."""
+    W = screen.get_width()
+    if not shop.relic_item:
+        view.btn_shop_rob_rect = None
+        return
+    rect = pygame.Rect(W // 2 - 470, 558, 450, 48)
+    view.btn_shop_rob_rect = rect
+    hovered = rect.collidepoint(mouse_pos)
+    bg = (70, 25, 60) if hovered else (45, 18, 40)
+    pygame.draw.rect(screen, bg, rect, border_radius=10)
+    pygame.draw.rect(screen, (200, 90, 180), rect, 2, border_radius=10)
+    pct = int(ROB_SUCCESS_CHANCE * 100)
+    lbl = fonts["btn"].render(
+        f"ОГРАБИТЬ  ({pct}%, провал → элитка)", True, (230, 140, 210))
+    screen.blit(lbl, (rect.centerx - lbl.get_width() // 2,
+                      rect.centery - lbl.get_height() // 2))
 
 
 def _draw_key_slot(shop, view, screen, fonts, mouse_pos):
     W = screen.get_width()
-    rect = pygame.Rect(W // 2 + 20, 470, 450, 120)
+    rect = pygame.Rect(W // 2 + 20, 445, 450, 105)
     view.btn_shop_key_rect = rect
     shop.is_key_hovered = rect.collidepoint(mouse_pos)
     bg = (50, 50, 25) if shop.is_key_hovered else (32, 32, 18)
@@ -121,9 +140,10 @@ def draw_main(shop, view, screen, fonts):
     hovered_card = _draw_cards(shop, view, screen, fonts, mouse_pos)
     relic_hovered = _draw_relic_slot(shop, view, screen, fonts, mouse_pos)
     _draw_key_slot(shop, view, screen, fonts, mouse_pos)
+    _draw_rob_button(shop, view, screen, fonts, mouse_pos)
 
     # Кнопка «Сжечь карту» (утилизация)
-    view.btn_shop_remove_rect = pygame.Rect(W // 2 - 320, 630, 640, 70)
+    view.btn_shop_remove_rect = pygame.Rect(W // 2 - 320, 640, 640, 64)
     shop.is_remove_hovered = view.btn_shop_remove_rect.collidepoint(mouse_pos)
     rcol = (80, 35, 25) if shop.is_remove_hovered else (50, 20, 15)
     pygame.draw.rect(screen, rcol, view.btn_shop_remove_rect, border_radius=12)
@@ -134,7 +154,7 @@ def draw_main(shop, view, screen, fonts):
                        view.btn_shop_remove_rect.centery - rlbl.get_height() // 2))
 
     # Кнопка «Покинуть»
-    view.btn_shop_leave_rect = pygame.Rect(W // 2 - 320, 720, 640, 70)
+    view.btn_shop_leave_rect = pygame.Rect(W // 2 - 320, 716, 640, 64)
     shop.is_leave_hovered = view.btn_shop_leave_rect.collidepoint(mouse_pos)
     _draw_button(screen, fonts["btn"], view.btn_shop_leave_rect,
                  "ПОКИНУТЬ МАГАЗИН", shop.is_leave_hovered, _BTN_BORDER)

@@ -1,10 +1,12 @@
 # ui/shop/base.py
 # Магазин: состояние-машина (MAIN/REMOVE), диспетчер отрисовки и обработка кликов.
 # Витрина: 5 карт + слот реликвии + покупка ключа + утилизация (чистка колоды).
+import random
+
 import pygame
 from ui.shop.data import (
-    _BG_COLOR, SHOP_CARD_SLOTS, get_card_price, get_relic_price, get_key_price,
-    pick_cards, pick_relic,
+    _BG_COLOR, SHOP_CARD_SLOTS, ROB_SUCCESS_CHANCE,
+    get_card_price, get_relic_price, get_key_price, pick_cards, pick_relic,
 )
 from ui.shop import main_view, remove_view
 
@@ -101,6 +103,12 @@ class Shop:
                 print("[!] Не хватает золота на ключ!")
             return
 
+        # --- Ограбление (украсть реликвию; доступно только при ней) ---
+        if Shop.relic_item and hasattr(view, 'btn_shop_rob_rect') \
+                and view.btn_shop_rob_rect.collidepoint(mouse_pos):
+            Shop._rob(view)
+            return
+
         # --- Утилизация (чистка колоды) ---
         if hasattr(view, 'btn_shop_remove_rect') \
                 and view.btn_shop_remove_rect.collidepoint(mouse_pos):
@@ -114,9 +122,33 @@ class Shop:
         # --- Покинуть магазин ---
         if hasattr(view, 'btn_shop_leave_rect') \
                 and view.btn_shop_leave_rect.collidepoint(mouse_pos):
+            Shop._leave(view)
+
+    @staticmethod
+    def _leave(view):
+        """Покинуть магазин — закрыть витрину и перейти на следующий этаж."""
+        Shop.reset()
+        view.gm.current_floor += 1
+        view.gm.setup_next_floor()
+
+    @staticmethod
+    def _rob(view):
+        """«Ограбление»: украсть реликвию из слота. Успех (ROB_SUCCESS_CHANCE) →
+        забрать бесплатно и сбежать (покинуть магазин). Провал → витрина
+        закрывается, немедленный бой с ЭЛИТКОЙ на текущем этаже (этаж продвинет
+        победа боя через VictoryScreen)."""
+        gm    = view.gm
+        relic = Shop.relic_item
+        if random.random() < ROB_SUCCESS_CHANCE:
+            if relic is not None:
+                gm.relics.append(relic)
+            print(f"[ОГРАБЛЕНИЕ] Успех! Украдена реликвия '{getattr(relic, 'name', '?')}'.")
+            Shop._leave(view)
+        else:
+            print("[ОГРАБЛЕНИЕ] Провал! Торговец зовёт элитного стража.")
             Shop.reset()
-            gm.current_floor += 1
-            gm.setup_next_floor()
+            gm.current_state = "COMBAT"
+            gm.spawn_procedural_enemy(is_elite=True)
 
     @staticmethod
     def _handle_remove(view, mouse_pos):
