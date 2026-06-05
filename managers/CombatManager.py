@@ -28,10 +28,16 @@ class CombatManager:
         self._restore_persistent_allies()
         self.deck_manager = DeckManager(starting_deck)
         self.turn_count = 1
+        # Счётчик сыгранных карт за текущий ход (предикаты тегов: first/nth card).
+        self.cards_played_this_turn = 0
 
         self.combat_log = []
         self._elemental_blocked  = False
         self._combo_triggered = False
+        # Транзиенты розыгрыша (Сессия 39): разыгрываемая карта + СНИМОК состояния
+        # на момент намерения (§10.6) — предикаты тегов читают снимок, не живое поле.
+        self._card_being_played = None
+        self._play_snapshot = None
 
         self.add_log_message("=== БОЙ НАЧАЛСЯ ===")
 
@@ -73,6 +79,9 @@ class CombatManager:
             self.combat_log.pop(0)
 
     def start_turn_phase(self):
+        # Новый ход — обнуляем счётчик сыгранных карт (предикаты first/nth card).
+        self.cards_played_this_turn = 0
+
         # Все живые враги выбирают намерение
         for e in self.enemies:
             if e.hp > 0:
@@ -139,6 +148,10 @@ class CombatManager:
         # Транзиентная ссылка на разыгрываемую карту: FlowEffect (стихия Воздух)
         # читает её, чтобы НЕ удешевлять саму себя (она ещё в руке во время apply).
         self._card_being_played = selected_card
+        # СНИМОК состояния на момент намерения (§10.6): предикаты тегов прокачки
+        # читают ЕГО, а не живое поле — заморожен до того, как apply/эхо/детонации
+        # изменят руку/статусы/цель. Считается ОДИН раз за розыгрыш.
+        self._play_snapshot = self._build_play_snapshot(target)
         selected_card.apply(self.player, target, self)
 
         # Эхо (ретриггер): каждый заряд эха на игроке заставляет карту
@@ -155,6 +168,10 @@ class CombatManager:
                 )
 
         self._card_being_played = None
+        self._play_snapshot = None
+        # Карта сыграна — счётчик для предикатов first/nth card (читается ИЗ снимка,
+        # инкремент ПОСЛЕ розыгрыша, чтобы первая карта за ход видела play_index=0).
+        self.cards_played_this_turn += 1
 
         self.player.on_card_played_passive(selected_card, self)
 
@@ -174,6 +191,29 @@ class CombatManager:
         else:
             self.deck_manager.discard_pile.append(selected_card)
         return True
+
+    def _build_play_snapshot(self, target) -> dict:
+        """Снимок контекста на момент намерения разыграть карту (§10.6). Предикаты
+        тегов прокачки (core/ForgeRegistry.py) читают ТОЛЬКО его — заморожен до
+        apply/эха/детонаций. Цель тоже заморожена → null-safe (§10.7): даже если
+        враг погибнет в каскаде, снимок хранит прежний стак яда/крови. Ключи
+        совпадают с тем, что читают предикаты ForgeRegistry."""
+        p = self.player
+        max_hp = getattr(p, "max_hp", 0) or 1
+        # Рука ПОСЛЕ изъятия текущей карты (для empty_hand): карта ещё в hand на
+        # момент снимка, поэтому −1.
+        hand_after = max(0, len(self.deck_manager.hand) - 1)
+        return {
+            "play_index": self.cards_played_this_turn,   # 0 = первая карта за ход
+            "hand_after": hand_after,
+            "hp_frac":    p.hp / max_hp,
+            "shield":     getattr(p, "shield", 0),
+            "barrier":    getattr(p, "barrier", 0),
+            "mastery":    getattr(p, "mastery", 0),
+            "minions":    sum(1 for a in self.allies if a.hp > 0),
+            "tgt_poison": getattr(target, "poison", 0),
+            "tgt_bleed":  getattr(target, "bleed", 0),
+        }
 
     def end_turn_phase(self):
         self.add_log_message("Вы завершили ход.")

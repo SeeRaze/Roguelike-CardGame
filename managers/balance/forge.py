@@ -12,6 +12,7 @@
 # без ковки при том же seed ⇒ чистый A/B (единственная разница — прокачанные карты).
 
 from managers.balance.builds import _card_score, _card_themes, _deck_themes
+from core.ForgeRegistry import pick_tag
 
 # ─── РУЧКИ (гипотезы; калибруются в 39.3, затем в _balance_knobs.md) ──────────
 # Экономика FP.
@@ -29,8 +30,10 @@ INITIAL_LEVEL_CAP = 4
 # Босс-этаж → новый кап уровня карты (увязка шкал, _upgrade_design.md §3):
 # босс-20 открывает майлстоун-5 (слот-1), 40 → 10 (слот-2), 60 → 15 (слот-3, ×mult).
 BOSS_LEVEL_CAPS = {20: 5, 40: 10, 60: 15, 80: 20, 100: 25}
-# Уровни-майлстоуны (открывают теговые слоты — применяются в 39.2).
+# Уровни-майлстоуны (открывают теговые слоты). Тир тега по майлстоуну
+# (_upgrade_design.md §4): 5/10 → ранний (+mult), 15 → легендарный (×mult).
 MILESTONES = (5, 10, 15)
+MILESTONE_TIER = {5: "early", 10: "early", 15: "legendary"}
 
 # ─── ПРЕДОХРАНИТЕЛЬ ГЛУБИНЫ ТРИГГЕРОВ (гард-рейл §10.2) ───────────────────────
 # Жёсткий потолок вложенных триггеров (Эхо/детонации/каскады тегов) за одно
@@ -135,6 +138,13 @@ class ForgePolicy:
                 player.forge_points -= cost
                 rec["level"] += 1
                 apply_linear_level(card, LINEAR_BONUS_PER_LEVEL)
+                # Пересекли майлстоун (5/10/15)? Открыть теговый слот резонансным
+                # классу тегом (Smart Weighting §10.1: «нужный тег всплыл в драфте
+                # из 3, бот его взял» = детерминированный pick_tag). Ранний
+                # майлстоун → +mult, легендарный (15) → ×mult.
+                if rec["level"] in MILESTONE_TIER:
+                    tier = MILESTONE_TIER[rec["level"]]
+                    rec["slots"].append({"tag_id": pick_tag(class_name, tier)})
                 progressed = True
                 break       # переоценить с вершины (концентрация на лучшей)
 
@@ -155,3 +165,18 @@ class ForgePolicy:
         if card._fuid not in state:
             state[card._fuid] = {"level": 0, "slots": []}
         return state[card._fuid]
+
+
+# ─── ЗАКОН МИНИМАЛЬНОГО ТИРА НАГРАД (§10.5) ───────────────────────────────────
+# Карта 0-го уровня из позднего драфта/Магазина = мусор против экспоненты врага.
+# Награды на этаже F создаются уже пред-прокачанными до уровня акта (зеркало
+# босс-капов §3): Акт 2 (этажи 21+) → базовый уровень 5 и т.д. Возвращает
+# целевой уровень для карты, полученной на данном этаже.
+def reward_level_for_floor(floor: int) -> int:
+    """Минимальный уровень карты в награде на этаже `floor` (§10.5). Привязан к
+    пройденным босс-гейтам: до первого босса — 0, после 20 → 5, 40 → 10, 60 → 15."""
+    level = 0
+    for boss_floor, milestone in sorted(BOSS_LEVEL_CAPS.items()):
+        if floor > boss_floor:
+            level = milestone
+    return level

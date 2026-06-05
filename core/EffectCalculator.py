@@ -99,6 +99,26 @@ class EffectCalculator:
                         f"урона (зарядов осталось: {target.shock})."
                     )
 
+        # 7. УСЛОВНЫЕ ТЕГИ ПРОКАЧКИ (Сессия 39, _upgrade_design.md §4-5).
+        # Локальный компаунд кат.4: множитель карты от её тегов, читаемых по
+        # СНИМКУ состояния (§10.6) — заморожен на момент намерения, null-safe.
+        # Гейт: только атака игрока, не превью, есть разыгрываемая карта + снимок
+        # + паспорт ковки. Без ковки (нет deck_forge_state) шаг ИНЕРТЕН →
+        # регресс-нейтрально. Применяется ПОСЛЕ всех шагов → ×mult масштабирует
+        # полностью собранный удар (Balatro-стиль «mult к итогу»).
+        if is_player_attack and not dry_run and combat_manager is not None:
+            card = getattr(combat_manager, "_card_being_played", None)
+            snapshot = getattr(combat_manager, "_play_snapshot", None)
+            if card is not None and snapshot is not None:
+                from core.ForgeRegistry import (
+                    resolve_forge_record, forge_damage_multiplier,
+                )
+                rec = resolve_forge_record(card, player)
+                if rec is not None and rec.get("slots"):
+                    mult = forge_damage_multiplier(rec["slots"], snapshot)
+                    if mult != 1.0:
+                        final_damage = int(final_damage * mult)
+
         if not dry_run and game_manager and hasattr(game_manager, 'stats'):
             if final_damage > game_manager.stats.get("max_damage_dealt", 0):
                 game_manager.stats["max_damage_dealt"] = final_damage
