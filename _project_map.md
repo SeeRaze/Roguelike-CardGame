@@ -53,11 +53,14 @@ while is_running:
 `GameManager` — «глобальный мозг»: хранит `current_state`, `player`, `relics`, `current_deck`, прогрессию этажей/карты, `active_combat` (текущий `CombatManager`).
 
 ### Экономика (Этап C, Сессия 38+)
-- **Костёр** (`ui/Campfire.py`, sub_state MAIN/FORGE/SACRIFICE): 3 опции —
-  Отдых (хил = 30% недостающего HP, `Creature.rest_heal_amount`), Кузница (апгрейд
-  карты), **Ритуал крови** (удалить карту за −10 HP сквозь щит,
-  `Creature.lose_hp`; кнопка гаснет при HP≤цены / ≤1 карты). Одно действие за визит
-  → `setup_next_floor`.
+- **Костёр** (`ui/Campfire.py`, sub_state MAIN/FORGE/SACRIFICE): 5 опций —
+  Отдых (хил = 30% недостающего HP, `Creature.rest_heal_amount`), **Кузница**
+  (ковка карт за FP: +1 уровень, растущая цена, авто-тег на майлстоунах 5/10/15,
+  Гипер-заряд >15 — `core/forge.forge_card_one_level`; мульти-ковка за визит,
+  «← ГОТОВО»), **Закалка** (FP→+20% max_hp+лечение), **Заточка** (FP→×урон),
+  **Ритуал крови** (удалить карту за −10 HP сквозь щит, `Creature.lose_hp`; кнопка
+  гаснет при HP≤цены / ≤1 карты). Продвижение по этажу — за Отдыхом/Ритуалом
+  (`setup_next_floor`); стоки FP (Кузница/Закалка/Заточка) — параллельны.
 - **Урон сквозь щит**: `Creature.lose_hp(amount)` — прямо в HP минуя `shield`, без
   боевых хуков. Идиом: `berserker.py`, `DetonationRegistry`, яд. Реюз для будущего
   (Проклятый сундук, карты «Истязания»).
@@ -100,7 +103,7 @@ while is_running:
 ## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
 main.py, server.py, _project_map.md, _balance_knobs.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
 
-core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py, core/ComboRegistry.py, core/DetonationRegistry.py, core/ForgeRegistry.py
+core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py, core/ComboRegistry.py, core/DetonationRegistry.py, core/ForgeRegistry.py, core/forge.py
 
 core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, shock.py, earth.py, air.py, heal.py
 
@@ -124,7 +127,7 @@ managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py,
 
      MapGenerator.py, network_manager.py, EnemySpawner.py, RewardManager.py
 
-managers/balance/init.py, bot.py, runner.py, report.py, builds.py, economy.py, baseline.py, forge.py, events.py, sweep.py (симуляция баланса — Сессия 32, метрика ceiling — Сессия 36, экономика+регресс-гард — Сессия 38, прокачка карт+триединство+Заточка — Сессия 39)
+managers/balance/init.py, bot.py, runner.py, report.py, builds.py, economy.py, baseline.py, forge.py, events.py, sweep.py (симуляция баланса — Сессия 32, метрика ceiling — Сессия 36, экономика+регресс-гард — Сессия 38, прокачка карт+триединство+Заточка — Сессия 39; С39.5: чистый слой ковки поднят в `core/forge.py` = общий источник правды, здесь только бот-политика ForgePolicy)
 ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
 ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hover.py, relic_panel.py, hud.py
