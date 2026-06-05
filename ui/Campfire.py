@@ -7,10 +7,12 @@ class Campfire:
     """Экран Костра -- тёплая тема, стиль EventView.
     Опции: Отдых (30% недостающего HP) / Кузница (ковка карт за FP) /
     Ритуал крови (удалить карту ценой HP)."""
-    sub_state         = "MAIN"
-    is_rest_hovered   = False
-    is_forge_hovered  = False
-    is_ritual_hovered = False
+    sub_state          = "MAIN"
+    is_rest_hovered    = False
+    is_forge_hovered   = False
+    is_temper_hovered  = False
+    is_sharpen_hovered = False
+    is_ritual_hovered  = False
 
     # Цена «Ритуала крови»: HP сквозь щит за удаление одной карты из колоды.
     _BLOOD_RITUAL_COST = 10
@@ -28,10 +30,12 @@ class Campfire:
 
     @staticmethod
     def reset():
-        Campfire.sub_state         = "MAIN"
-        Campfire.is_rest_hovered   = False
-        Campfire.is_forge_hovered  = False
-        Campfire.is_ritual_hovered = False
+        Campfire.sub_state          = "MAIN"
+        Campfire.is_rest_hovered    = False
+        Campfire.is_forge_hovered   = False
+        Campfire.is_temper_hovered  = False
+        Campfire.is_sharpen_hovered = False
+        Campfire.is_ritual_hovered  = False
 
     @staticmethod
     def _ritual_available(view) -> bool:
@@ -94,23 +98,46 @@ class Campfire:
         heal_preview = view.gm.player.rest_heal_amount(
             view.gm.player.hp, view.gm.player.max_hp)
 
-        # (rect-атрибут, лейбл, флаг ховера, активна?)
-        view.btn_rest_rect   = pygame.Rect(W // 2 - 300, 250, 600, 76)
-        view.btn_forge_rect  = pygame.Rect(W // 2 - 300, 360, 600, 76)
-        view.btn_ritual_rect = pygame.Rect(W // 2 - 300, 470, 600, 76)
-        ritual_ok = Campfire._ritual_available(view)
+        player = view.gm.player
+        fp     = player.forge_points
 
-        Campfire.is_rest_hovered   = view.btn_rest_rect.collidepoint(mouse_pos)
-        Campfire.is_forge_hovered  = view.btn_forge_rect.collidepoint(mouse_pos)
-        Campfire.is_ritual_hovered = (ritual_ok
-                                      and view.btn_ritual_rect.collidepoint(mouse_pos))
+        # 5 опций: Отдых / Кузница / Закалка / Заточка / Ритуал. Стоки FP (Кузница/
+        # Закалка/Заточка) не продвигают этаж — продвижение за Отдыхом/Ритуалом.
+        x = W // 2 - 300
+        view.btn_rest_rect    = pygame.Rect(x, 205, 600, 64)
+        view.btn_forge_rect   = pygame.Rect(x, 291, 600, 64)
+        view.btn_temper_rect  = pygame.Rect(x, 377, 600, 64)
+        view.btn_sharpen_rect = pygame.Rect(x, 463, 600, 64)
+        view.btn_ritual_rect  = pygame.Rect(x, 549, 600, 64)
+        ritual_ok    = Campfire._ritual_available(view)
+        temper_cost  = forge_mod.TEMPER_FP_COST
+        sharpen_cost = forge_mod.SHARPEN_FP_COST
+        temper_ok    = fp >= temper_cost
+        sharpen_ok   = fp >= sharpen_cost
+
+        Campfire.is_rest_hovered    = view.btn_rest_rect.collidepoint(mouse_pos)
+        Campfire.is_forge_hovered   = view.btn_forge_rect.collidepoint(mouse_pos)
+        Campfire.is_temper_hovered  = (temper_ok
+                                       and view.btn_temper_rect.collidepoint(mouse_pos))
+        Campfire.is_sharpen_hovered = (sharpen_ok
+                                       and view.btn_sharpen_rect.collidepoint(mouse_pos))
+        Campfire.is_ritual_hovered  = (ritual_ok
+                                       and view.btn_ritual_rect.collidepoint(mouse_pos))
 
         Campfire._draw_button(screen, btn_font, view.btn_rest_rect,
                               f"ОТДОХНУТЬ  (+{heal_preview} HP, 30% недостающего)",
                               Campfire.is_rest_hovered, True)
         Campfire._draw_button(screen, btn_font, view.btn_forge_rect,
-                              f"КУЗНИЦА  (Ковка за FP: {view.gm.player.forge_points})",
+                              f"КУЗНИЦА  (Ковка за FP: {fp})",
                               Campfire.is_forge_hovered, True)
+        temper_pct = int(forge_mod.TEMPER_HP_PCT * 100)
+        Campfire._draw_button(screen, btn_font, view.btn_temper_rect,
+                              f"ЗАКАЛКА  (+{temper_pct}% макс.HP + лечение, {temper_cost} FP)",
+                              Campfire.is_temper_hovered, temper_ok)
+        sharpen_pct = int(forge_mod.SHARPEN_ATK_PCT * 100)
+        Campfire._draw_button(screen, btn_font, view.btn_sharpen_rect,
+                              f"ЗАТОЧКА  (+{sharpen_pct}% урон ×{player.atk_mult:.2f}, {sharpen_cost} FP)",
+                              Campfire.is_sharpen_hovered, sharpen_ok)
         ritual_lbl = (f"РИТУАЛ КРОВИ  (Удалить карту, -{Campfire._BLOOD_RITUAL_COST} HP)"
                       if ritual_ok else "РИТУАЛ КРОВИ  (недоступно)")
         Campfire._draw_button(screen, btn_font, view.btn_ritual_rect,
@@ -264,6 +291,14 @@ class Campfire:
         elif hasattr(view, 'btn_forge_rect') and view.btn_forge_rect.collidepoint(mouse_pos):
             view.scroll_y = 0
             Campfire.sub_state = "FORGE"
+
+        # Закалка/Заточка — мгновенные стоки FP, НЕ продвигают этаж (как ковка):
+        # можно потратить банк FP по нескольким каналам за один визит.
+        elif hasattr(view, 'btn_temper_rect') and view.btn_temper_rect.collidepoint(mouse_pos):
+            forge_mod.temper(view.gm.player)
+
+        elif hasattr(view, 'btn_sharpen_rect') and view.btn_sharpen_rect.collidepoint(mouse_pos):
+            forge_mod.sharpen(view.gm.player)
 
         elif hasattr(view, 'btn_ritual_rect') \
                 and view.btn_ritual_rect.collidepoint(mouse_pos) \
