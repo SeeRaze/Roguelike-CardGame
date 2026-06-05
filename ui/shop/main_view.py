@@ -63,7 +63,7 @@ def _draw_relic_slot(shop, view, screen, fonts, mouse_pos):
     """Слот реликвии (слева в нижнем ряду). Возвращает True если под курсором."""
     W = screen.get_width()
     text_font, price_font = fonts["text"], fonts["price"]
-    rect = pygame.Rect(W // 2 - 470, 445, 450, 105)
+    rect = pygame.Rect(W // 2 - 470, 480, 450, 105)
     view.shop_relic_rect = rect
 
     if not shop.relic_item:
@@ -94,7 +94,7 @@ def _draw_rob_button(shop, view, screen, fonts, mouse_pos):
     if not shop.relic_item:
         view.btn_shop_rob_rect = None
         return
-    rect = pygame.Rect(W // 2 - 470, 558, 450, 48)
+    rect = pygame.Rect(W // 2 - 470, 593, 450, 48)
     view.btn_shop_rob_rect = rect
     hovered = rect.collidepoint(mouse_pos)
     bg = (70, 25, 60) if hovered else (45, 18, 40)
@@ -109,7 +109,7 @@ def _draw_rob_button(shop, view, screen, fonts, mouse_pos):
 
 def _draw_key_slot(shop, view, screen, fonts, mouse_pos):
     W = screen.get_width()
-    rect = pygame.Rect(W // 2 + 20, 445, 450, 105)
+    rect = pygame.Rect(W // 2 + 20, 480, 450, 105)
     view.btn_shop_key_rect = rect
     shop.is_key_hovered = rect.collidepoint(mouse_pos)
     bg = (50, 50, 25) if shop.is_key_hovered else (32, 32, 18)
@@ -143,7 +143,7 @@ def draw_main(shop, view, screen, fonts):
     _draw_rob_button(shop, view, screen, fonts, mouse_pos)
 
     # Кнопка «Сжечь карту» (утилизация)
-    view.btn_shop_remove_rect = pygame.Rect(W // 2 - 320, 640, 640, 64)
+    view.btn_shop_remove_rect = pygame.Rect(W // 2 - 320, 675, 640, 64)
     shop.is_remove_hovered = view.btn_shop_remove_rect.collidepoint(mouse_pos)
     rcol = (80, 35, 25) if shop.is_remove_hovered else (50, 20, 15)
     pygame.draw.rect(screen, rcol, view.btn_shop_remove_rect, border_radius=12)
@@ -154,7 +154,7 @@ def draw_main(shop, view, screen, fonts):
                        view.btn_shop_remove_rect.centery - rlbl.get_height() // 2))
 
     # Кнопка «Покинуть»
-    view.btn_shop_leave_rect = pygame.Rect(W // 2 - 320, 716, 640, 64)
+    view.btn_shop_leave_rect = pygame.Rect(W // 2 - 320, 751, 640, 64)
     shop.is_leave_hovered = view.btn_shop_leave_rect.collidepoint(mouse_pos)
     _draw_button(screen, fonts["btn"], view.btn_shop_leave_rect,
                  "ПОКИНУТЬ МАГАЗИН", shop.is_leave_hovered, _BTN_BORDER)
