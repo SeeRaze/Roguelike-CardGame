@@ -33,7 +33,7 @@ def create_bloodlust():
         name="Жажда крови",
         cost=1,
         card_type="skill",
-        description="Кровожадность 2(3): +N к будущим наложениям Кровотечения.",
+        description="Кровожадность 2(3): усиливает будущие наложения Кровотечения.",
         effects=[FrenzyEffect(2, 3)],
         rarity=Rarity.UNCOMMON,
     )

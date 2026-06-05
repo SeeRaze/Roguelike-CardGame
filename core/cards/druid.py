@@ -34,7 +34,7 @@ def create_virulent_strain():
         name="Вирулентный штамм",
         cost=1,
         card_type="skill",
-        description="Вирулентность 2(3): +N к каждому наложению Яда до конца боя.",
+        description="Вирулентность 2(3): усиливает наложение Яда до конца боя.",
         effects=[VirulenceEffect(2, 3)],
         rarity=Rarity.UNCOMMON,
     )

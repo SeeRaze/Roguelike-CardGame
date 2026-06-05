@@ -83,7 +83,7 @@ def create_steel_barricade():
         name="Стальной заслон",
         cost=1,
         card_type="skill",
-        description="Барьер 2(3): +N несгораемого щита каждый ход.",
+        description="Барьер 2(3): несгораемый щит каждый ход.",
         effects=[BarrierEffect(2, 3)],
         rarity=Rarity.COMMON,
     )

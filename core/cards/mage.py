@@ -54,7 +54,7 @@ def create_arcane_focus():
         name="Тайное сосредоточение",
         cost=1,
         card_type="skill",
-        description="Мастерство 2(3): +N к урону всех атак до конца боя.",
+        description="Мастерство 2(3): усиливает урон всех атак до конца боя.",
         effects=[MasteryEffect(2, 3)],
         rarity=Rarity.UNCOMMON,
     )
