@@ -101,8 +101,11 @@ def draw_player_panel(view, screen, player, intent_dmg):
         view.ability_rect = None
 
 
-def draw_enemy_panels(view, screen, enemies, player, hover_dmg):
-    """Отрисовка панелей врагов. 1 враг — полноразмерная, 2–3 — компактные."""
+def draw_enemy_panels(view, screen, enemies, player, projection=None):
+    """Отрисовка панелей врагов. 1 враг — полноразмерная, 2–3 — компактные.
+    `projection` — {враг: полный_урон наведённой карты} для визуальной проекции
+    на HP-баре (цель для одиночных атак, все враги для AoE)."""
+    projection = projection or {}
     n = len(enemies)
     if n == 0:
         view.enemy_panel_rects = []
@@ -160,7 +163,7 @@ def draw_enemy_panels(view, screen, enemies, player, hover_dmg):
         CombatHUD.draw_hp_bar(
             screen, x, y, bar_w, 22,
             enemy.hp, enemy.max_hp, enemy.shield,
-            incoming_dmg=hover_dmg if i == 0 else 0,
+            incoming_dmg=projection.get(enemy, 0),
         )
         y += 26
         hp_font = view.card_desc_font
