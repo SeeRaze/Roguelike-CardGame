@@ -115,4 +115,11 @@ class HubView:
             return
         gm.player       = CLASS_MAP[cls_name]()
         gm.current_deck = gm.player.get_starter_deck()
+        # Паспорт ковки: новый игрок/колода создаются МИНУЯ GameManager.__init__,
+        # поэтому штампуем uid здесь — иначе ковка на костре молча не сработает
+        # (forge_card_one_level подстрахован ленивой штамповкой, но держим uid
+        # стабильными сразу, как при старте). 39.5 хотфикс.
+        from core.forge import assign_forge_uid
+        for card in gm.current_deck:
+            assign_forge_uid(gm.player, card)
         print(f"[HubView] Выбран класс: {cls_name}")

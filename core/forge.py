@@ -144,9 +144,10 @@ def forge_card_one_level(player, card, class_name: str = "") -> bool:
 
     NB: sim использует свой forge_between_acts (δ-only, без ручного «+») —
     расхождение линейного слоя принято (_upgrade_design.md §2)."""
-    uid = getattr(card, "_fuid", None)
-    if uid is None:
-        return False
+    # Ленивая штамповка uid (зеркало sim ForgePolicy._record): карта могла попасть
+    # в колоду минуя GameManager.__init__ (напр. пересоздание колоды при выборе
+    # класса в HUB) — без этого ковка молча отваливалась. Обойти невозможно.
+    uid = assign_forge_uid(player, card)
     rec = player.deck_forge_state.get(uid) or {"level": 0, "slots": []}
     level = rec["level"]
     if level >= player.forge_level_cap:
