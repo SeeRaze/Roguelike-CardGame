@@ -3,13 +3,16 @@
 # BOSS_BY_FLOOR — диспатч: этаж → класс босса.
 # Импорты добавляются инкрементально по мере создания файлов боссов.
 from core.enemies.bosses.base import BossBase
+from core.enemies.bosses.guardian import ThresholdGuardian
 
 # Диспатч боссов по этажам. Используется EnemySpawner.build_enemy().
 # Этажи не в словаре → BossTitan (старый fallback).
-# Заполняется по мере добавления боссов (guardian/archivist/elemental/keeper/architect).
-BOSS_BY_FLOOR = {}
+BOSS_BY_FLOOR = {
+    20: ThresholdGuardian,
+}
 
 __all__ = [
     "BossBase",
+    "ThresholdGuardian",
     "BOSS_BY_FLOOR",
 ]
