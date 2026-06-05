@@ -100,7 +100,7 @@ while is_running:
 ## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
 main.py, server.py, _project_map.md, _balance_knobs.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
 
-core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py, core/ComboRegistry.py, core/DetonationRegistry.py
+core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py, core/ComboRegistry.py, core/DetonationRegistry.py, core/ForgeRegistry.py
 
 core/cards/init.py, base.py, basic.py, fire.py, poison.py, water.py, shock.py, earth.py, air.py, heal.py
 
@@ -124,7 +124,7 @@ managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py,
 
      MapGenerator.py, network_manager.py, EnemySpawner.py, RewardManager.py
 
-managers/balance/init.py, bot.py, runner.py, report.py, builds.py, economy.py, baseline.py (симуляция баланса — Сессия 32, метрика ceiling — Сессия 36, экономика+регресс-гард — Сессия 38)
+managers/balance/init.py, bot.py, runner.py, report.py, builds.py, economy.py, baseline.py, forge.py, events.py, sweep.py (симуляция баланса — Сессия 32, метрика ceiling — Сессия 36, экономика+регресс-гард — Сессия 38, прокачка карт+триединство+Заточка — Сессия 39)
 ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
 ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hover.py, relic_panel.py, hud.py
@@ -212,6 +212,10 @@ shock, shatter, echo, barrier, mastery, frenzy, virulence
 - **Шаг 6 — Шок**: если у цели `shock>0`, +`SHOCK_DAMAGE_PER_STACK`(3) к урону
   ПЛОСКО (после уязвимости/комбо, чтобы не множился), и −1 заряд. `dry_run` бонус
   показывает, но заряд НЕ тратит.
+- **Шаг 8 — Заточка** (С39.4, sim-движок прокачки): если атакует игрок (не
+  `dry_run`), урон ×`player.atk_mult` (компаунд-множитель, копится ковкой «Заточка»
+  на костре). Живёт весь забег как `max_hp`; инертен при `atk_mult=1.0` ⇒ без ковки
+  не влияет. DPS-аналог Закалки (Max HP) — см. balance-слой ниже.
 
 ### Комбо — ДВА реестра (два архетипа)
 Стихийные синергии живут в двух data-driven реестрах (каждое комбо = одна запись):

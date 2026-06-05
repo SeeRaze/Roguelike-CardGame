@@ -119,6 +119,16 @@ class EffectCalculator:
                     if mult != 1.0:
                         final_damage = int(final_damage * mult)
 
+        # 8. ЗАТОЧКА (Сессия 39.4, _upgrade_design.md / память balance-findings-dps-bound).
+        # Player-level компаунд-множитель урона на ВСЕ атаки игрока (DPS-аналог
+        # Закалки: офенс-классы выживают, убивая быстрее). Копится ковкой (Заточка
+        # на костре, ForgePolicy.sharpen) в player.atk_mult; живёт весь забег (как
+        # max_hp, НЕ сбрасывается между боями). Инертно без ковки (atk_mult=1.0).
+        if is_player_attack and not dry_run:
+            atk_mult = getattr(player, "atk_mult", 1.0)
+            if atk_mult != 1.0:
+                final_damage = int(final_damage * atk_mult)
+
         if not dry_run and game_manager and hasattr(game_manager, 'stats'):
             if final_damage > game_manager.stats.get("max_damage_dealt", 0):
                 game_manager.stats["max_damage_dealt"] = final_damage

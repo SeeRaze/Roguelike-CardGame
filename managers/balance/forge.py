@@ -16,15 +16,18 @@ from managers.MapGenerator import FLOORS_PER_ACT
 from core.ForgeRegistry import pick_tag
 from core.cards.base import (
     DamageEffect, ShieldEffect, BarrierEffect, HealEffect, RegenEffect,
+    PoisonEffect,
 )
+from core.cards.debuff.bleed import BleedEffect
 
 # ─── РУЧКИ (калибровка 39.3 — _balance_knobs.md раздел «Прокачка») ────────────
 # Экономика FP — ДИНАМИЧЕСКИЙ приток по актам (ручка скорости c, _upgrade_design
 # §3,6). FP начисляется ЗА БОЙ; величина растёт по акту (этаж//20+1), кап на 3.
-# Калибровка (выбор юзера, 39.3): акт 1→1, акт 2→2, акт 3+→3 FP за бой ⇒ ~120 FP
-# за забег (этажи 1-60) ≈ кумулятивная цена 15-го уровня → потолок флипает к сер.
-# Акта 3, но не раньше (ранняя стена защищена).
-FORGE_POINTS_PER_ACT = (1, 2, 3)   # FP за бой в актах 1 / 2 / 3+
+# Калибровка 39.4 (свип флипа DPS-трио Заточкой): акт 1→2, акт 2→3, акт 3+→4 FP
+# за бой. Мягкий бамп против 39.3-(1,2,3): дешёвая Заточка (cost 5) компаундится
+# при умеренном притоке и флипает Разбойника/Друида/Берсерка в act-3, НЕ ломая
+# раннюю стену (forge OFF в wall/baseline) — см. память balance-findings-dps-bound.
+FORGE_POINTS_PER_ACT = (2, 3, 4)   # FP за бой в актах 1 / 2 / 3+
 FORGE_POINTS_PER_BOSS = 3          # бонус FP за босса (поверх боевого притока)
 # Линейный слой стены.
 LINEAR_BONUS_PER_LEVEL  = 1     # δ: +N к числовым эффектам карты за уровень
@@ -76,6 +79,18 @@ TEMPER_PROACTIVE_RATIO = 0.6
 # накопленному давлению боя = урон_за_ход · INCOMING_FIGHT_TURNS. Репрезентативная
 # длина боя (предмет свипа; ~5 ходов клир группы).
 INCOMING_FIGHT_TURNS = 5
+
+# ─── ЗАТОЧКА (Sharpen) — DPS-аналог Закалки (С39.4) ──────────────────────────
+# Диагностика 39.4 (память balance-findings-dps-bound): Разбойник/Друид/Берсерк
+# DPS-bound (плоский ×урон их флипает), но per-card теги покрывают мизер атак
+# (~9-16/забег) и не успевают к их стене акта-2. Закалка (Max HP) их НЕ лечит
+# (горлышко — урон, не HP). РЕШЕНИЕ: «Заточка» — player-level компаунд-множитель
+# урона на ВСЕ атаки (player.atk_mult), сток FP параллельный Закалке. Дешевле
+# Закалки → компаундится при умеренном притоке. Применяется в EffectCalculator
+# (шаг 8), инертно без ковки (atk_mult отсутствует/1.0). КАЛИБР. свипом 39.4:
+# FP(2,3,4)+cost5+pct0.30 флипает трио в act-3 (74/91/71), wall цел.
+SHARPEN_FP_COST = 5            # цена одной Заточки в FP (дешевле Закалки)
+SHARPEN_ATK_PCT = 0.30         # +30% к player.atk_mult за одну Заточку (компаунд)
 
 # ─── ТРИЕДИНСТВО ЭКОНОМИКИ: PLACEHOLDER-ЗАГЛУШКИ АРТЕФАКТОВ (С39.3) ────────────
 # Артефакты (реликвии) = третий рычаг притока ресурсов (Бои=база, %-Ивенты=скачки,
@@ -146,6 +161,30 @@ def card_forge_channel(card) -> str:
     if has_heal:
         return "heal"
     return "damage"
+
+
+def _card_is_defensive(card) -> bool:
+    """Карта ЧИСТО оборонная: даёт щит/барьер/хил/реген И не несёт урона/дотов.
+    Карта с уроном (даже вперемешку с щитом) — НЕ оборонная (офенс доминирует,
+    как в card_forge_channel)."""
+    has_def = has_off = False
+    for e in card.effects:
+        if isinstance(e, (ShieldEffect, BarrierEffect, HealEffect, RegenEffect)):
+            has_def = True
+        elif isinstance(e, (DamageEffect, BleedEffect, PoisonEffect)):
+            has_off = True
+    return has_def and not has_off
+
+
+def deck_prefers_sharpen(deck) -> bool:
+    """ТЕМА-ГЕЙТ Заточки (С39.4): офенс-ориентированная колода точит урон
+    (Заточка), оборонная копит Max HP (Закалка). Считаем КАРТЫ (не уникальные
+    темы — устойчивее к шуму): чисто оборонных меньше прочих ⇒ офенс ⇒ Заточка.
+    Data-driven (по природе эффектов) → новые карты/классы авто-классифицируются."""
+    if not deck:
+        return False
+    defensive = sum(1 for c in deck if _card_is_defensive(c))
+    return (len(deck) - defensive) > defensive
 
 
 def _ensure_state(player) -> None:
@@ -297,6 +336,44 @@ class ForgePolicy:
                 break
             tempered = True
         return tempered
+
+    # ── ЗАТОЧКА (Sharpen) — DPS-сток FP в множитель урона (С39.4) ───────────────
+    @staticmethod
+    def sharpen(player) -> bool:
+        """Заточка на костре (С39.4): тратит SHARPEN_FP_COST FP, навсегда
+        ×(1+SHARPEN_ATK_PCT) к player.atk_mult (компаунд-множитель урона на ВСЕ
+        атаки, читается EffectCalculator шаг 8). DPS-аналог Закалки: класс с
+        офенс-колодой выживает, убивая быстрее. Возвращает True, если хватило FP."""
+        _ensure_state(player)
+        if player.forge_points < SHARPEN_FP_COST:
+            return False
+        player.forge_points -= SHARPEN_FP_COST
+        player.atk_mult = getattr(player, "atk_mult", 1.0) * (1 + SHARPEN_ATK_PCT)
+        return True
+
+    def sharpen_if_threatened(self, player, floor: int) -> bool:
+        """Заточка-аналог temper_if_threatened: пока угроза следующего акта держит
+        порог, лить FP в множитель урона. atk_mult НЕ меняет max_hp/угрозу →
+        дренит весь доступный FP за костёр (в отличие от самоограничивающейся
+        Закалки) — именно это даёт компаунд-флип DPS-трио (свип 39.4)."""
+        _ensure_state(player)
+        threat = self.incoming_next_act(floor)
+        did = False
+        while (threat >= TEMPER_PROACTIVE_RATIO * player.max_hp
+               and player.forge_points >= SHARPEN_FP_COST):
+            if not self.sharpen(player):
+                break
+            did = True
+        return did
+
+    def invest_if_threatened(self, player, floor: int, deck: list,
+                             class_name: str = "") -> bool:
+        """ЕДИНЫЙ костёр-сток выживаемости (С39.4): ТЕМА-ГЕЙТ по колоде выбирает
+        движок. Офенс-колода точит урон (Заточка), оборонная копит Max HP
+        (Закалка). Зеркало будущего выбора игрока на костре (39.5)."""
+        if deck_prefers_sharpen(deck):
+            return self.sharpen_if_threatened(player, floor)
+        return self.temper_if_threatened(player, floor)
 
     @staticmethod
     def _level_cost(level: int) -> int:
