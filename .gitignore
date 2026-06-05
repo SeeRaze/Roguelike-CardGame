@@ -193,3 +193,9 @@ dumper.py
 _osnovnoe.txt
 _stihii.txt
 _sheets.json
+
+# Артефакты сборки PyInstaller (.exe/.zip собираются локально, в релизы)
+build_release/
+build/
+dist/
+*.spec
