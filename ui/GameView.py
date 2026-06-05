@@ -141,4 +141,7 @@ class GameView:
         handler = DRAW_HANDLERS.get(self.gm.current_state)
         if handler:
             handler(self)
+        # Единая строка ресурсов (HP/Золото/FP) поверх экранов-точек интереса.
+        from ui.resource_hud import draw_resource_hud
+        draw_resource_hud(self)
         pygame.display.flip()

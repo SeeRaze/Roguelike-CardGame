@@ -117,6 +117,16 @@ class MapView:
         view.draw_text(f"Золото: {gm.player_gold} з.", view.main_font, YELLOW, 1650, 20)
         keys = getattr(gm, "player_keys", 0)
         view.draw_text(f"Ключи: {keys}", view.main_font, (255, 215, 0), 1650, 58)
+        # Ресурсы забега в правой шапке карты (единый набор с другими экранами).
+        view.draw_text(f"HP: {gm.player.hp}/{gm.player.max_hp}",
+                       view.main_font, (120, 220, 120), 1650, 96)
+        view.draw_text(f"FP: {getattr(gm.player, 'forge_points', 0)}",
+                       view.main_font, (120, 200, 235), 1650, 134)
+        # Бейджи реликвий (тот же вид, что в бою) под ресурсами.
+        relics = getattr(gm, "relics", None)
+        if relics:
+            from ui.combat.hud import CombatHUD
+            CombatHUD.draw_relics(view.screen, relics, 1650, 172, max_x=1900)
 
         # ── 7. ЛЕГЕНДА ────────────────────────────────────────────────
         lx, ly = 30, 900

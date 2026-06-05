@@ -79,6 +79,11 @@ def draw_player_panel(view, screen, player, intent_dmg):
     screen.blit(view.card_desc_font.render(
         f"Золото: {view.gm.player_gold}", True, _GOLD
     ), (x, y))
+    # FP (очки ковки) — рядом с золотом, чтобы ресурс был виден и в бою.
+    fp = getattr(player, "forge_points", 0)
+    screen.blit(view.card_desc_font.render(
+        f"FP: {fp}", True, (120, 200, 235)
+    ), (x + 160, y))
 
     # Статусы
     y += 38
