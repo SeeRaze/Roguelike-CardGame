@@ -76,13 +76,16 @@ class TimeKeeper(BossBase):
         if isinstance(intent, IntentHeal):
             self.turn_count += 1
             heal_amount = intent.value
+            # Запомнить фазу ДО хила: иначе хил может вытолкнуть из фазы 2
+            # и Weak не наложится.
+            was_phase2 = (self.current_phase == 2)
             self.heal(heal_amount, combat_manager)
             if combat_manager:
                 combat_manager.add_log_message(
                     f"[ХРАНИТЕЛЬ] Временной сдвиг: +{heal_amount} HP."
                 )
             # Фаза 2: +2 Слабость игроку
-            if self.current_phase == 2:
+            if was_phase2:
                 player.weak += 2
                 if combat_manager:
                     combat_manager.add_log_message(
