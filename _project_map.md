@@ -5,7 +5,7 @@ _История изменений по версиям — в `PATCHNOTES.md`._
 ## Архитектура
 - `core/` — вся логика (cards/, enemies/, players/, relics/, Creature.py, EffectCalculator.py, StatusRegistry.py, Summon.py)
 - `ui/` — вся отрисовка. Пакеты: `cards/` (CardRenderer), `combat/` (CombatInterface+HUD, targeting), `hub/` (HubView), `shop/` (Shop), `victory/` (VictoryScreen), `library/` (CardLibraryView), `chest/`, `events/`; модули: GameView.py (+`draw_dispatchers.py`, `hover_state.py`), MainMenu.py, MapView.py, LeaderboardView.py, Campfire.py.
-- `managers/` — CombatManager, DeckManager, GameManager, MapGenerator, network_manager, EnemySpawner, RewardManager
+- `managers/` — CombatManager, DeckManager, GameManager, MapGenerator, network_manager, EnemySpawner, RewardManager, SaveManager
 - Разрешение: строго 1920×1080 Full HD
 - **Ветка разработки: dev** (main — стабильная, dev — активная работа)
 
@@ -532,6 +532,25 @@ SHLD: SHLD_BASE(3.5) * SHLD_GROWTH(1.008) ** floor
 - `RogueAbility._penalty_pending`: `on_turn_start` снимает -1 энергию ПОСЛЕ восстановления
 - `BerserkerAbility`: урон себе напрямую в `hp` (сквозь щит), не через `take_damage`
 - Смерть игрока централизована в `CombatManager.check_player_defeat()` — вызывать после любого нового источника урона игроку в его ход (не только в `end_turn_phase`)
+
+## Мета-прогрессия / сейв (Сессия 40)
+- `managers/SaveManager.py` — ЕДИНСТВЕННЫЙ слой записи на диск. Только примитивы
+  (никакой сериализации живых объектов). Путь PyInstaller-safe в пользовательском
+  каталоге (`%APPDATA%`/`XDG_DATA_HOME` → `Roguelike-CardGame/meta_save.json`), НЕ
+  рядом с frozen exe. Запись атомарна (temp + `os.replace`), UTF-8, сбой записи
+  проглатывается (сейв не критичен для геймплея).
+- Модульный кэш `_meta` (ленив, `get_meta()`); битый/чужой файл → дефолт (не падает).
+  Схема v1: `stats` (пожизненные) + `class_best{cls}` + `runs` (кольцо `RUNS_CAP=50`).
+- Врезки: `GameManager.__init__` → `self.meta = SaveManager.get_meta()`;
+  `CombatManager.check_player_defeat` → `record_run` (local-first, ДО сети) с классом
+  игрока (`type(player).__name__`). `BotCombatManager` НЕ задет (свой defeat без записи)
+  → симулятор/baseline не пишут на диск.
+- Лидерборд (`ui/LeaderboardView.py`) — local-first: `SaveManager.leaderboard_rows`
+  (локальные забеги + мерж сетевого `fetch_top_scores`, дедуп, сорт этаж↓). Столбец
+  КЛАСС (русский label из `CLASS_INFO`). Работает офлайн.
+- Хаб (`ui/hub/base.py::_draw_meta_stats`) — панель пожизненных статов из `gm.meta`
+  («игра помнит тебя»). Инертна без меты/`class_best`.
+- ВНЕ объёма (бэклог): гейтинг/разблокировки, мета-валюта, сейв ПОСРЕДИ забега.
 
 ## Правила работы
 - Файлы проекта читаются и правятся напрямую в локальной рабочей копии (ветка `dev`).
