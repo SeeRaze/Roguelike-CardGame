@@ -94,6 +94,14 @@ class GameView:
                         MainMenu.handle_clicks(self, mouse_pos)
                         continue
                     if self.gm.current_state == "MAP":
+                        from ui.combat.relic_panel import RelicPanel
+                        if RelicPanel.is_open(self):
+                            RelicPanel.handle_click(self, mouse_pos)
+                            continue
+                        btn = getattr(self, 'hud_relic_btn_rect', None)
+                        if btn and btn.collidepoint(mouse_pos):
+                            RelicPanel.open(self)
+                            continue
                         MapView.handle_click(self, mouse_pos)
                         continue
                     InputHandler.process_mouse_clicks(self, event.pos)
@@ -141,7 +149,11 @@ class GameView:
         handler = DRAW_HANDLERS.get(self.gm.current_state)
         if handler:
             handler(self)
-        # Единая строка ресурсов (HP/Золото/FP) поверх экранов-точек интереса.
+        # Единая строка ресурсов (HP/Золото/FP) + кнопка артефактов.
         from ui.resource_hud import draw_resource_hud
         draw_resource_hud(self)
+        # Модальная панель артефактов — поверх всего, на любом экране.
+        from ui.combat.relic_panel import RelicPanel
+        if RelicPanel.is_open(self):
+            RelicPanel.draw(self, self.screen)
         pygame.display.flip()

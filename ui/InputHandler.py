@@ -5,6 +5,23 @@ from ui.Campfire import Campfire
 from ui.combat.targeting import TargetingSystem
 
 
+def _check_relic_panel(view, mouse_pos) -> bool:
+    """Общий хелпер: открытая RelicPanel перехватывает клики; клик по кнопке
+    «АРТЕФАКТЫ (N)» (resource_hud) открывает панель. Возвращает True, если
+    клик поглощён и дальнейшая обработка не нужна."""
+    from ui.combat.relic_panel import RelicPanel
+
+    if RelicPanel.is_open(view):
+        RelicPanel.handle_click(view, mouse_pos)
+        return True
+
+    btn = getattr(view, 'hud_relic_btn_rect', None)
+    if btn and btn.collidepoint(mouse_pos):
+        RelicPanel.open(view)
+        return True
+    return False
+
+
 def _handle_combat(view, mouse_pos):
     from ui.combat.relic_panel import RelicPanel
 
@@ -63,18 +80,26 @@ def _handle_combat(view, mouse_pos):
 
 
 def _handle_campfire(view, mouse_pos):
+    if _check_relic_panel(view, mouse_pos):
+        return
     Campfire.handle_clicks(view, mouse_pos)
 
 
 def _handle_shop(view, mouse_pos):
+    if _check_relic_panel(view, mouse_pos):
+        return
     Shop.handle_clicks(view, mouse_pos)
 
 
 def _handle_chest(view, mouse_pos):
+    if _check_relic_panel(view, mouse_pos):
+        return
     Chest.handle_clicks(view, mouse_pos)
 
 
 def _handle_event(view, mouse_pos):
+    if _check_relic_panel(view, mouse_pos):
+        return
     from ui.EventView import handle_clicks as event_clicks
     event_clicks(view, mouse_pos)
 

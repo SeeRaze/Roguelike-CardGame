@@ -14,19 +14,19 @@ _TITLE_H   = 56
 
 
 class RelicPanel:
-    """Модальная панель со всеми реликвиями игрока. Состояние привязано к текущему бою."""
-    _open         = False
-    _combat_token = None
+    """Модальная панель со всеми реликвиями игрока. Работает на всех экранах."""
+    _open    = False
+    _gm_token = None
 
     @classmethod
     def is_open(cls, view) -> bool:
-        combat = getattr(view.gm, 'active_combat', None)
-        return cls._open and combat is not None and id(combat) == cls._combat_token
+        gm = getattr(view, 'gm', None)
+        return cls._open and gm is not None and id(gm) == cls._gm_token
 
     @classmethod
     def open(cls, view):
-        cls._open         = True
-        cls._combat_token = id(getattr(view.gm, 'active_combat', None))
+        cls._open    = True
+        cls._gm_token = id(getattr(view, 'gm', None))
 
     @classmethod
     def close(cls):
@@ -111,8 +111,9 @@ class RelicPanel:
 
         for rect, relic in getattr(view, 'relic_panel_cell_rects', []):
             if rect.collidepoint(mouse_pos):
-                if getattr(relic, 'is_active', False):
-                    relic.activate(view.gm.active_combat)
+                combat = getattr(view.gm, 'active_combat', None)
+                if getattr(relic, 'is_active', False) and combat is not None:
+                    relic.activate(combat)
                     cls.close()
                 return True
 

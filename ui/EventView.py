@@ -38,16 +38,16 @@ def draw_screen(view):
     mouse  = pygame.mouse.get_pos()
     screen.fill(_BG_COLOR)
 
-    panel = pygame.Rect(W // 2 - 480, 80, 960, 900)
+    panel = pygame.Rect(W // 2 - 480, 110, 960, 870)
     pygame.draw.rect(screen, _PANEL_COLOR, panel, border_radius=16)
     pygame.draw.rect(screen, _BTN_BORDER,  panel, 2, border_radius=16)
 
     title_font = pygame.font.SysFont("Arial", 42, bold=True)
     title_surf = title_font.render(_current_event["title"], True, _TITLE_COLOR)
-    screen.blit(title_surf, (W // 2 - title_surf.get_width() // 2, 120))
+    screen.blit(title_surf, (W // 2 - title_surf.get_width() // 2, 150))
 
     text_font = pygame.font.SysFont("Arial", 26)
-    y = 210
+    y = 240
     for line in _current_event["text"].split("\n"):
         surf = text_font.render(line, True, _TEXT_COLOR)
         screen.blit(surf, (W // 2 - surf.get_width() // 2, y))

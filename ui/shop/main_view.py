@@ -37,7 +37,7 @@ def _draw_cards(shop, view, screen, fonts, mouse_pos):
     gap = 22
     total_w = card_w * n + gap * (n - 1)
     start_x = W // 2 - total_w // 2
-    cards_y = 180
+    cards_y = 210
     card_price = get_card_price(view.gm.current_floor)
 
     hovered = None
@@ -126,16 +126,16 @@ def draw_main(shop, view, screen, fonts):
     W = screen.get_width()
     mouse_pos = pygame.mouse.get_pos()
 
-    panel = pygame.Rect(W // 2 - 560, 40, 1120, 960)
+    panel = pygame.Rect(W // 2 - 560, 70, 1120, 930)
     pygame.draw.rect(screen, _PANEL_COLOR, panel, border_radius=16)
     pygame.draw.rect(screen, _BTN_BORDER,  panel, 2, border_radius=16)
 
     title = fonts["title"].render(
         f"ЭТАЖ {view.gm.current_floor}: ЛАВКА ТОРГОВЦА", True, _TITLE_COLOR)
-    screen.blit(title, (W // 2 - title.get_width() // 2, 60))
+    screen.blit(title, (W // 2 - title.get_width() // 2, 90))
     gold = fonts["text"].render(
         f"Золото: {view.gm.player_gold} монет", True, _GOLD_COLOR)
-    screen.blit(gold, (W // 2 - gold.get_width() // 2, 120))
+    screen.blit(gold, (W // 2 - gold.get_width() // 2, 150))
 
     hovered_card = _draw_cards(shop, view, screen, fonts, mouse_pos)
     relic_hovered = _draw_relic_slot(shop, view, screen, fonts, mouse_pos)

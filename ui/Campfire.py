@@ -82,18 +82,18 @@ class Campfire:
         W, _      = screen.get_size()
         mouse_pos = pygame.mouse.get_pos()
 
-        panel = pygame.Rect(W // 2 - 480, 60, 960, 600)
+        panel = pygame.Rect(W // 2 - 480, 90, 960, 600)
         pygame.draw.rect(screen, C._PANEL_COLOR, panel, border_radius=16)
         pygame.draw.rect(screen, C._BTN_BORDER,  panel, 2, border_radius=16)
 
         title = title_font.render(
             f"ЭТАЖ {view.gm.current_floor}: У КОСТРА", True, C._TITLE_COLOR)
-        screen.blit(title, (W // 2 - title.get_width() // 2, 100))
+        screen.blit(title, (W // 2 - title.get_width() // 2, 130))
 
         hp_surf = text_font.render(
             f"Здоровье: {view.gm.player.hp} / {view.gm.player.max_hp}",
             True, C._HP_COLOR)
-        screen.blit(hp_surf, (W // 2 - hp_surf.get_width() // 2, 165))
+        screen.blit(hp_surf, (W // 2 - hp_surf.get_width() // 2, 195))
 
         heal_preview = view.gm.player.rest_heal_amount(
             view.gm.player.hp, view.gm.player.max_hp)
@@ -104,11 +104,11 @@ class Campfire:
         # 5 опций: Отдых / Кузница / Закалка / Заточка / Ритуал. Стоки FP (Кузница/
         # Закалка/Заточка) не продвигают этаж — продвижение за Отдыхом/Ритуалом.
         x = W // 2 - 300
-        view.btn_rest_rect    = pygame.Rect(x, 205, 600, 64)
-        view.btn_forge_rect   = pygame.Rect(x, 291, 600, 64)
-        view.btn_temper_rect  = pygame.Rect(x, 377, 600, 64)
-        view.btn_sharpen_rect = pygame.Rect(x, 463, 600, 64)
-        view.btn_ritual_rect  = pygame.Rect(x, 549, 600, 64)
+        view.btn_rest_rect    = pygame.Rect(x, 235, 600, 64)
+        view.btn_forge_rect   = pygame.Rect(x, 321, 600, 64)
+        view.btn_temper_rect  = pygame.Rect(x, 407, 600, 64)
+        view.btn_sharpen_rect = pygame.Rect(x, 493, 600, 64)
+        view.btn_ritual_rect  = pygame.Rect(x, 579, 600, 64)
         ritual_ok    = Campfire._ritual_available(view)
         temper_cost  = forge_mod.TEMPER_FP_COST
         sharpen_cost = forge_mod.SHARPEN_FP_COST
