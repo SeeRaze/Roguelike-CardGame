@@ -3,7 +3,7 @@
 # генерация имени. Чистый модуль без состояния игры — возвращает готовый объект врага.
 import random
 from managers.MapGenerator import FLOORS_PER_ACT
-from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy
+from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy, BOSS_BY_FLOOR
 
 # ─── Кривая сложности: чистая экспонента E₀·g^f ──────────────────────────
 # stat = BASE * GROWTH ** floor
@@ -60,8 +60,12 @@ def build_enemy(current_floor: int, is_elite: bool = False):
         enemy_hp   = int(enemy_hp   * 2.2)
         enemy_dmg  = int(enemy_dmg  * 1.3)
         enemy_shld = int(enemy_shld * 1.8)
-        e_name      = f"БОСС: {random.choice(_BOSS_TITLES)} [Этаж {floor}]"
-        enemy_class = BossTitan
+        enemy_class = BOSS_BY_FLOOR.get(floor, BossTitan)
+        # Имя: у каждого босса свой random_title(), у BossTitan — старый список.
+        if hasattr(enemy_class, 'random_title'):
+            e_name = f"БОСС: {enemy_class.random_title()} [Этаж {floor}]"
+        else:
+            e_name = f"БОСС: {random.choice(_BOSS_TITLES)} [Этаж {floor}]"
     elif is_elite:
         e_type      = random.choice(list(ENEMY_REGISTRY.keys()))
         e_name      = f"{random.choice(_ELITE_PREFIX)} {e_type} [Элита, Этаж {floor}]"
@@ -75,6 +79,7 @@ def build_enemy(current_floor: int, is_elite: bool = False):
     enemy.base_test_damage = enemy_dmg
     enemy.base_test_shield = enemy_shld
     enemy.is_elite         = is_elite
+    enemy.spawn_floor      = floor   # Для Void Elemental (щит растёт с этажом)
 
     if is_boss:
         enemy.shield = enemy_shld * 2
