@@ -109,24 +109,19 @@ class MapView:
         YELLOW = (240, 220, 60)
         tier   = (gm.current_floor - 1) // total_rows + 1
 
-        view.draw_text("КАРТА БАШНИ", view.main_font, WHITE, 30, 20)
-        view.draw_text(
-            f"Этаж: {gm.current_floor}  |  Ярус: {tier}  |  Шаг: {current_row + 1}/{total_rows}",
-            view.ui_font, YELLOW, 30, 58
-        )
-        view.draw_text(f"Золото: {gm.player_gold} з.", view.main_font, YELLOW, 1650, 20)
+        # Башня-инфо — СПРАВА-сверху (верх-лево освобождён под единую строку
+        # ресурсов ui/resource_hud.py, как на других экранах-точках интереса).
+        # Ресурсы (HP/Золото/FP/реликвии) рисует строка; здесь — навигация по башне.
+        _R = 1890
+        title_surf = view.main_font.render("КАРТА БАШНИ", True, WHITE)
+        view.screen.blit(title_surf, (_R - title_surf.get_width(), 20))
+        floor_surf = view.ui_font.render(
+            f"Этаж: {gm.current_floor}  |  Ярус: {tier}  |  "
+            f"Шаг: {current_row + 1}/{total_rows}", True, YELLOW)
+        view.screen.blit(floor_surf, (_R - floor_surf.get_width(), 62))
         keys = getattr(gm, "player_keys", 0)
-        view.draw_text(f"Ключи: {keys}", view.main_font, (255, 215, 0), 1650, 58)
-        # Ресурсы забега в правой шапке карты (единый набор с другими экранами).
-        view.draw_text(f"HP: {gm.player.hp}/{gm.player.max_hp}",
-                       view.main_font, (120, 220, 120), 1650, 96)
-        view.draw_text(f"FP: {getattr(gm.player, 'forge_points', 0)}",
-                       view.main_font, (120, 200, 235), 1650, 134)
-        # Бейджи реликвий (тот же вид, что в бою) под ресурсами.
-        relics = getattr(gm, "relics", None)
-        if relics:
-            from ui.combat.hud import CombatHUD
-            CombatHUD.draw_relics(view.screen, relics, 1650, 172, max_x=1900)
+        keys_surf = view.main_font.render(f"Ключи: {keys}", True, (255, 215, 0))
+        view.screen.blit(keys_surf, (_R - keys_surf.get_width(), 96))
 
         # ── 7. ЛЕГЕНДА ────────────────────────────────────────────────
         lx, ly = 30, 900

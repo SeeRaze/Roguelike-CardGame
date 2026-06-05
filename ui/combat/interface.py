@@ -39,7 +39,8 @@ class CombatInterface:
             projection = CombatInterface._card_projection(
                 combat, player, view.hover.card_obj)
 
-        panels.draw_relic_bar(view, screen)
+        # Реликвии теперь в панели героя (draw_player_panel), верхняя плашка убрана;
+        # ресурсы (HP/Золото/FP) — в единой строке (ui/resource_hud.py, как везде).
         panels.draw_player_panel(view, screen, player, intent_dmg)
         panels.draw_enemy_panels(view, screen, enemies, player, projection)
 

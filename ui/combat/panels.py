@@ -75,15 +75,34 @@ def draw_player_panel(view, screen, player, intent_dmg):
         player.energy, player.max_energy, size=14
     )
 
+    # Артефакты (реликвии) — в панели героя (перенесены из верхней плашки; золото/FP
+    # ушли в единую строку ресурсов слева-сверху). Клик по метке открывает модальный
+    # инвентарь; слот «+N» при переполнении — тоже.
     y += 42
-    screen.blit(view.card_desc_font.render(
-        f"Золото: {view.gm.player_gold}", True, _GOLD
-    ), (x, y))
-    # FP (очки ковки) — рядом с золотом, чтобы ресурс был виден и в бою.
-    fp = getattr(player, "forge_points", 0)
-    screen.blit(view.card_desc_font.render(
-        f"FP: {fp}", True, (120, 200, 235)
-    ), (x + 160, y))
+    lbl = view.card_desc_font.render("АРТЕФАКТЫ:", True, _GOLD)
+    lbl_rect = pygame.Rect(x - 4, y - 4, lbl.get_width() + 10, 26)
+    if lbl_rect.collidepoint(pygame.mouse.get_pos()):
+        pygame.draw.rect(screen, (40, 40, 60), lbl_rect, border_radius=4)
+    screen.blit(lbl, (x, y))
+    view.relic_panel_btn_rect = lbl_rect
+    view.relic_overflow_rect  = None
+
+    ry = y + 30
+    if hasattr(view.gm, 'relics') and view.gm.relics:
+        view.relic_rects, hidden = CombatHUD.draw_relics(
+            screen, view.gm.relics, x, ry, max_x=x + _E_IW)
+        if hidden > 0:
+            ox    = x + len(view.relic_rects) * (_RELIC_BADGE + _RELIC_GAP)
+            orect = pygame.Rect(ox, ry, _RELIC_BADGE, _RELIC_BADGE)
+            pygame.draw.rect(screen, (45, 45, 70), orect, border_radius=6)
+            pygame.draw.rect(screen, _GOLD, orect, 2, border_radius=6)
+            plus = view.card_desc_font.render(f"+{hidden}", True, _GOLD)
+            screen.blit(plus, (orect.centerx - plus.get_width() // 2,
+                               orect.centery - plus.get_height() // 2))
+            view.relic_overflow_rect = orect
+    else:
+        view.relic_rects = []
+    y = ry + _RELIC_BADGE
 
     # Статусы
     y += 38
