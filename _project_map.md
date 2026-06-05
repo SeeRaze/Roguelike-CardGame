@@ -116,6 +116,8 @@ core/cards/debuff/init.py, vulnerable.py, weak.py, bleed.py
 
 core/enemies/init.py, base.py, cultist.py, slime.py, boss.py
 
+core/enemies/bosses/init.py, base.py, guardian.py, archivist.py, elemental.py, keeper.py, architect.py
+
 core/players/init.py, base.py, mage.py, rogue.py, warrior.py, druid.py, berserker.py, summoner.py
 
 core/players/ability.py (базовый ClassAbility)
@@ -329,6 +331,36 @@ HP-баре зовут её (расхождений «показано vs нан
     ударов) — структурный фикс «стены эт.50». Фундамент под будущий статус
     «провокация» (форсирует цель) и новые призывные классы/карты.
 - `base_test_damage`/`base_test_shield` — базовые значения, проставляются в `EnemySpawner.build_enemy` (статы/имя/класс врага). `GameManager.spawn_procedural_enemy` — тонкий фасад: зовёт `build_enemy`, создаёт `CombatManager`.
+
+### Боссы-фильтры (core/enemies/bosses/) — Сессия 41
+
+Мягкие боссы на этажах 20/40/60/80/100 по геймдиз-пакту [[boss-filter-ladder]].
+Каждый = механические ворота (НЕ числовые), с ≥1 обходным путём для каждого класса.
+Диспатч через `BOSS_BY_FLOOR: dict[int, type]` в `EnemySpawner.build_enemy()`.
+`BossTitan` = fallback для нестандартных босс-этажей.
+
+**Архитектура:**
+- `BossBase(Enemy)` — фазовая система (`current_phase`), хуки `on_card_played` /
+  `on_turn_start` (hasattr duck-typing в CombatManager, как у реликвий).
+- `IntentHeal` (в `core/enemies/base.py`) — новый тип намерения (хил врага), нужен
+  для Temporal Shift Хранителя Времени.
+
+**5 боссов:**
+
+| Этаж | Класс | Ворота | Механика |
+|------|-------|--------|----------|
+| 20 | `ThresholdGuardian` | Защита/хил | Эскалация урона (+40% за цикл, кап ×3). Фаза 2: отчаянные атаки. |
+| 40 | `OblivionArchivist` | Чистота колоды | +щит за карту (+2/+3). Слабость если колода >15 карт. |
+| 60 | `VoidElemental` | Мульт. урон | Щит Пустоты (8+floor//10) ↔ Уязвимость (×1.5). Burst-окно. |
+| 80 | `TimeKeeper` | Персист. скейлинг | Растущий заряд (+15%×N к урону). Temporal Shift: хил 15% HP. |
+| 100 | `TowerArchitect` | Полный компаунд | 3 фазы по HP. Victory lap после эт.80. |
+
+**Sim-видимость:** боссы работают через тот же `EnemySpawner.build_enemy()` →
+симулятор видит их без изменений в `runner.py`.
+
+**Файлы:** `core/enemies/bosses/__init__.py` (BOSS_BY_FLOOR), `base.py` (BossBase),
+`guardian.py`, `archivist.py`, `elemental.py`, `keeper.py`, `architect.py`.
+Тесты: `tests/test_bosses.py` (+60 тестов).
 
 ### Реликвии — хуки
 `on_combat_start`, `on_turn_start`, `on_damage_calculated(base_dmg, is_player_attack=True)`,
