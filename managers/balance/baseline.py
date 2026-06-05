@@ -1,0 +1,131 @@
+# managers/balance/baseline.py
+# РЕГРЕСС-ГАРД БАЛАНСА — «шаблон точечной балансировки под новый контент».
+#
+# ЗАЧЕМ: симулятор умеет мерить силу класса (wall+ceiling), но раньше ничто не
+# КРИЧАЛО, если новая карта/статус/реликвия обвалили класс («стена Друида с эт.26
+# упала на эт.12»). Этот модуль пиннит медианы этажа смерти каждого класса к
+# эталону BASELINE и краснеет при выходе за допуск.
+#
+# КАК ЧИТАТЬ ДОПУСК:
+#   BASELINE_MAX_DROP — насколько класс может ПРОСЕСТЬ (этажей) до тревоги.
+#                       Ловит регресс: контент случайно ослабил класс.
+#   BASELINE_MAX_RISE — насколько может ВЫРАСТИ до тревоги. Ловит баг-всплеск
+#                       (исторический пример: статусы не сбрасывались между боями
+#                       → ложный «непобедимый» Воин). Шире, чем DROP: рост обычно
+#                       легитимен (новая сильная карта), тревога — только на резкий.
+#
+# КАК ПЕРЕБЛАГОСЛОВИТЬ после ОСОЗНАННОГО изменения баланса:
+#   python -m managers.balance.baseline
+#       → печатает текущие медианы + дельты; скопируй блок BASELINE сюда.
+#
+# ЗАПУСК ГАРДА:
+#   python -m managers.balance.baseline --check   (CI: plain-python, без pytest)
+#   pytest -m balance                              (локально, через обёртку-тест)
+import contextlib
+import os
+import random
+import statistics
+import sys
+
+from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner
+from managers.balance.builds import get_ceiling_build
+from managers.balance.runner import run_single_run
+
+CLASSES = [Warrior, Rogue, Mage, Druid, Berserker, Summoner]
+
+# Параметры замера. Seed фиксирован → медиана детерминирована на неизменном коде.
+# N=40 — компромисс стабильность медианы ↔ скорость (~15с на все 6 классов).
+BASELINE_N    = 40
+BASELINE_SEED = 99
+
+# Допуски в этажах (см. шапку). DROP — узкий (ловим обвал), RISE — широкий.
+BASELINE_MAX_DROP = 6
+BASELINE_MAX_RISE = 12
+
+# Эталонные медианы этажа смерти. wall = случайный драфт (базовая «стена»),
+# ceiling = скриптовый идеальный билд (потолок). Экономика ВЫКЛ (каноничный замер).
+# Регенерация: python -m managers.balance.baseline
+BASELINE = {
+    "Warrior":   {"wall": 33,   "ceiling": 55},
+    "Rogue":     {"wall": 23.5, "ceiling": 24},
+    "Mage":      {"wall": 32,   "ceiling": 61},
+    "Druid":     {"wall": 27,   "ceiling": 30},
+    "Berserker": {"wall": 12,   "ceiling": 28},
+    "Summoner":  {"wall": 65.5, "ceiling": 72},
+}
+
+
+def _median_death(results: list) -> float:
+    """Медиана этажа смерти; дошедшие до конца = max_floor (100)."""
+    vals = [r["death_floor"] if r["death_floor"] is not None else 100 for r in results]
+    return statistics.median(vals)
+
+
+def measure_class(player_class) -> dict:
+    """Медианы этажа смерти класса по обеим метрикам (детерминированно при
+    BASELINE_SEED). Бой печатает в лог — глушим через redirect_stdout."""
+    name = player_class.__name__
+
+    def _run(**kw) -> float:
+        random.seed(BASELINE_SEED)
+        with open(os.devnull, "w") as dn, contextlib.redirect_stdout(dn):
+            return _median_death(
+                [run_single_run(player_class, 100, **kw) for _ in range(BASELINE_N)]
+            )
+
+    wall = _run()                                       # случайный драфт
+    draft, extra, relics = get_ceiling_build(name)      # идеальный билд
+    ceiling = _run(draft=draft, extra_cards=extra, relics=relics)
+    return {"wall": wall, "ceiling": ceiling}
+
+
+def check() -> list:
+    """Сравнить текущие медианы с BASELINE. Вернуть список строк-нарушений
+    (пустой = баланс в допуске). Общий движок для CLI `--check` и pytest-обёртки."""
+    failures = []
+    for cls in CLASSES:
+        name = cls.__name__
+        cur = measure_class(cls)
+        base = BASELINE[name]
+        for metric in ("wall", "ceiling"):
+            diff = cur[metric] - base[metric]           # <0 просадка, >0 рост
+            if diff < -BASELINE_MAX_DROP:
+                failures.append(
+                    f"{name} {metric}: ОБВАЛ {cur[metric]:g} vs эталон {base[metric]:g} "
+                    f"(просадка {-diff:g} > допуск {BASELINE_MAX_DROP})")
+            elif diff > BASELINE_MAX_RISE:
+                failures.append(
+                    f"{name} {metric}: ВСПЛЕСК {cur[metric]:g} vs эталон {base[metric]:g} "
+                    f"(рост {diff:g} > допуск {BASELINE_MAX_RISE} — возможен баг)")
+    return failures
+
+
+def _regen() -> None:
+    """Печать текущих медиан в формате BASELINE + дельты (для переблагословения)."""
+    print(f"# Текущие медианы (N={BASELINE_N}, seed={BASELINE_SEED}):")
+    print("BASELINE = {")
+    for cls in CLASSES:
+        name = cls.__name__
+        cur = measure_class(cls)
+        base = BASELINE.get(name, {})
+        dw = cur["wall"]    - base.get("wall",    cur["wall"])
+        dc = cur["ceiling"] - base.get("ceiling", cur["ceiling"])
+        print(f'    "{name}": {{"wall": {cur["wall"]:g}, "ceiling": {cur["ceiling"]:g}}},'
+              f'   # Δwall {dw:+g}, Δceil {dc:+g}')
+    print("}")
+
+
+if __name__ == "__main__":
+    if "--check" in sys.argv:
+        fails = check()
+        if fails:
+            print("❌ РЕГРЕСС-ГАРД БАЛАНСА: ПРОВАЛ")
+            for f in fails:
+                print("  - " + f)
+            print("\nЕсли изменение осознанное — переблагослови эталон:\n"
+                  "    python -m managers.balance.baseline")
+            sys.exit(1)
+        print(f"✅ Регресс-гард баланса: все {len(CLASSES)} классов в допуске "
+              f"(DROP≤{BASELINE_MAX_DROP}, RISE≤{BASELINE_MAX_RISE}).")
+    else:
+        _regen()

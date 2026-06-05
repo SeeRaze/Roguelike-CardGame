@@ -86,9 +86,19 @@ while is_running:
   перемешиванием → потеря 1-3 слабых карт из ~30 не ускоряет сборку компаунда.
   Реальный регулятор скорости сборки — драфт реликвий/карт (уже моделируется), не
   прореживание. → [[balance-findings-economy-thinning]].
+- **Регресс-гард баланса** (`managers/balance/baseline.py`): пиннит медианы wall/
+  ceiling каждого класса к эталону `BASELINE` (econ OFF, seed=99, N=40). Ловит
+  обвал класса при добавлении контента (просадка > `BASELINE_MAX_DROP`=6) и
+  баг-всплеск (рост > `BASELINE_MAX_RISE`=12, напр. несброс статусов). Запуск:
+  `python -m managers.balance.baseline --check` (CI, plain-python без pytest) или
+  `pytest -m balance` (локально; дефолтный `pytest` его пропускает через addopts
+  `-m "not balance"`). Переблагословить эталон: `python -m managers.balance.baseline`.
+- **Индекс рычагов баланса** — `_balance_knobs.md`: единая справочная карта ВСЕХ
+  тюнинг-констант (кривая врага / статусы / детонации / движки классов / экономика /
+  параметры сима). Точечная балансировка: правишь константу на месте → гоняешь гард.
 
 ## Полный список файлов (актуально на Jun 3, 2026 — после Сессии 28)
-main.py, server.py, _project_map.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
+main.py, server.py, _project_map.md, _balance_knobs.md, PATCHNOTES.md, requirements.txt, .github/workflows/ci.yml
 
 core/rarity.py, core/Creature.py, core/EffectCalculator.py, core/StatusRegistry.py, core/ComboRegistry.py, core/DetonationRegistry.py
 
@@ -114,7 +124,7 @@ managers/BalanceSimulator.py, CombatManager.py, DeckManager.py, GameManager.py,
 
      MapGenerator.py, network_manager.py, EnemySpawner.py, RewardManager.py
 
-managers/balance/init.py, bot.py, runner.py, report.py, builds.py (симуляция баланса — Сессия 32, метрика ceiling — Сессия 36)
+managers/balance/init.py, bot.py, runner.py, report.py, builds.py, economy.py, baseline.py (симуляция баланса — Сессия 32, метрика ceiling — Сессия 36, экономика+регресс-гард — Сессия 38)
 ui/chest/init.py, base.py, common.py, locked.py, cursed.py, data.py, shared.py
 
 ui/combat/init.py, interface.py, panels.py, bottom.py, layout.py, hover.py, relic_panel.py, hud.py

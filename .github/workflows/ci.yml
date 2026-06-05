@@ -42,6 +42,8 @@ jobs:
       - name: Import logic layer
         run: python -c "import managers.GameManager; print('logic imports OK')"
 
-      # Функциональный smoke-тест: 1500 симулированных боёв (Warrior/Rogue/Mage).
-      - name: Balance simulation smoke test
-        run: python -m managers.BalanceSimulator
+      # Регресс-гард баланса: прогон симуляций по 6 классам + АССЕРТ, что ни один
+      # не обвалился относительно эталона (managers/balance/baseline.py). Plain-python,
+      # без pytest/pygame. Усиливает прежний smoke («не падает» → «класс не обвалился»).
+      - name: Balance regression guard
+        run: python -m managers.balance.baseline --check
