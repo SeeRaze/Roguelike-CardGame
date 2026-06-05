@@ -1,10 +1,25 @@
 import pygame
 from managers.network_manager import fetch_top_scores
+from managers import SaveManager
+from ui.hub.data import CLASS_INFO
+
+# Локализация имени класса для доски (англ. имя класса → русский label).
+# Переиспользуем CLASS_INFO Хаба (единый источник названий). "—" если класса нет
+# (старые/сетевые записи без поля class).
+_CLASS_LABEL = {k: v["label"] for k, v in CLASS_INFO.items()}
+
+
+def _class_label(raw: str) -> str:
+    if not raw or raw == "—":
+        return "—"
+    return _CLASS_LABEL.get(raw, raw)
+
 
 class LeaderboardView:
     @staticmethod
     def load_data():
-        """Пустой метод для совместимости архитектуры."""
+        """Пустой метод для совместимости архитектуры (данные теперь local-first
+        из SaveManager + сетевой кэш, грузятся на момент отрисовки)."""
         pass
 
     @staticmethod
@@ -15,13 +30,15 @@ class LeaderboardView:
 
         view.screen.fill((20, 20, 24))
 
-        title_surf = view.main_font.render("ДОСКА ТРОФЕЕВ (ТОП-10 ИЗ СЕТИ)", True, YELLOW)
+        title_surf = view.main_font.render("ДОСКА ТРОФЕЕВ (ТОП-10)", True, YELLOW)
         view.screen.blit(title_surf, (960 - title_surf.get_width() // 2, 80))
 
-        scores = fetch_top_scores()
+        # Local-first: локальные забеги из меты + обогащение сетевым кэшом.
+        meta = getattr(view.gm, "meta", None) or SaveManager.get_meta()
+        scores = SaveManager.leaderboard_rows(meta, network_rows=fetch_top_scores())
 
-        headers   = ["МЕСТО", "ИГРОК", "МАКС. ЭТАЖ", "УБИЙСТВА", "МАКС. УРОН"]
-        columns_x = [350, 550, 900, 1150, 1400]
+        headers   = ["МЕСТО", "ИГРОК", "КЛАСС", "МАКС. ЭТАЖ", "УБИЙСТВА", "МАКС. УРОН"]
+        columns_x = [330, 500, 760, 1030, 1280, 1500]
 
         for h, x in zip(headers, columns_x):
             h_surf = view.card_font.render(h, True, GRAY)
@@ -37,24 +54,22 @@ class LeaderboardView:
         else:
             y_pos = 280
             for i, record in enumerate(scores):
-                if isinstance(record, dict):
-                    color = (
-                        YELLOW         if i == 0 else
-                        (192, 192, 192) if i == 1 else
-                        (211, 84, 0)   if i == 2 else
-                        WHITE
-                    )
-                    username = str(record.get("username", "Unknown"))
-                    floor    = str(record.get("max_floor", 0))
-                    kills    = str(record.get("kills", 0))
-                    damage   = str(record.get("max_damage", 0))
+                color = (
+                    YELLOW          if i == 0 else
+                    (192, 192, 192) if i == 1 else
+                    (211, 84, 0)    if i == 2 else
+                    WHITE
+                )
+                username = str(record.get("username", "Unknown"))
+                cls      = _class_label(str(record.get("class", "—")))
+                floor    = str(record.get("max_floor", 0))
+                kills    = str(record.get("kills", 0))
+                damage   = str(record.get("max_damage", 0))
 
-                    view.screen.blit(view.card_font.render(f"#{i+1}", True, color),   (350,  y_pos))
-                    view.screen.blit(view.card_font.render(username,   True, color),   (550,  y_pos))
-                    view.screen.blit(view.card_font.render(floor,      True, color),   (900,  y_pos))
-                    view.screen.blit(view.card_font.render(kills,      True, color),   (1150, y_pos))
-                    view.screen.blit(view.card_font.render(damage,     True, color),   (1400, y_pos))
-                    y_pos += 55
+                cells = [f"#{i+1}", username, cls, floor, kills, damage]
+                for text, x in zip(cells, columns_x):
+                    view.screen.blit(view.card_font.render(text, True, color), (x, y_pos))
+                y_pos += 55
 
         # Кнопка возврата (хитбокс определён в GameView)
         mouse_pos = pygame.mouse.get_pos()
