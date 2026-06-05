@@ -22,6 +22,7 @@ import random
 
 from managers.MapGenerator import FLOORS_PER_ACT
 from managers.balance import forge
+from core import forge as core_forge   # источник правды заглушек артефактов (свип крутит core)
 
 # ─── РУЧКИ (калибровка 39.3 — свип крутит в связке с Закалкой) ─────────────────
 # Сколько EVENT-нод за акт. Главный рычаг частоты скачков. КАЛИБР. 39.3 = 2.
@@ -136,7 +137,7 @@ class EventPolicy:
             gm.player_gold -= stake_gold
         if win:
             gain = int(player.max_hp * pct * EVENT_REWARD_MULT)
-            gain += forge.ARTIFACT_MAX_HP_ADD
+            gain += core_forge.ARTIFACT_MAX_HP_ADD
             player.max_hp += gain
             player.hp = player.max_hp
 
@@ -152,5 +153,5 @@ class EventPolicy:
         if win:
             forge._ensure_state(player)
             fp = int(round(stake / EVENT_GOLD_PER_FP * EVENT_REWARD_MULT
-                           * forge.ARTIFACT_FP_MULT))
+                           * core_forge.ARTIFACT_FP_MULT))
             player.forge_points += fp

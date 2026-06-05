@@ -27,7 +27,8 @@ import sys
 
 from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner
 from managers.balance import events as events_mod
-from managers.balance import forge as forge_mod
+from managers.balance import forge as forge_mod   # noqa: F401 (бот-политика)
+from core import forge as core_forge              # источник правды ручек ковки (мутируем ТУТ)
 from managers.balance.builds import get_ceiling_build
 from managers.balance.economy import EconomyPolicy
 from managers.balance.events import EventPolicy
@@ -95,10 +96,10 @@ def run_sweep(class_names, n, seed0=1):
                     for reward in GRID_EVENT_REWARD:
                         for afp in GRID_ARTIFACT_FP:
                             # Ручки читаются модулями в рантайме → мутируем globals.
-                            forge_mod.TEMPER_PROACTIVE_RATIO = ratio
-                            forge_mod.TEMPER_HP_PCT          = pct
-                            forge_mod.TEMPER_FP_COST         = cost
-                            forge_mod.ARTIFACT_FP_MULT       = afp
+                            core_forge.TEMPER_PROACTIVE_RATIO = ratio
+                            core_forge.TEMPER_HP_PCT          = pct
+                            core_forge.TEMPER_FP_COST         = cost
+                            core_forge.ARTIFACT_FP_MULT       = afp
                             events_mod.EVENT_REWARD_MULT     = reward
                             for name in class_names:
                                 d = _depths(CLASSES[name], n, seed0,
