@@ -3,7 +3,7 @@
 import pygame
 import re
 from core.EffectCalculator import EffectCalculator
-from ui.cards.data import COLOR_COMBO, COLOR_DMG, COLOR_GRAY, DMG_MARKER
+from ui.cards.data import COLOR_DMG, COLOR_GRAY, DMG_MARKER
 
 
 def draw_centered_title(surface, text, font, card_rect, is_hovered):
@@ -39,17 +39,14 @@ def _get_base_damage(description: str, is_upgraded: bool) -> int:
 
 def _resolve_description(description: str, is_upgraded: bool,
                          player=None, enemy=None,
-                         base_override=None) -> tuple[str, bool]:
-    is_combo = False
+                         base_override=None, predicted=None) -> str:
     if is_upgraded:
         cleaned = re.sub(r'\d+\s*\((\d+)\)', r'\1', description)
     else:
         cleaned = re.sub(r'(\d+)\s*\(\d+\)', r'\1', description)
 
     if player is None or enemy is None:
-        return cleaned, is_combo
-
-    is_combo = getattr(enemy, 'wet', 0) > 0 and getattr(enemy, 'ignited', 0) > 0
+        return cleaned
 
     # База урона = ЗНАЧЕНИЕ ЭФФЕКТА карты (base_override), а не число из строки:
     # ковка (+δ) бампит эффект, но НЕ строку описания. printed_base — что напечатано
@@ -57,33 +54,30 @@ def _resolve_description(description: str, is_upgraded: bool,
     printed_base = _get_base_damage(description, is_upgraded)
     base_dmg = base_override if base_override is not None else printed_base
     if base_dmg == 0:
-        return cleaned, is_combo
+        return cleaned
 
-    # Фактический урон под ДЕТЕРМИНИРОВАННЫМИ модификаторами: Ярость/Уязвимость/комбо
-    # считает calculate_damage, Заточка = player.atk_mult (в dry_run is_player_attack
-    # ложно — домножаем вручную). Условные forge-теги ситуативны (зависят от стола
-    # боя) → показаны точками (этап 6), в число НЕ входят. Игрок видит то, что нанесёт.
-    predicted = EffectCalculator.calculate_damage(
-        attacker=player, target=enemy,
-        base_damage=base_dmg, dry_run=True,
-    )
-    atk_mult = getattr(player, "atk_mult", 1.0)
-    if atk_mult != 1.0:
-        predicted = int(predicted * atk_mult)
+    # Показанное число = ГАРАНТИРОВАННОЕ (predicted считает renderer через
+    # EffectCalculator.preview: баффы игрока + дебаффы врага + Заточка + уровень,
+    # БЕЗ условных комбо/forge — те идут чипами). Fallback (контексты без боя) —
+    # локальный детерминир. расчёт. Превью == фактический удар (единый источник).
+    if predicted is None:
+        predicted = EffectCalculator.calculate_damage(
+            attacker=player, target=enemy, base_damage=base_dmg, dry_run=True,
+        )
 
     # Подсвечиваем число, только если оно отличается от напечатанного (есть модификатор
     # ИЛИ уровень ковки) — иначе показываем строку как есть.
     if predicted != printed_base:
-        resolved = re.sub(r'\d+', DMG_MARKER + str(predicted), cleaned, count=1)
-        return resolved, is_combo
-    return cleaned, is_combo
+        return re.sub(r'\d+', DMG_MARKER + str(predicted), cleaned, count=1)
+    return cleaned
 
 
 def draw_smart_description(surface, description, font, card_rect,
-                           is_upgraded, player=None, enemy=None, base_override=None):
-    text, is_combo = _resolve_description(
-        description, is_upgraded, player, enemy, base_override)
-    color_digit = COLOR_COMBO if is_combo else COLOR_DMG
+                           is_upgraded, player=None, enemy=None,
+                           base_override=None, predicted=None):
+    text = _resolve_description(
+        description, is_upgraded, player, enemy, base_override, predicted)
+    color_digit = COLOR_DMG
     font_big = pygame.font.SysFont("Arial", font.size("0")[1] + 4, bold=True)
 
     words = text.split(' ')

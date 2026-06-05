@@ -14,7 +14,7 @@ class CardRenderer:
 
     @staticmethod
     def draw(surface, card, x, y, font_title, font_desc,
-             is_hovered=False, player=None, enemy=None):
+             is_hovered=False, player=None, enemy=None, combat_manager=None):
         """Мастер-метод полной отрисовки карты 180×250."""
         width, height = 180, 250
         rect = pygame.Rect(x, y, width, height)
@@ -51,13 +51,24 @@ class CardRenderer:
 
         description.draw_centered_title(surface, card.name, font_title, rect, is_hovered)
 
+        preview = None
         if card.card_type == "attack" and player is not None and enemy is not None:
             # База урона для превью — из ЭФФЕКТА (учитывает уровень ковки +δ), а не
-            # из строки описания (которая ковкой не обновляется). 39.5 хотфикс.
+            # из строки описания (которая ковкой не обновляется).
+            base = CardRenderer._card_base_damage(card)
+            predicted = None
+            if base and combat_manager is not None:
+                # Единый расчёт: ГАРАНТИРОВАННОЕ число (баффы/дебаффы/Заточка/уровень)
+                # для строки + чипы условных реакций (комбо/ковка). Превью == удар.
+                from core.EffectCalculator import EffectCalculator
+                preview = EffectCalculator.preview(
+                    player, enemy, base, combat_manager=combat_manager,
+                    game_manager=getattr(combat_manager, "gm", None), card=card)
+                predicted = preview["guaranteed"]
             description.draw_smart_description(
                 surface, card.description, font_desc, rect,
                 card.upgraded, player=player, enemy=enemy,
-                base_override=CardRenderer._card_base_damage(card),
+                base_override=base, predicted=predicted,
             )
         else:
             description.draw_smart_description(
@@ -66,6 +77,8 @@ class CardRenderer:
             )
 
         CardRenderer._draw_forge_marks(surface, card, player, rect, font_desc)
+        if preview is not None:
+            CardRenderer._draw_reaction_chips(surface, rect, preview, font_desc)
 
         if not can_afford:
             CardRenderer._draw_unaffordable_overlay(surface, rect)
@@ -83,6 +96,35 @@ class CardRenderer:
             if isinstance(e, DamageEffect):
                 return e.upgrade_val if card.upgraded else e.base_val
         return None
+
+    # Цвета чипов реакций (минимал-стиль, решение юзера: смысл из цвета + ховера).
+    _CHIP_COMBO = (70, 130, 180)    # стихийное комбо (ПАР и т.п.) — стально-синий
+    _CHIP_FORGE = (200, 120, 40)    # forge-теги — оранжевый
+
+    @staticmethod
+    def _draw_reaction_chips(surface, rect, preview, font):
+        """Схематичные чипы условных реакций, что СРАБОТАЮТ против текущей цели:
+        только цвет + ×множитель (синий=комбо, оранж=ковка). Полные названия и
+        разбор — в ховер-тултипе. Низ карты, выровнены вправо (растут влево),
+        чтобы не пересекаться с точками-тегами (низ-слева)."""
+        chips = []
+        for r in preview.get("reactions", []):
+            chips.append((f"×{r['mult']:g}", CardRenderer._CHIP_COMBO))
+        fm = preview.get("forge_mult", 1.0)
+        if fm and fm != 1.0:
+            chips.append((f"×{fm:g}", CardRenderer._CHIP_FORGE))
+        if not chips:
+            return
+
+        x = rect.right - 8
+        for text, color in reversed(chips):
+            ts = font.render(text, True, (255, 255, 255))
+            w, h = ts.get_width() + 12, ts.get_height() + 4
+            chip = pygame.Rect(x - w, rect.bottom - h - 6, w, h)
+            pygame.draw.rect(surface, color, chip, border_radius=6)
+            pygame.draw.rect(surface, (255, 255, 255), chip, 1, border_radius=6)
+            surface.blit(ts, (chip.x + 6, chip.y + 2))
+            x -= w + 4
 
     @staticmethod
     def _draw_forge_marks(surface, card, player, rect, font):
@@ -122,8 +164,10 @@ class CardRenderer:
             dot_x += 18
 
     @staticmethod
-    def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
-        keywords.draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect)
+    def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect,
+                                  damage_steps=None):
+        keywords.draw_card_keyword_tooltip(
+            screen, font_title, font_desc, card, card_rect, damage_steps)
 
     @staticmethod
     def _draw_unaffordable_overlay(surface, rect: pygame.Rect):

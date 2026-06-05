@@ -32,12 +32,25 @@ def _draw_event(view):
 def _draw_combat(view):
     CombatInterface.draw_combat_screen(view)
     if view.hover.card_obj and view.hover.card_rect:
+        # Разбор урона для тултипа наведённой карты (база→модификаторы→итог).
+        damage_steps = None
+        combat = view.gm.active_combat
+        card = view.hover.card_obj
+        base = CardRenderer._card_base_damage(card) if card else None
+        target = combat.get_target_enemy() if combat else None
+        if combat and target and base:
+            from core.EffectCalculator import EffectCalculator
+            pv = EffectCalculator.preview(
+                combat.player, target, base, combat_manager=combat,
+                game_manager=view.gm, card=card)
+            damage_steps = pv["steps"]
         CardRenderer.draw_card_keyword_tooltip(
             view.screen,
             view.card_font,
             view.card_desc_font,
             view.hover.card_obj,
             view.hover.card_rect,
+            damage_steps,
         )
 
 

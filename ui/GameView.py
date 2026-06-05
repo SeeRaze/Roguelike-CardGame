@@ -125,10 +125,13 @@ class GameView:
         is_hovered = (
             self.hover.card_index != -1 and y < self.base_y
         )
+        # Активный бой → renderer считает превью урона (число + чипы реакций).
+        combat_manager = self.gm.active_combat if self.gm else None
         return CardRenderer.draw(
             self.screen, card, x, y,
             self.card_font, self.card_desc_font,
             is_hovered, player=player, enemy=enemy,
+            combat_manager=combat_manager,
         )
 
     def draw_text(self, text, font, color, x, y):

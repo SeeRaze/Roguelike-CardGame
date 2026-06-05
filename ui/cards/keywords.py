@@ -72,9 +72,10 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
     return keywords
 
 
-def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
+def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect,
+                              damage_steps=None):
     keywords = get_card_keywords(card)
-    if not keywords:
+    if not keywords and not damage_steps:
         return
 
     pad_x, pad_y = 14, 10
@@ -85,6 +86,21 @@ def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect):
 
     blocks = []
     max_w  = 0
+
+    # Блок «Расчёт урона» (аудит механик): полный разбор база→модификаторы→итог.
+    # Сюда входят и условные реакции (комбо/ковка), показанные на карте чипами —
+    # игрок видит, ЧТО именно их дало. '+' аддитивный модификатор, '×' множитель.
+    if damage_steps:
+        title_surf = font_title.render("Расчёт урона", True, (255, 220, 80))
+        desc_lines = []
+        for label, kind, val in damage_steps:
+            txt = f"{label}: ×{val:g}" if kind == "×" else f"{label}: +{val}"
+            desc_lines.append(font_desc.render(txt, True, (210, 210, 210)))
+        block_w = max([title_surf.get_width()]
+                      + [s.get_width() for s in desc_lines]) + pad_x * 2
+        max_w = max(max_w, block_w)
+        blocks.append((title_surf, desc_lines))
+
     for key, val in keywords:
         if key in STATUSES:
             title_str, desc_str = STATUSES[key]["keyword"]
