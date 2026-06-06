@@ -1,6 +1,7 @@
 import pygame
 from core.StatusRegistry import STATUSES
 from core.rarity import RARITY_COLORS
+from ui.status_icons import draw_status_icon
 
 # ── Палитра (единая тёмно-синяя тема) ──────────────────────────────────────
 _PANEL_BG     = (22, 22, 40)
@@ -97,24 +98,37 @@ class CombatHUD:
     # ── БЕЙДЖИ СТАТУСОВ ─────────────────────────────────────────────────────
     @staticmethod
     def draw_status_badges(screen, font, creature, x, y):
+        """Бейдж статуса: геометрическая ИКОНКА (ui/status_icons) + число стака.
+        Цвета — из StatusRegistry (badge_bg фон / badge_fg иконка+число). Возвращает
+        [(rect, key, val)] для тултипов по ховеру (наглядность сохранена)."""
         badge_rects = []
         cursor_x    = x
-        pad_x, pad_y = 8, 4
+        pad_x, pad_y = 6, 4
         badge_h      = font.get_linesize() + pad_y * 2
+        icon_d       = badge_h - pad_y * 2          # диаметр иконки
+        icon_r       = icon_d // 2
+        gap          = 4                            # зазор иконка↔число
 
         for key, data in STATUSES.items():
             val = getattr(creature, key, 0)
             if val <= 0:
                 continue
 
-            label     = f"{data['abbr']} {val}"
-            text_surf = font.render(label, True, data["badge_fg"])
-            badge_w   = text_surf.get_width() + pad_x * 2
+            num_surf = font.render(str(val), True, data["badge_fg"])
+            badge_w  = pad_x + icon_d + gap + num_surf.get_width() + pad_x
 
             rect = pygame.Rect(cursor_x, y, badge_w, badge_h)
             pygame.draw.rect(screen, data["badge_bg"], rect, border_radius=5)
             pygame.draw.rect(screen, (255, 255, 255), rect, 1, border_radius=5)
-            screen.blit(text_surf, (cursor_x + pad_x, y + pad_y))
+
+            draw_status_icon(
+                screen, key,
+                cursor_x + pad_x + icon_r, y + badge_h // 2,
+                icon_r, data["badge_fg"],
+            )
+            screen.blit(num_surf,
+                        (cursor_x + pad_x + icon_d + gap,
+                         y + (badge_h - num_surf.get_height()) // 2))
 
             badge_rects.append((rect, key, val))
             cursor_x += badge_w + 6
