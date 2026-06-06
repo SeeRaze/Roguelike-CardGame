@@ -1,7 +1,8 @@
 # tests/test_reward_manager.py
 # Проверяем формирование наград после боя: золото / реликвия / ключ.
+import random
 from types import SimpleNamespace
-from managers.RewardManager import build_rewards
+from managers.RewardManager import build_rewards, _roll_relic_rarity
 from core.rarity import Rarity
 from core.relics import ALL_RELICS, ПроклятаяКорона
 
@@ -40,3 +41,27 @@ def test_золото_элиты_в_ожидаемом_диапазоне():
     rewards = build_rewards(_gm(floor=5), is_boss=False, is_elite=True)
     gold = next(r for r in rewards if r["type"] == "gold")
     assert 52 <= gold["value"] <= 75
+
+
+# --- Лестница редкости босса по этажу (EPIC/LEGENDARY теперь выпадают) ---
+
+def test_босс_акта1_не_выходит_за_rare():
+    # Этаж 20 (< 40): босс акта 1 всегда даёт ровно RARE.
+    rolls = {_roll_relic_rarity(True, False, 20) for _ in range(300)}
+    assert rolls == {Rarity.RARE}
+
+
+def test_босс_акта2_способен_дать_epic_но_не_legendary():
+    random.seed(0)
+    rolls = {_roll_relic_rarity(True, False, 40) for _ in range(300)}
+    assert Rarity.EPIC in rolls
+    assert Rarity.LEGENDARY not in rolls       # легендарка только с этажа 60
+    assert rolls <= {Rarity.RARE, Rarity.EPIC}
+
+
+def test_босс_акта3_способен_дать_legendary_и_epic():
+    random.seed(0)
+    rolls = {_roll_relic_rarity(True, False, 100) for _ in range(300)}
+    assert Rarity.LEGENDARY in rolls
+    assert Rarity.EPIC in rolls
+    assert Rarity.COMMON not in rolls and Rarity.UNCOMMON not in rolls

@@ -6,9 +6,22 @@ from core.relics import RELIC_POOL, ALL_RELICS
 from core.rarity import Rarity
 
 
-def _roll_relic_rarity(is_boss: bool, is_elite: bool) -> Rarity:
-    """Редкость выпадающей реликвии по типу боя."""
+def _roll_relic_rarity(is_boss: bool, is_elite: bool, floor: int = 0) -> Rarity:
+    """Редкость выпадающей реликвии по типу боя.
+
+    Боссы — единственный источник EPIC/LEGENDARY (раньше они вообще не выпадали:
+    дроп упирался в RARE, и флагманы `Корона Вознесения`/`Проклятая Корона` были
+    недостижимы вне симулятора). Лестница привязана к этажу босса (20/40/60/80/100):
+      floor < 40  → RARE                       (босс акта 1)
+      floor ≥ 40  → EPIC (шанс) / иначе RARE    (акт 2+)
+      floor ≥ 60  → LEGENDARY (шанс) / EPIC / RARE (акт 3+)
+    Проценты ниже — тюнинг-ручки (старт-калибровка)."""
     if is_boss:
+        roll = random.random()
+        if floor >= 60 and roll < 0.40:
+            return Rarity.LEGENDARY
+        if floor >= 40 and roll < 0.50:
+            return Rarity.EPIC
         return Rarity.RARE
     if is_elite:
         return Rarity.RARE if random.random() < 0.25 else Rarity.UNCOMMON
@@ -71,7 +84,7 @@ def build_rewards(gm, is_boss: bool, is_elite: bool) -> list:
     # --- Реликвия ---
     relic_chance = True if (is_boss or is_elite) else random.randint(1, 2) == 1
     if relic_chance:
-        rarity    = _roll_relic_rarity(is_boss, is_elite)
+        rarity    = _roll_relic_rarity(is_boss, is_elite, gm.current_floor)
         new_relic = _pick_relic(gm, rarity)
         if new_relic is not None:
             rewards.append({
