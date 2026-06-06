@@ -3,3 +3,4 @@ from core.enemies.cultist import Cultist
 from core.enemies.slime import SlimeAndGoblins
 from core.enemies.boss import BossTitan
 from core.enemies.bosses import BossBase, BOSS_BY_FLOOR
+from core.enemies.elites import EliteBase, ELITE_REGISTRY

@@ -3,7 +3,9 @@
 # генерация имени. Чистый модуль без состояния игры — возвращает готовый объект врага.
 import random
 from managers.MapGenerator import FLOORS_PER_ACT
-from core.enemies import Cultist, SlimeAndGoblins, BossTitan, Enemy, BOSS_BY_FLOOR
+from core.enemies import (
+    Cultist, SlimeAndGoblins, BossTitan, Enemy, BOSS_BY_FLOOR, ELITE_REGISTRY,
+)
 
 # ─── Кривая сложности: чистая экспонента E₀·g^f ──────────────────────────
 # stat = BASE * GROWTH ** floor
@@ -33,7 +35,7 @@ ENEMY_REGISTRY = {
 }
 
 _BOSS_TITLES   = ["Древний Страж Башни", "Верховный Культист Неона", "Гидра Стихий"]
-_ELITE_PREFIX  = ["Элитный", "Закалённый", "Древний", "Проклятый Страж"]
+# Имена элиток теперь дают сами архетипы (random_title), префиксы не нужны.
 _COMMON_PREFIX = ["Дикий", "Проклятый", "Чумной", "Стальной", "Адский"]
 
 
@@ -67,9 +69,10 @@ def build_enemy(current_floor: int, is_elite: bool = False):
         else:
             e_name = f"БОСС: {random.choice(_BOSS_TITLES)} [Этаж {floor}]"
     elif is_elite:
-        e_type      = random.choice(list(ENEMY_REGISTRY.keys()))
-        e_name      = f"{random.choice(_ELITE_PREFIX)} {e_type} [Элита, Этаж {floor}]"
-        enemy_class = ENEMY_REGISTRY.get(e_type, Enemy)
+        # Элита — уникальный архетип-контра билду (диспатч ELITE_REGISTRY,
+        # как BOSS_BY_FLOOR, но выбор случайный). Имя — через random_title().
+        enemy_class = random.choice(ELITE_REGISTRY)
+        e_name      = f"{enemy_class.random_title()} [Элита, Этаж {floor}]"
     else:
         e_type      = random.choice(list(ENEMY_REGISTRY.keys()))
         e_name      = f"{random.choice(_COMMON_PREFIX)} {e_type} [Этаж {floor}]"
