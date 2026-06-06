@@ -28,6 +28,23 @@ class Заплатка(Relic):
             )
 
 
+class ПанцирьДикобраза(Relic):
+    """В начале боя игрок получает Шипы 3 (отражает урон атакующему)."""
+
+    def __init__(self):
+        super().__init__(
+            "Панцирь Дикобраза",
+            "В начале каждого боя получаете Шипы 3.",
+            Rarity.COMMON,
+        )
+
+    def on_combat_start(self, combat_manager):
+        combat_manager.player.add_status("thorns", 3, combat_manager)
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': Шипы 3!"
+        )
+
+
 class ЖелезнаяВоля(Relic):
     """АКТИВНАЯ. Один раз за бой: щит не сбрасывается в начале следующего хода."""
 

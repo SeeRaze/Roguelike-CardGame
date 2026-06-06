@@ -81,6 +81,43 @@ class ТрофейныйКлык(Relic):
         )
 
 
+class МеткаОхотника(Relic):
+    """В начале боя враг получает Уязвимость 1 (получаемый урон ×1.5)."""
+
+    def __init__(self):
+        super().__init__(
+            "Метка Охотника",
+            "В начале каждого боя враг получает Уязвимость 1.",
+            Rarity.COMMON,
+        )
+
+    def on_combat_start(self, combat_manager):
+        combat_manager.enemy.add_status("vulnerable", 1, combat_manager)
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': Уязвимость 1 на врага!"
+        )
+
+
+class ТотемЯрости(Relic):
+    """В начале боя игрок получает Ярость 1 (+1 к урону всех атак в этом бою).
+
+    Ярость сбрасывается между боями (reset_combat_statuses) — флэт-бонус на бой,
+    без компаунда."""
+
+    def __init__(self):
+        super().__init__(
+            "Тотем Ярости",
+            "В начале каждого боя получаете Ярость 1.",
+            Rarity.COMMON,
+        )
+
+    def on_combat_start(self, combat_manager):
+        combat_manager.player.add_status("strength", 1, combat_manager)
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': Ярость 1!"
+        )
+
+
 class БерсеркМедальон(Relic):
     """При убийстве врага: +1 Энергия."""
 
