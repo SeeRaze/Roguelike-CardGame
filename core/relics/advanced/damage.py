@@ -54,7 +54,11 @@ class СвинцовыйНабалдашник(Relic):
         if self._used_this_turn:
             return
         if card.card_type == "attack":
-            combat_manager.enemy.add_status("weak", 1, combat_manager)
+            # Цель — ЖИВОЙ враг (в групповом бою enemies[0] может быть трупом).
+            target = combat_manager.get_target_enemy()
+            if target is None:
+                return
+            target.add_status("weak", 1, combat_manager)
             self._used_this_turn = True
             combat_manager.add_log_message(
                 f"[Реликвия] '{self.name}': Слабость 1 на врага!"

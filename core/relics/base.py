@@ -38,6 +38,12 @@ class Relic:
       on_heal              <- Creature.heal (после фактического хила)
       on_chest_opened      <- ui/chest/common.py (при открытии сундука)
       activate             <- InputHandler (только для is_active=True реликвий)
+
+    КОНВЕНЦИЯ ТАРГЕТИНГА: вешая статус/урон на врага в MID-COMBAT хуке
+    (on_card_played / on_shield_gained / on_kill / on_damage_calculated и т.п.),
+    бери цель через `combat_manager.get_target_enemy()` (первый ЖИВОЙ враг) с
+    проверкой на None — НЕ `combat_manager.enemy` (= enemies[0], в групповом бою
+    может быть трупом). На `on_combat_start` все враги живы → `enemy` допустим.
     """
 
     def __init__(self, name: str, description: str,

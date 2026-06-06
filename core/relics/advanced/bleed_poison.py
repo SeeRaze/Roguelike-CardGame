@@ -17,7 +17,11 @@ class ОкровавленныйШприц(Relic):
     def on_card_played(self, card, combat_manager):
         if getattr(card, 'exile', False):
             combat_manager.player.energy += 1
-            combat_manager.enemy.poison += 2
+            # Цель — ЖИВОЙ враг (в групповом бою enemies[0] может быть трупом).
+            target = combat_manager.get_target_enemy()
+            if target is None:
+                return
+            target.poison += 2
             combat_manager.add_log_message(
                 f"[Реликвия] '{self.name}': +1 Энергия, Яд 2 на врага!"
             )
@@ -65,7 +69,11 @@ class ШипастаяБроня(Relic):
     def on_shield_gained(self, amount, creature, combat_manager=None):
         if combat_manager is None:
             return
-        combat_manager.enemy.add_status("bleed", 1, combat_manager)
+        # Цель — ЖИВОЙ враг (щит мог быть получен уже после смерти enemies[0]).
+        target = combat_manager.get_target_enemy()
+        if target is None:
+            return
+        target.add_status("bleed", 1, combat_manager)
         combat_manager.add_log_message(
             f"[Реликвия] '{self.name}': враг получает Кровотечение 1!"
         )
