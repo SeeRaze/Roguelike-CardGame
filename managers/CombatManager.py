@@ -195,14 +195,27 @@ class CombatManager:
 
         self.player.on_card_played_passive(selected_card, self)
 
+        # Post-хуки розыгрыша под предохранителем (R2): реликвии и враги реагируют
+        # на сыгранную карту. Сейчас они только меняют состояние (щит/золото/
+        # эскалация), но будущий хук, играющий эффект, мог бы рекурсить — гард
+        # обрывает каскад. Это ОТДЕЛЬНОЕ событие после полного разрешения розыгрыша
+        # (apply+эхо+детонации завершены) → свой бюджет глубины, сброс с нуля, чтобы
+        # хуки не наказывались за глубину эхо карты, но были защищены от своей рекурсии.
+        self._trigger_guard.depth = 0
         if self.gm and hasattr(self.gm, 'relics'):
             for relic in self.gm.relics:
-                relic.on_card_played(selected_card, self)
+                self._guarded(
+                    f"реликвия {getattr(relic, 'name', '?')}",
+                    lambda relic=relic: relic.on_card_played(selected_card, self),
+                )
 
-        # Хук боссов: реакция на розыгрыш карты (Архивариус: +щит за карту).
+        # Хук боссов/врагов: реакция на розыгрыш карты (Архивариус: +щит за карту).
         for e in self.enemies:
             if e.hp > 0 and hasattr(e, 'on_card_played'):
-                e.on_card_played(selected_card, self.player, self)
+                self._guarded(
+                    f"враг {getattr(e, 'name', '?')}",
+                    lambda e=e: e.on_card_played(selected_card, self.player, self),
+                )
 
         if hasattr(selected_card, 'temp_cost'):
             del selected_card.temp_cost
@@ -302,6 +315,28 @@ class CombatManager:
             self.start_turn_phase()
 
         self.check_player_defeat()
+
+    def _guarded(self, label, fn):
+        """Выполнить реакционный вызов `fn()` под предохранителем глубины (§10.2).
+
+        Возвращает результат fn(), либо None если потолок глубины достигнут (каскад
+        оборван). Единая точка для ВСЕХ реакционных путей вне первичного apply:
+        post-хуки розыгрыша (реликвии/враги), тики статусов, действия союзников —
+        чтобы взаимно-рекурсивная цепочка (будущий хук, играющий эффект, который
+        снова дёргает хук) гарантированно завершилась, а не зациклилась/переполнила
+        числа. Порядок задаёт ReactionOrder, конечность — этот гард (ортогонально).
+
+        `label` — человекочитаемая метка для лога обрыва."""
+        guard = self._trigger_guard
+        if not guard.enter():
+            self.add_log_message(
+                f"[ПРЕДОХРАНИТЕЛЬ] Каскад триггеров оборван ({label}, глубина)."
+            )
+            return None
+        try:
+            return fn()
+        finally:
+            guard.exit()
 
     def _check_victory(self) -> bool:
         """Немедленный переход в награды, как только ВСЕ враги мертвы.

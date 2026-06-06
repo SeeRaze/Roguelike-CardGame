@@ -238,3 +238,45 @@ def test_восстановленный_союзник_теряет_щит_и_с
     restored = cm2.allies[0]
     assert restored.shield == 0
     assert restored.poison == 0
+
+
+# ═══════════════════════════════════════════════════════════
+# Предохранитель глубины: _guarded (ревизия ядра, R2)
+# ═══════════════════════════════════════════════════════════
+
+def test_guarded_выполняет_функцию_и_возвращает_результат():
+    cm = _make_cm()
+    cm._trigger_guard.depth = 0
+    out = cm._guarded("тест", lambda: 42)
+    assert out == 42
+    # depth восстановлен после выхода (finally guard.exit()).
+    assert cm._trigger_guard.depth == 0
+
+
+def test_guarded_обрывает_на_потолке_глубины():
+    cm = _make_cm()
+    # Искусственно «упираем» гард в потолок → следующий enter() = False.
+    cm._trigger_guard.depth = cm._trigger_guard.max_depth
+    called = []
+    out = cm._guarded("тест", lambda: called.append(1))
+    assert out is None
+    assert called == []                       # fn НЕ вызвана — каскад оборван
+    assert any("ПРЕДОХРАНИТЕЛЬ" in m for m in cm.combat_log)
+
+
+def test_guarded_рекурсивный_хук_не_зацикливается():
+    """Хук, который рекурсивно дёргает _guarded, гарантированно завершается на
+    потолке глубины (а не уходит в бесконечность/переполнение)."""
+    cm = _make_cm()
+    cm._trigger_guard.depth = 0
+    calls = {"n": 0}
+
+    def recursive():
+        calls["n"] += 1
+        # Бесконечная по замыслу рекурсия — должна оборваться гардом.
+        cm._guarded("рекурсия", recursive)
+
+    cm._guarded("старт", recursive)
+    # Ровно max_depth входов прошло, дальше enter() вернул False.
+    assert calls["n"] == cm._trigger_guard.max_depth
+    assert cm._trigger_guard.depth == 0       # стек полностью размотан
