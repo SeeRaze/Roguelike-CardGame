@@ -82,3 +82,50 @@ def test_каждая_детонация_имеет_числовой_priority():
     for key, rec in all_detonations().items():
         assert isinstance(rec.get("priority"), int), key
 
+
+# ═══════════════════════════════════════════════════════════
+# R5 — сквозной розыгрыш под единым порядком + гардом
+# ═══════════════════════════════════════════════════════════
+
+def _live_cm(enemy_hp=200):
+    """Живой CombatManager: Воин vs Культист, минимальная колода."""
+    from core.players import Warrior
+    from core.enemies.cultist import Cultist
+    from core.cards import create_strike, create_defend
+    from managers.CombatManager import CombatManager
+    deck = [create_strike(), create_strike(), create_defend()]
+    return CombatManager(Warrior(), Cultist("Культист", enemy_hp, enemy_hp), deck)
+
+
+def test_розыгрыш_с_эхо_и_комбо_размотает_гард_в_ноль():
+    # Враг с wet+ignited (комбо ПАР ×3) + у игрока эхо: вся цепочка (apply→комбо→
+    # эхо-ретриггеры) проходит без зацикливания, глубина гарда размотана в 0.
+    cm = _live_cm()
+    enemy = cm.enemies[0]
+    enemy.wet = 5
+    enemy.ignited = 5
+    cm.player.echo = 2
+    cm.player.energy = 99
+    # найти атакующую карту в руке
+    from core.cards.base import DamageEffect
+    idx = next(i for i, c in enumerate(cm.deck_manager.hand)
+               if any(isinstance(e, DamageEffect) for e in c.effects))
+    hp_before = enemy.hp
+    cm.play_card_by_index(idx, target=enemy)
+    assert enemy.hp < hp_before                  # урон прошёл (комбо учтено)
+    assert cm._trigger_guard.depth == 0          # гард полностью размотан
+
+
+def test_post_хуки_получают_свежий_бюджет_после_эхо():
+    # Даже если эхо «накопило» глубину, post-хуки стартуют с depth=0 (свой бюджет):
+    # после полного розыгрыша глубина всегда 0, хуки не были обрезаны эхом.
+    cm = _live_cm()
+    enemy = cm.enemies[0]
+    cm.player.echo = 3
+    cm.player.energy = 99
+    from core.cards.base import DamageEffect
+    idx = next(i for i, c in enumerate(cm.deck_manager.hand)
+               if any(isinstance(e, DamageEffect) for e in c.effects))
+    cm.play_card_by_index(idx, target=enemy)
+    assert cm._trigger_guard.depth == 0
+

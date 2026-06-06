@@ -129,7 +129,7 @@ NB: пометки «`forge.py`» в колонке «Где» ниже = `core/
 | `BOSS_LEVEL_CAPS` (босс-этаж → кап уровня) | 20:5 40:10 60:15 | `forge.py` |
 | `EARLY_ADD` (ранний тег +mult) | 0.5 | `ForgeRegistry.py` |
 | `LEG_*` (легендарные ×mult-масштабы) | см. файл | `ForgeRegistry.py` |
-| `MAX_TRIGGER_DEPTH` (гард-рейл §10.2) | 5 | `forge.py` |
+| `MAX_TRIGGER_DEPTH` (потолок каскада реакций, §10.2; порядок — `ReactionOrder.py`) | 5 | `forge.py` |
 
 Цена тира = `1+2+3+4+5 = 15 FP`; до 15-го уровня = 45 FP. Приток ~190 FP/забег (39.4).
 
