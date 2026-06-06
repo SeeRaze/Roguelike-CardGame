@@ -61,6 +61,8 @@ def _handle_combat(view, mouse_pos):
             ability.activate(view.gm.active_combat)
             # Способность может убить игрока в свой ход (Берсерк бьёт себя)
             view.gm.active_combat.check_player_defeat()
+            # ...или добить последнего врага → немедленный переход в награды.
+            view.gm.active_combat._check_victory()
         return
 
     if view.end_turn_rect.collidepoint(mouse_pos):

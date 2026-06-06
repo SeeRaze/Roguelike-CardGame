@@ -7,18 +7,19 @@ from ui.victory.data import (
 )
 
 
-def draw_rewards(vs, view, screen, fonts, mouse):
+def draw_rewards(vs, view, screen, fonts, mouse, panel_y=0):
     """Рисует заголовок, строки наград и кнопки. Заполняет vs._claim_rects/_hovered_relic/
-    _claim_all_rect/_continue_rect."""
+    _claim_all_rect/_continue_rect. Вся раскладка отсчитывается от panel_y (верх
+    модальной панели-оверлея), чтобы содержимое жило внутри окна, а не во весь экран."""
     W, _H = screen.get_size()
     title_font, body_font, small_font = fonts["title"], fonts["body"], fonts["small"]
     rewards = view.gm.pending_rewards
 
     # Заголовок
     title_surf = title_font.render("ПОБЕДА!", True, _GOLD_C)
-    screen.blit(title_surf, (W // 2 - title_surf.get_width() // 2, 60))
+    screen.blit(title_surf, (W // 2 - title_surf.get_width() // 2, panel_y + 24))
     sub = small_font.render("Выберите награды или заберите все сразу", True, _GRAY)
-    screen.blit(sub, (W // 2 - sub.get_width() // 2, 115))
+    screen.blit(sub, (W // 2 - sub.get_width() // 2, panel_y + 78))
 
     vs._claim_rects   = []
     vs._hovered_relic = None   # сбрасываем каждый кадр
@@ -26,7 +27,7 @@ def draw_rewards(vs, view, screen, fonts, mouse):
     panel_w = 700
     panel_x = W // 2 - panel_w // 2
     row_h   = 80
-    start_y = 180
+    start_y = panel_y + 130
 
     for i, reward in enumerate(rewards):
         row_y    = start_y + i * row_h

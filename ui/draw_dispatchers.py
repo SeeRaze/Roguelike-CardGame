@@ -20,8 +20,14 @@ def _draw_campfire(view):     Campfire.draw_screen(view)
 def _draw_shop(view):         Shop.draw_screen(view)
 def _draw_leaderboard(view):  LeaderboardView.draw_screen(view)
 def _draw_chest(view):        Chest.draw_screen(view)
-def _draw_victory(view):      VictoryScreen.draw_screen(view)
 def _draw_card_library(view): CardLibraryView.draw_screen(view)
+
+
+def _draw_victory(view):
+    # Награды — модальный ОВЕРЛЕЙ поверх боя: рисуем боевой экран на фоне, затем
+    # затемнение + панель наград (бой виден сквозь полупрозрачную заглушку).
+    CombatInterface.draw_combat_screen(view)
+    VictoryScreen.draw_screen(view)
 
 
 def _draw_event(view):

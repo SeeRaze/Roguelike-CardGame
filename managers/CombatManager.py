@@ -215,6 +215,10 @@ class CombatManager:
             )
         else:
             self.deck_manager.discard_pile.append(selected_card)
+
+        # Победа МОГЛА наступить прямо в этом розыгрыше (карта/эхо/детонации добили
+        # последнего врага) → обрываем ход немедленно, без «лишней» фазы.
+        self._check_victory()
         return True
 
     def _build_play_snapshot(self, target, card=None) -> dict:
@@ -287,9 +291,10 @@ class CombatManager:
             ally.tick_statuses(self)
             self._check_ally_death(ally)
 
-        # Проверка: все враги мертвы?
+        # Проверка: все враги мертвы? (добиты союзником/статусом в фазу врага)
         if all(e.hp <= 0 for e in self.enemies):
             self.add_log_message("=== ВСЕ ВРАГИ ПОВЕРЖЕНЫ! ===")
+            self._check_victory()
             return
 
         if self.player.hp > 0:
@@ -297,6 +302,28 @@ class CombatManager:
             self.start_turn_phase()
 
         self.check_player_defeat()
+
+    def _check_victory(self) -> bool:
+        """Немедленный переход в награды, как только ВСЕ враги мертвы.
+
+        Зовётся сразу после любого источника урона игрока (розыгрыш карты, эхо,
+        детонации, активная способность) и в конце фазы врага. Раньше победа
+        ловилась только по клику в InputHandler → после убийства последнего врага
+        у игрока оставалась «лишняя» фаза хода (можно было играть карты/способности).
+        Теперь бой обрывается сразу.
+
+        Безопасно для симулятора: bot-`gm` (_StubGM) не имеет distribute_combat_rewards
+        и не держит current_state == "COMBAT" → ветка не срабатывает, baseline цел.
+        Идемпотентно: distribute_combat_rewards сам выходит, если state != COMBAT."""
+        if not self.enemies or any(e.hp > 0 for e in self.enemies):
+            return False
+        gm = self.gm
+        if (gm is not None
+                and getattr(gm, "current_state", None) == "COMBAT"
+                and hasattr(gm, "distribute_combat_rewards")):
+            gm.distribute_combat_rewards()
+            return True
+        return False
 
     def _check_enemy_death(self, enemy):
         """Вызывается после каждого источника урона врагу.

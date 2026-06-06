@@ -2,7 +2,7 @@
 # Экран наград после победы: состояние, оркестрация отрисовки, обработка кликов.
 import pygame
 from ui.combat.hud import CombatHUD
-from ui.victory.data import _BG
+from ui.victory.data import _MODAL_BG, _BORDER
 from ui.victory import rewards_view, modal
 
 
@@ -26,7 +26,22 @@ class VictoryScreen:
         W, H   = screen.get_size()
         mouse  = pygame.mouse.get_pos()
 
-        screen.fill(_BG)
+        # ОВЕРЛЕЙ поверх боя (бой уже отрисован диспетчером): затемняющая заглушка
+        # + центрированная модальная панель ~габаритами рамок EVENT/SHOP. Бой
+        # просвечивает сквозь полупрозрачную заглушку (паттерн relic_panel).
+        overlay = pygame.Surface((W, H), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        screen.blit(overlay, (0, 0))
+
+        # Габариты панели под содержимое: заголовок + N строк наград + 2 кнопки.
+        n_rewards = len(view.gm.pending_rewards)
+        panel_w   = 760
+        panel_h   = 200 + n_rewards * 80 + 175
+        panel_x   = W // 2 - panel_w // 2
+        panel_y   = max(30, H // 2 - panel_h // 2)
+        panel     = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+        pygame.draw.rect(screen, _MODAL_BG, panel, border_radius=16)
+        pygame.draw.rect(screen, _BORDER, panel, 2, border_radius=16)
 
         fonts = {
             "title": view.main_font,
@@ -34,7 +49,7 @@ class VictoryScreen:
             "small": view.card_desc_font,
         }
 
-        rewards_view.draw_rewards(cls, view, screen, fonts, mouse)
+        rewards_view.draw_rewards(cls, view, screen, fonts, mouse, panel_y)
 
         # Модальное окно поверх всего
         if cls._show_modal:
