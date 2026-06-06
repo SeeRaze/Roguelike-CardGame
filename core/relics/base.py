@@ -24,6 +24,8 @@ class Relic:
     Хуки вызываются из соответствующих систем:
       on_combat_start      <- CombatManager.__init__
       on_turn_start        <- CombatManager.start_turn_phase
+      on_turn_end          <- CombatManager.end_turn_phase (после сброса руки,
+                              ДО действий врагов; под _guarded_action)
       on_damage_calculated <- EffectCalculator.calculate_damage
       on_tick_ignited      <- Creature.tick_statuses
       on_wet_applied       <- Creature.add_status (key="wet")
@@ -56,6 +58,7 @@ class Relic:
     # --- Пассивные хуки ---
     def on_combat_start(self, combat_manager):          pass
     def on_turn_start(self, combat_manager):            pass
+    def on_turn_end(self, combat_manager):              pass
     def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
         return base_dmg
     def on_tick_ignited(self, creature):                return 0

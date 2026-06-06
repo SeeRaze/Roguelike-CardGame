@@ -293,6 +293,16 @@ class CombatManager:
         self.add_log_message("Вы завершили ход.")
         self.deck_manager.discard_hand()
 
+        # Хук on_turn_end реликвий — «конец хода игрока», ДО действий врагов
+        # (Гнилое Сердце банкует щит в Барьер до того, как враг ударит). Под
+        # _guarded_action: своё событие, сброс глубины гарда (инвариант R3).
+        if self.gm and hasattr(self.gm, 'relics'):
+            for relic in self.gm.relics:
+                self._guarded_action(
+                    f"конец хода {getattr(relic, 'name', '?')}",
+                    lambda relic=relic: relic.on_turn_end(self),
+                )
+
         # Враги действуют: сброс щита → исполнение намерения → тик статусов.
         # Каждый источник — под предохранителем глубины (R3): тик/намерение, что
         # каскадно дёргает реакции (горение→хук реликвии→…), оборвётся на потолке,
