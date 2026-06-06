@@ -24,7 +24,7 @@ def test_флакон_с_желчью_травит_врага_в_начале_б
 def test_засохший_клевер_даёт_регенерацию(make_combat):
     cm = make_combat()
     ЗасохшийКлевер().on_combat_start(cm)
-    assert cm.player.regen == 1
+    assert cm.player.regen == 3
 
 
 def test_заточенный_осколок_усиливает_первую_атаку(make_combat):

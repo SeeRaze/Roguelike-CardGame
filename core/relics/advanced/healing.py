@@ -43,17 +43,20 @@ class СтараяПиявка(Relic):
 
 
 class ЗасохшийКлевер(Relic):
-    """В начале боя дает игроку 1 Регенерацию."""
+    """В начале боя дает игроку 3 Регенерации.
+
+    Калибровка: реген убывает на 1 за тик, поэтому Регенерация 1 лечила суммарно
+    лишь 1 HP — ниже порога полезности даже для обычного. 3 = 3+2+1 = 6 HP/бой."""
 
     def __init__(self):
         super().__init__(
             "Засохший Клевер",
-            "В начале каждого боя получаете Регенерацию 1.",
+            "В начале каждого боя получаете Регенерацию 3.",
             Rarity.COMMON,
         )
 
     def on_combat_start(self, combat_manager):
-        combat_manager.player.add_status("regen", 1, combat_manager)
+        combat_manager.player.add_status("regen", 3, combat_manager)
         combat_manager.add_log_message(
-            f"[Реликвия] '{self.name}': Регенерация 1!"
+            f"[Реликвия] '{self.name}': Регенерация 3!"
         )
