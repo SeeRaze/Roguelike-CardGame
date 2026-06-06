@@ -22,6 +22,15 @@ _CAMPFIRE_HEAL = 0.30
 # (грубая модель прогрессии: бой/магазин/сундук дают карты по ходу забега).
 _CARD_REWARD_CHANCE = 0.6
 
+# Элитные бои (Этап B): на не-босс этажах с этого этажа и с этим шансом бой
+# становится элитным (build_enemy_group(is_elite=True) → архетип из ELITE_REGISTRY
+# + стат-множители элиты). Сид фиксируется в baseline.measure_class →
+# детерминированно. ELITE_ROOM_CHANCE — калибровочная ручка (см. _balance_knobs).
+# Реальный MapGenerator: вес ELITE=5/100; в раннере каждый этаж — бой, поэтому
+# шанс на этаж задан явно (≈одна элита за пол-акта).
+_ELITE_FROM_FLOOR  = 8
+_ELITE_ROOM_CHANCE = 0.10
+
 
 def default_draft(deck: list, class_name: str) -> None:
     """Драфт метрики WALL: с вероятностью _CARD_REWARD_CHANCE добавить в колоду
@@ -111,8 +120,17 @@ def run_single_run(player_class, max_floor: int = 100, *,
     for floor in range(1, max_floor + 1):
         gm.current_floor = floor
         local_step = (floor - 1) % FLOORS_PER_ACT + 1
+        is_boss    = (local_step == FLOORS_PER_ACT)
 
-        enemies = build_enemy_group(floor, is_elite=False)
+        # Элитный бой (Этап B): не-босс этаж ≥ _ELITE_FROM_FLOOR, по шансу.
+        # Архетипы-контры билдам видны симу — баланс мерит их сложность.
+        is_elite_floor = (
+            not is_boss
+            and floor >= _ELITE_FROM_FLOOR
+            and random.random() < _ELITE_ROOM_CHANCE
+        )
+
+        enemies = build_enemy_group(floor, is_elite=is_elite_floor)
         combat  = BotCombatManager(player, enemies, list(deck), game_manager=gm)
         survived = combat.run_bot_loop()
 
@@ -120,8 +138,6 @@ def run_single_run(player_class, max_floor: int = 100, *,
 
         if not survived or player.hp <= 0:
             return {"death_floor": floor, "hp_by_floor": hp_by_floor}
-
-        is_boss = (local_step == FLOORS_PER_ACT)
 
         # Персистентный слой по забегу: хук on_boss_defeated на босс-этажах
         # (20/40/60/80/100) — растущие реликвии копят компаунд по забегу.

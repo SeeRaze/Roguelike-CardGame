@@ -44,14 +44,16 @@ BASELINE_MAX_RISE = 12
 
 # Эталонные медианы этажа смерти. wall = случайный драфт (базовая «стена»),
 # ceiling = скриптовый идеальный билд (потолок). Экономика ВЫКЛ (каноничный замер).
+# Элитные бои ВКЛ в runner (Этап B, шанс _ELITE_ROOM_CHANCE на этажах ≥8) —
+# архетипы-контры билдам учитываются в сложности.
 # Регенерация: python -m managers.balance.baseline
 BASELINE = {
-    "Warrior":   {"wall": 33,   "ceiling": 55},
-    "Rogue":     {"wall": 23.5, "ceiling": 24},
-    "Mage":      {"wall": 32,   "ceiling": 61},
-    "Druid":     {"wall": 27,   "ceiling": 30},
-    "Berserker": {"wall": 12,   "ceiling": 28},
-    "Summoner":  {"wall": 65.5, "ceiling": 72},
+    "Warrior":   {"wall": 27,   "ceiling": 47.5},
+    "Rogue":     {"wall": 19,   "ceiling": 20},
+    "Mage":      {"wall": 31,   "ceiling": 59},
+    "Druid":     {"wall": 21,   "ceiling": 26.5},
+    "Berserker": {"wall": 11.5, "ceiling": 18},
+    "Summoner":  {"wall": 62,   "ceiling": 69},
 }
 
 
