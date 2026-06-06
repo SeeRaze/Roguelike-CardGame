@@ -140,7 +140,11 @@ class CardRenderer:
         # тем выше граница → динамический шрифт описания ужмётся, не налезая.
         n_dots = len(CardRenderer._forge_slots(card, player))
         has_chips = False  # вычислим после preview ниже
-        desc_top = title_bottom + 6
+
+        # ── Строка иконок эффектов (под названием) ─────────────────────────
+        # Заменяет текстовые названия эффектов в описании. Полный разбор — в тултипе.
+        eff_bottom = CardRenderer._draw_effect_icons(surface, card, rect, title_bottom)
+        desc_top = eff_bottom + 4
 
         preview = None
         if card.card_type == "attack" and player is not None and enemy is not None:
@@ -228,6 +232,47 @@ class CardRenderer:
         hi = tuple(min(255, c + 70) for c in color)
         pygame.draw.polygon(surface, hi, [(cx, cy - r), (cx - r, cy), (cx, cy)])
 
+    # ── Строка иконок эффектов ───────────────────────────────────────────────
+    _EFF_ICON_R = 9          # радиус иконки эффекта
+    _EFF_ICON_GAP = 8        # шаг между иконками
+
+    @staticmethod
+    def _draw_effect_icons(surface, card, rect, title_bottom):
+        """Ряд иконок эффектов карты под названием (key+значение). Иконки заменяют
+        текстовые названия эффектов; полный разбор — в ховер-тултипе. Возвращает Y
+        нижней границы ряда (title_bottom, если эффектов нет — ряд не рисуется)."""
+        from ui.cards.keywords import get_card_keywords
+        from ui.status_icons import draw_status_icon
+        from ui.cards.data import effect_icon_color
+
+        kws = get_card_keywords(card)
+        if not kws:
+            return title_bottom
+
+        r = CardRenderer._EFF_ICON_R
+        gap = CardRenderer._EFF_ICON_GAP
+        font = pygame.font.SysFont("Arial", 13, bold=True)
+
+        # Ширина одной ячейки: иконка (+ число, если val>0).
+        cells = []
+        for key, val in kws:
+            num = font.render(str(val), True, (235, 235, 240)) if val else None
+            w = r * 2 + (num.get_width() + 3 if num else 0)
+            cells.append((key, num, w))
+
+        total = sum(w for _, _, w in cells) + gap * (len(cells) - 1)
+        x = rect.centerx - total // 2
+        cy = title_bottom + 4 + r
+
+        for key, num, w in cells:
+            color = effect_icon_color(key)
+            draw_status_icon(surface, key, x + r, cy, r, color)
+            if num:
+                surface.blit(num, (x + r * 2 + 3, cy - num.get_height() // 2))
+            x += w + gap
+
+        return cy + r
+
     @staticmethod
     def _card_base_damage(card):
         """Текущее значение урона карты из ЭФФЕКТА (а не из строки описания):
@@ -306,9 +351,9 @@ class CardRenderer:
 
     @staticmethod
     def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect,
-                                  damage_steps=None):
+                                  damage_steps=None, player=None):
         keywords.draw_card_keyword_tooltip(
-            screen, font_title, font_desc, card, card_rect, damage_steps)
+            screen, font_title, font_desc, card, card_rect, damage_steps, player)
 
     @staticmethod
     def _draw_unaffordable_overlay(surface, rect: pygame.Rect):

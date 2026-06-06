@@ -218,6 +218,32 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
             pygame.draw.circle(screen, color, (nx, ny), rr)
         pygame.draw.circle(screen, color, (cx, cy), max(2, int(r * 0.22)))
 
+    elif key == "heal":
+        # Зелёный крест-аптечка (псевдо-ключ карт лечения).
+        _plus(screen, cx, cy, r, color)
+
+    elif key == "flow":
+        # Поток воздуха: две горизонтальные «ветровые» дуги-завитка.
+        for off in (-int(r * 0.35), int(r * 0.35)):
+            pygame.draw.arc(screen, color,
+                            (cx - r, cy + off - int(r * 0.5), int(r * 1.5), r),
+                            0.3, 3.0, lw)
+            pygame.draw.circle(screen, color,
+                               (cx + int(r * 0.5), cy + off), max(1, lw // 2))
+
+    elif key == "detonate":
+        # Взрыв-вспышка: 8-лучевая «бахнувшая» звезда + ядро.
+        _star(screen, cx, cy, r, color, points=8)
+        pygame.draw.circle(screen, color, (cx, cy), max(2, int(r * 0.3)))
+
+    elif key == "spread":
+        # Распространение: центр + 4 разлетающиеся точки-стрелки.
+        pygame.draw.circle(screen, color, (cx, cy), max(2, int(r * 0.28)))
+        for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+            ex, ey = cx + dx * r, cy + dy * r
+            pygame.draw.line(screen, color, (cx, cy), (ex, ey), max(1, lw - 1))
+            pygame.draw.circle(screen, color, (ex, ey), max(1, int(r * 0.18)))
+
     else:
         # Фолбэк: первая буква аббревиатуры статуса.
         data = STATUSES.get(key)

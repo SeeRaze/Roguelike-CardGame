@@ -51,6 +51,7 @@ def _draw_combat(view):
             view.hover.card_obj,
             view.hover.card_rect,
             damage_steps,
+            player=combat.player if combat else None,
         )
 
 

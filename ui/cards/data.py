@@ -58,3 +58,23 @@ FORGE_TITLE_EARLY  = (240, 210, 70)    # 5–14
 # ─── Камень редкости (центр самоцвета = цвет редкости) ───────────────────────
 # Палитра — единый core.rarity.RARITY_COLORS (импортируется в renderer).
 GEM_R = 9                              # радиус камня редкости
+
+# ─── Цвет иконки эффекта (строка иконок на карте + тултип) ───────────────────
+# Псевдо-ключи карт (не статусы Creature) → цвет иконки. Статусы берут цвет из
+# STATUSES[key]["badge_bg"] (см. effect_icon_color). Здесь — только псевдо-ключи.
+_PSEUDO_ICON_COLOR = {
+    "heal":     (90,  220, 130),
+    "vampire":  (200, 80,  210),
+    "flow":     (170, 220, 235),
+    "spread":   (150, 210, 170),
+    "detonate": (235, 210, 60),
+}
+
+
+def effect_icon_color(key: str):
+    """Цвет иконки эффекта по ключу. Статус → его badge_bg (фирменный цвет статуса),
+    псевдо-ключ карты → из _PSEUDO_ICON_COLOR. Фолбэк — нейтрально-серый."""
+    from core.StatusRegistry import STATUSES
+    if key in STATUSES:
+        return STATUSES[key]["badge_bg"]
+    return _PSEUDO_ICON_COLOR.get(key, (180, 180, 190))
