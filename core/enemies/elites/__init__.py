@@ -6,17 +6,20 @@
 from core.enemies.elites.base import EliteBase
 from core.enemies.elites.spell_eater import SpellEater
 from core.enemies.elites.plague import PlaguePustule
+from core.enemies.elites.butcher import ButcherTorturer
 
 # Реестр элитных архетипов. Наполняется по мере добавления файлов.
 # EnemySpawner.build_enemy: random.choice(ELITE_REGISTRY) при is_elite.
 ELITE_REGISTRY = [
     SpellEater,
     PlaguePustule,
+    ButcherTorturer,
 ]
 
 __all__ = [
     "EliteBase",
     "SpellEater",
     "PlaguePustule",
+    "ButcherTorturer",
     "ELITE_REGISTRY",
 ]
