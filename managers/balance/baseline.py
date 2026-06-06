@@ -53,7 +53,7 @@ BASELINE = {
     "Mage":      {"wall": 31,   "ceiling": 59},
     "Druid":     {"wall": 21,   "ceiling": 26.5},
     "Berserker": {"wall": 11.5, "ceiling": 18},
-    "Summoner":  {"wall": 62,   "ceiling": 69},
+    "Summoner":  {"wall": 61,   "ceiling": 69},
 }
 
 
