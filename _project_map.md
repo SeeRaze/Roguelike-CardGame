@@ -576,7 +576,7 @@ SHLD: SHLD_BASE(3.5) * SHLD_GROWTH(1.008) ** floor
 3. Куда попадёт в игру: стартовая колода класса (`get_<class>_deck()` в `core/players/<class>.py`), и/или пулы магазина/наград/событий. `CardLibraryView` показывает карты, привязанные к классам.
 
 **Новая реликвия:**
-1. Класс-наследник `Relic` в подходящем по теме модуле `core/relics/advanced/` (`bleed_poison`/`shield`/`healing`/`damage`/`utility`; или starter/elemental), переопределить нужные хуки (см. «Реликвии — хуки»). Передать `rarity`. Реэкспортировать из `core/relics/advanced/__init__.py`.
+1. Класс-наследник `Relic` в подходящем по теме модуле `core/relics/advanced/` (`bleed_poison`/`shield`/`healing`/`damage`/`utility`; или starter/elemental), переопределить нужные хуки (см. «Реликвии — хуки»). Передать `rarity` по **контракту редкости** (docstring `core/relics/base.py`). Реэкспортировать из `core/relics/advanced/__init__.py`.
 2. Зарегистрировать в `RELIC_POOL[rarity]` в `core/relics/__init__.py` (попадёт в `ALL_RELICS` автоматически).
 3. Активная реликвия → `self.is_active = True` + метод `activate(cm)`; клик ловит `InputHandler._handle_combat`.
 4. ВСЕГДА проверять `is_player_attack` в `on_damage_calculated`; передавать `combat_manager` в `add_status`/`gain_shield`.
@@ -597,12 +597,16 @@ SHLD: SHLD_BASE(3.5) * SHLD_GROWTH(1.008) ** floor
 ## Реализованные системы (после Сессии 27)
 Все 14 пунктов плана масштабируемости (A–N) ВЫПОЛНЕНЫ.
 
-Реликвии — 22 итого:
-- COMMON: LuckyClover, SpikedBracelet, ТочильныйКамень, СтараяПиявка, СчастливаяМонетка, ЗасохшийКлевер, Заплатка, ЗаточенныйОсколок
+Реликвии — 27 итого. **Контракт редкости** (рамка калибровки) — module-docstring в
+`core/relics/base.py`: COMMON = плоский стат/разовый эффект без условий · UNCOMMON =
+условные/синергийные · RARE = движки/билд-дефайнеры · EPIC = компаунд по забегу ·
+LEGENDARY = меняет правила с трейдоффом. Цены по редкости в `ui/shop/data.py`.
+- COMMON (13): LuckyClover, SpikedBracelet, ТочильныйКамень, СтараяПиявка, СчастливаяМонетка, ЗасохшийКлевер (Реген 3), Заплатка, ЗаточенныйОсколок, ПанцирьДикобраза (Шипы 3), ГрозоваяБатарея (Шок 2 врагу), МеткаОхотника (Уязв. 1 врагу), ТотемЯрости (Ярость 1), ФлаконКатализатора (Мокрый случайному врагу)
 - UNCOMMON: ДревнееОгниво, НамокшаяРукавица, ОкровавленныйШприц, ФлаконСЖелчью, СвинцовыйНабалдашник, ШипастаяБроня, ТрофейныйКлык
 - RARE: ЭнергоЯдро, СердцеТитана, ГнилойКлык, ЖелезнаяВоля, БерсеркМедальон
 - EPIC: КоронаВознесения (`persistent.py` — растущая, ×1.25 урон/босс по забегу)
 - LEGENDARY: ПроклятаяКорона
+- **Дроп EPIC/LEGENDARY**: только с боссов по этажу (`RewardManager._roll_relic_rarity(floor)`): floor≥40 → шанс EPIC, floor≥60 → шанс LEGENDARY (раньше упирался в RARE — флагманы были недостижимы вне сима).
 
 ## Важные детали и грабли
 - `on_damage_calculated(base_dmg, is_player_attack=True)` — ВСЕГДА проверять флаг в реликвиях
