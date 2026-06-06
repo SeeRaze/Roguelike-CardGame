@@ -30,6 +30,23 @@
 Структура забега: `FLOORS_PER_ACT = 20` (`managers/MapGenerator.py`) — длина акта,
 период босса (этажи 20/40/60/80/100).
 
+### 1-bis. Элитные архетипы-контры (Этап B) — `core/enemies/elites/`
+
+Уникальные элитки наказывают конкретный билд. Механики на хуках
+`on_card_played`/`on_turn_start`. Стат-множители — общие (см. строку «элита» выше).
+
+| Константа | Значение | Рычаг (↑) | Файл |
+|---|---|---|---|
+| `SpellEater.SHIELD_PER_CARD` | 4 | Жёстче контра пулемётам | `spell_eater.py` |
+| `PlaguePustule.PLAGUE_POISON` | 3 (×2 при щите) | Жёстче контра обороне | `plague.py` |
+| `ButcherTorturer.BUTCHER_THORNS` | 3 | Сильнее налог на хил | `butcher.py` |
+| `CorruptionDevourer.DEVOUR_CAP` | 8 | Жёстче контра DoT | `devourer.py` |
+| `_ELITE_ROOM_CHANCE` | 0.10 | Чаще элитные бои (sim) | `managers/balance/runner.py` |
+| `_ELITE_FROM_FLOOR` | 8 | Раньше появляются элитки (sim) | `managers/balance/runner.py` |
+
+NB: `_ELITE_ROOM_CHANCE`/`_ELITE_FROM_FLOOR` — только модель sim-раннера; в живой
+игре частота элиток задаётся весом `ELITE` в `MapGenerator.NODE_WEIGHTS`.
+
 ## 2. Статусы-множители — `core/EffectCalculator.py`, `core/StatusRegistry.py`
 
 Конвейер урона (порядок шагов важен; см. комментарии в `calculate_damage`).

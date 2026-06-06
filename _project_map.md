@@ -118,6 +118,8 @@ core/enemies/init.py, base.py, cultist.py, slime.py, boss.py
 
 core/enemies/bosses/init.py, base.py, guardian.py, archivist.py, elemental.py, keeper.py, architect.py
 
+core/enemies/elites/init.py, base.py, spell_eater.py, plague.py, butcher.py, devourer.py
+
 core/players/init.py, base.py, mage.py, rogue.py, warrior.py, druid.py, berserker.py, summoner.py
 
 core/players/ability.py (базовый ClassAbility)
@@ -361,6 +363,31 @@ HP-баре зовут её (расхождений «показано vs нан
 **Файлы:** `core/enemies/bosses/__init__.py` (BOSS_BY_FLOOR), `base.py` (BossBase),
 `guardian.py`, `archivist.py`, `elemental.py`, `keeper.py`, `architect.py`.
 Тесты: `tests/test_bosses.py` (+60 тестов).
+
+### Элитные враги-контры (core/enemies/elites/) — Сессия 42
+
+Элитки с уникальными механиками-контрами билдам (Этап B роадмапа), вместо простого
+стат-буста рядового. Тот же паттерн, что у боссов: `EliteBase(Enemy)` с хуками
+`on_card_played`/`on_turn_start` (duck-typing), но БЕЗ фаз и с `is_elite=True`.
+Диспатч: `EnemySpawner.build_enemy` при `is_elite` берёт `random.choice(ELITE_REGISTRY)`
++ `random_title()`. Стат-множители элиты (×1.5 HP и т.д.) сохранены.
+
+**4 архетипа:**
+
+| Класс | Контра | Механика |
+|-------|--------|----------|
+| `SpellEater` | Колоды-пулемёты | `on_card_played` → +4 щита за карту. |
+| `PlaguePustule` | Оборона | `on_turn_start` → +3 Яда, ×2 при щите игрока. |
+| `ButcherTorturer` | Вампир/хил | Шипы 3 + Слабость при росте HP игрока. |
+| `CorruptionDevourer` | DoT-билды | Пожирает свои DoT-стаки (cap 8) → лечение. |
+
+**Sim-видимость:** элитные бои в `runner.py` (не-босс этаж ≥8, шанс
+`_ELITE_ROOM_CHANCE=0.10`) → архетипы видны балансу. Награда элиты в симе НЕ
+моделируется (AUDIT 2.4). → [[balance-findings-elites]].
+
+**Файлы:** `core/enemies/elites/__init__.py` (ELITE_REGISTRY), `base.py` (EliteBase),
+`spell_eater.py`, `plague.py`, `butcher.py`, `devourer.py`.
+Тесты: `tests/test_elites.py` (+28 тестов).
 
 ### Реликвии — хуки
 `on_combat_start`, `on_turn_start`, `on_damage_calculated(base_dmg, is_player_attack=True)`,
