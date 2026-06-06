@@ -61,6 +61,9 @@ def _handle_combat(view, mouse_pos):
             ability.activate(view.gm.active_combat)
             # Способность может убить игрока в свой ход (Берсерк бьёт себя)
             view.gm.active_combat.check_player_defeat()
+            # Способность могла добить врага → обработать смерть (on_kill/статы/
+            # перенос стаи) в момент килла, как и розыгрыш карты.
+            view.gm.active_combat._process_enemy_deaths()
             # ...или добить последнего врага → немедленный переход в награды.
             view.gm.active_combat._check_victory()
         return

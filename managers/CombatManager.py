@@ -229,6 +229,11 @@ class CombatManager:
         else:
             self.deck_manager.discard_pile.append(selected_card)
 
+        # Смерть врага обрабатывается в МОМЕНТ убивающего действия (как в фазе врага):
+        # on_kill реликвий, счётчик убийств, перенос стаи. ДО _check_victory, иначе
+        # победа картой ушла бы в награды мимо обработки смерти (потеря снежного кома).
+        self._process_enemy_deaths()
+
         # Победа МОГЛА наступить прямо в этом розыгрыше (карта/эхо/детонации добили
         # последнего врага) → обрываем ход немедленно, без «лишней» фазы.
         self._check_victory()
@@ -414,6 +419,22 @@ class CombatManager:
         # Единая точка для всех путей победы (карта/союзник/статус добил врага).
         if all(e.hp <= 0 for e in self.enemies):
             self._persist_allies()
+
+    def _process_enemy_deaths(self):
+        """Обработать смерть ВСЕХ врагов после действия игрока (розыгрыш карты /
+        активная способность). Симметрично фазе врага, где _check_enemy_death
+        предшествует проверке победы. AoE-детонации (electro_blast и т.п.) могут
+        добить нескольких сразу → свип по всему self.enemies.
+
+        Под _guarded_action: своё событие, сброс глубины гарда, конечность каскада
+        (инвариант R2/R3). on_kill срабатывает ПОСЛЕ всех per-play реакций (после
+        RELIC_HOOK/ENEMY_HOOK), т.е. в момент убивающего действия, а не в конце хода.
+        Идемпотентно: _check_enemy_death помечает enemy._death_processed → повторный
+        свип в end_turn_phase no-op."""
+        self._guarded_action(
+            "обработка смертей врагов",
+            lambda: [self._check_enemy_death(e) for e in self.enemies],
+        )
 
     def _check_ally_death(self, ally):
         """Удалить мёртвого союзника из списка."""

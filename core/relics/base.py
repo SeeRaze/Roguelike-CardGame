@@ -29,7 +29,8 @@ class Relic:
       on_wet_applied       <- Creature.add_status (key="wet")
       on_card_played       <- CombatManager.play_card_by_index
       on_shield_gained     <- Creature.gain_shield
-      on_kill              <- CombatManager.end_turn_phase (заглушка)
+      on_kill              <- CombatManager._check_enemy_death (розыгрыш карты /
+                              активная способность / фаза врага+союзника)
       on_combat_end        <- GameManager.distribute_combat_rewards
       on_boss_defeated     <- GameManager.distribute_combat_rewards (только босс-этаж)
                               + managers/balance/runner.py (сим, босс-этаж)
