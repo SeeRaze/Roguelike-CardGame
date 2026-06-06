@@ -102,32 +102,40 @@ def _poison_blast(target, combat_manager):
 DETONATIONS = {
     # Порядок = ПРИОРИТЕТ при общих статусах: детонация, потратившая общий статус,
     # гасит зависящие от него последующие (requires проверяется заново в DetonateEffect).
+    # Поле "priority" задаёт этот порядок ЯВНО (данные, не позиция в dict) — обход
+    # идёт через ReactionOrder.order_keyed по (priority, key). Меньше = раньше.
+    # Зазоры по 10 оставлены под вставку будущих детонаций между существующими.
     "electro_blast": {
         "name":     "ЭЛЕКТРО-ВЗРЫВ",
+        "priority": 10,
         "requires": ("wet", "shock"),
         "handler":  _electro_blast,
         "log":      "[!!! ДЕТОНАЦИЯ: ЭЛЕКТРО-ВЗРЫВ !!!]",
     },
     "thermo_blast": {
         "name":     "ТЕРМОВЗРЫВ",
+        "priority": 20,
         "requires": ("ignited", "shock"),
         "handler":  _thermo_blast,
         "log":      "[!!! ДЕТОНАЦИЯ: ТЕРМОВЗРЫВ !!!]",
     },
     "lava": {
         "name":     "ЛАВА",
+        "priority": 30,
         "requires": ("shatter", "ignited"),
         "handler":  _lava,
         "log":      "[!!! ДЕТОНАЦИЯ: ЛАВА !!!]",
     },
     "acid": {
         "name":     "КИСЛОТА",
+        "priority": 40,
         "requires": ("wet", "poison"),
         "handler":  _acid,
         "log":      "[!!! ДЕТОНАЦИЯ: КИСЛОТА !!!]",
     },
     "poison_blast": {
         "name":     "ЯДОВЗРЫВ",
+        "priority": 50,
         "requires": ("poison", "ignited"),
         "handler":  _poison_blast,
         "log":      "[!!! ДЕТОНАЦИЯ: ЯДОВЗРЫВ !!!]",

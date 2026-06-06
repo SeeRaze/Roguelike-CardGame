@@ -167,10 +167,15 @@ class DetonateEffect:
         if combat_manager is None:
             return
         from core.DetonationRegistry import all_detonations
+        from core.ReactionOrder import order_keyed
         # Предохранитель глубины (§10.2): каждый сработавший handler — событие
         # триггера, считается суммарно с Эхо за розыгрыш; на потолке цепочка рвётся.
         guard = getattr(combat_manager, "_trigger_guard", None)
-        for det in all_detonations().values():
+        # Порядок детонаций — по ЯВНОМУ полю priority записи (данные, не позиция в
+        # dict), через единый ReactionOrder.order_keyed. requires перепроверяется
+        # перед каждым handler → потратившая общий статус детонация гасит зависимые.
+        for det_key, det in order_keyed(all_detonations(),
+                                        lambda rec: rec["priority"]):
             if all(enemy.get_status(req) > 0 for req in det["requires"]):
                 if guard is not None and not guard.enter():
                     combat_manager.add_log_message(

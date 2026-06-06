@@ -109,7 +109,11 @@ class EffectCalculator:
         # (include_reactions=False). Расход стаков/лог — только в реальном ударе.
         if include_reactions:
             from core.ComboRegistry import all_combos
-            for combo_key, combo in all_combos().items():
+            from core.ReactionOrder import ReactionPriority, order_keyed
+            # Порядок комбо — из единого реестра приоритетов (ReactionOrder), а не
+            # из неявного dict-порядка ComboRegistry: детерминирован и стабилен.
+            for combo_key, combo in order_keyed(all_combos(),
+                                                ReactionPriority.COMBO):
                 if all(getattr(target, req, 0) > 0
                        for req in combo["requires"]):
                     final_damage = int(final_damage * combo["multiplier"])
