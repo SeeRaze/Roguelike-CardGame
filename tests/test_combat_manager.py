@@ -280,3 +280,28 @@ def test_guarded_рекурсивный_хук_не_зацикливается()
     # Ровно max_depth входов прошло, дальше enter() вернул False.
     assert calls["n"] == cm._trigger_guard.max_depth
     assert cm._trigger_guard.depth == 0       # стек полностью размотан
+
+
+def test_фаза_врага_тикает_статусы_под_гардом_и_разматывает_глубину():
+    """end_turn_phase проводит тики/намерения через _guarded_action — поведение
+    идентично (горение наносит урон), а глубина гарда размотана в 0 после фазы."""
+    cm = _make_cm()
+    enemy = cm.enemies[0]
+    enemy.statuses['ignited'] = 2             # горит → тик нанесёт урон
+    hp_before = enemy.hp
+    cm._trigger_guard.depth = 3               # искусственный «мусор» в гарде
+    cm.end_turn_phase()
+    assert enemy.hp < hp_before                # тик горения сработал
+    # Каждое действие сбрасывает depth в 0 и разматывает — после фазы чисто.
+    assert cm._trigger_guard.depth == 0
+
+
+def test_guarded_action_сбрасывает_глубину_перед_вызовом():
+    cm = _make_cm()
+    cm._trigger_guard.depth = cm._trigger_guard.max_depth   # «упёрт» в потолок
+    seen = {}
+    cm._guarded_action("действие", lambda: seen.setdefault("depth_inside",
+                                                            cm._trigger_guard.depth))
+    # Несмотря на упор перед вызовом — сброс в 0, затем enter() → depth=1 внутри.
+    assert seen["depth_inside"] == 1
+    assert cm._trigger_guard.depth == 0

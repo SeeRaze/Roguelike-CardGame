@@ -275,33 +275,57 @@ class CombatManager:
         (_card_being_played/_play_snapshot). Используется EffectCalculator.preview."""
         return self._build_play_snapshot(target, card=card)
 
+    def _guarded_action(self, label, fn):
+        """Верхнеуровневое реакционное действие фазы врага (тик статусов, намерение
+        врага, действие союзника). Сбрасывает глубину гарда В НОЛЬ перед вызовом —
+        каждое такое действие самостоятельно (своё событие), и одно не должно «съесть»
+        бюджет следующего. Внутри действия рекурсия (тик → хук → тик) по-прежнему
+        ограничена потолком через вложенные _guarded. Возвращает результат fn()."""
+        self._trigger_guard.depth = 0
+        return self._guarded(label, fn)
+
     def end_turn_phase(self):
         self.add_log_message("Вы завершили ход.")
         self.deck_manager.discard_hand()
 
-        # Враги действуют: сброс щита → исполнение намерения → тик статусов
+        # Враги действуют: сброс щита → исполнение намерения → тик статусов.
+        # Каждый источник — под предохранителем глубины (R3): тик/намерение, что
+        # каскадно дёргает реакции (горение→хук реликвии→…), оборвётся на потолке,
+        # а не зациклится. Порядок: namerenie ПЕРЕД тиком (атака до догорания).
         for e in self.enemies:
             if e.hp <= 0:
                 continue
             e.shield = 0
-            e.execute_intent(self.player, self)
-            e.tick_statuses(self)
+            self._guarded_action(
+                f"намерение {getattr(e, 'name', '?')}",
+                lambda e=e: e.execute_intent(self.player, self),
+            )
+            self._guarded_action(
+                f"тик {getattr(e, 'name', '?')}",
+                lambda e=e: e.tick_statuses(self),
+            )
             self._check_enemy_death(e)
             # Если игрок умер от действий врага — прерываем
             if self.player.hp <= 0:
                 break
 
-        self.player.tick_statuses(self)
+        self._guarded_action("тик игрока", lambda: self.player.tick_statuses(self))
 
-        # Союзники действуют: выбор цели → атака → тик статусов
+        # Союзники действуют: выбор цели → атака → тик статусов (всё под гардом).
         for ally in self.allies:
             if ally.hp <= 0:
                 continue
             target = ally.choose_action(self)
             if target:
-                ally.execute_action(target, self)
+                self._guarded_action(
+                    f"союзник {getattr(ally, 'name', '?')}",
+                    lambda ally=ally, target=target: ally.execute_action(target, self),
+                )
                 self._check_enemy_death(target)
-            ally.tick_statuses(self)
+            self._guarded_action(
+                f"тик союзника {getattr(ally, 'name', '?')}",
+                lambda ally=ally: ally.tick_statuses(self),
+            )
             self._check_ally_death(ally)
 
         # Проверка: все враги мертвы? (добиты союзником/статусом в фазу врага)
