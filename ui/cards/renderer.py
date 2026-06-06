@@ -153,13 +153,15 @@ class CardRenderer:
             base = CardRenderer._card_base_damage(card)
             predicted = None
             if base and combat_manager is not None:
-                # Единый расчёт: ГАРАНТИРОВАННОЕ число (баффы/дебаффы/Заточка/уровень)
-                # для строки + чипы условных реакций (комбо/ковка). Превью == удар.
+                # Единый расчёт: КОНЕЧНОЕ число (со ВСЕМИ реакциями — комбо ×N,
+                # ковка, шок) в строке урона; чипы реакций остаются как ОБЪЯСНЕНИЕ,
+                # откуда такая цифра. Игрок не перемножает сам. Превью == удар.
+                # Нет реакций → full == guaranteed (несинергийные карты не меняются).
                 from core.EffectCalculator import EffectCalculator
                 preview = EffectCalculator.preview(
                     player, enemy, base, combat_manager=combat_manager,
                     game_manager=getattr(combat_manager, "gm", None), card=card)
-                predicted = preview["guaranteed"]
+                predicted = preview["full"]
                 has_chips = bool(preview.get("reactions")) or \
                     (preview.get("forge_mult", 1.0) not in (None, 1.0))
 
