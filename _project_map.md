@@ -347,31 +347,45 @@ HP-баре зовут её (расхождений «показано vs нан
   playable. `debt=False` регресс-нейтрально (baseline зелёный). A/B: размен-движок
   (Воин +16.5 … Призыв −9.5). Активация через Ставку «всё в минус» — следующий шаг.
 
-### Позиционка 3×3 — фронт/тыл (кейстоун, С47) — `core/positioning.py`
-Субстрат Парадокс-режима и class-redesign. Срез v1 — ось РАНГА (фронт/тыл) на стороне
-игрока; враги «толпа». МЕХАНИЗМ class-agnostic. Сетка = ИНДЕКС над `enemies[]`/`allies[]`,
-НЕ новый источник правды (анти-рассинхрон).
-- **`core/positioning.py`** (чистый модуль) — `Rank` (FRONT/BACK) + раскладки данными
-  (`DEFAULT_LAYOUT` 1ф/2т, `MIRRORED_LAYOUT` 2ф/1т, `party_layout`/`slot_capacity`) +
-  хелперы `living`/`has_positions`/`front_rank`/`back_rank` + **`intercept_targets`**
-  (полный перехват: жив фронт → одиночный урон не в тыл; нет рангов → все живые =
-  старый пул) + **`assign_party_ranks(player, allies, mirrored)`** (дефолт герой→ФРОНТ;
-  зеркало → инверсия).
-- **`Creature.rank`** = None дефолт (инертно). **`Player.mirrored_layout`** (класс-флаг;
-  `Summoner` = True → саммоны танкуют фронт, герой тыл).
-- **Перехват** — `Enemy._choose_attack_target` через `intercept_targets` (random только
-  при >1 кандидате → байт-в-байт старого без рангов).
+### Позиционка — 2D-сетка РАНГ × ЛИНИЯ (кейстоун, С47 v1 → С48 v2) — `core/positioning.py`
+Субстрат Парадокс-режима и class-redesign. **2D-решётка на ОБЕИХ сторонах**: ось РАНГА
+(фронт/тыл) × ось ЛИНИЙ (лево/центр/право). МЕХАНИЗМ class-agnostic. Сетка = ИНДЕКС над
+`enemies[]`/`allies[]`, НЕ новый источник правды (анти-рассинхрон). Всё аддитивно/инертно
+при `rank/line == None`.
+- **`core/positioning.py`** (чистый модуль):
+  - **Ось РАНГА (v1)** — `Rank` (FRONT/BACK) + раскладки `DEFAULT_LAYOUT`/`MIRRORED_LAYOUT` +
+    `front_rank`/`back_rank` + **`intercept_targets`** (полный перехват: жив фронт → одиночный
+    урон не в тыл; нет рангов → все живые = старый пул).
+  - **Ось ЛИНИЙ (v2, С48)** — `Line` (LEFT/CENTER/RIGHT) + Т-раскладки данными `DEFAULT_GRID`
+    (герой ЦЕНТР-фронт + союзники края тыла) / `MIRRORED_GRID` (саммоны края фронта + герой
+    ЦЕНТР-тыл) + `party_grid`/`grid_slots`. Пьюр-ридеры под EffectCalculator: **`cell`** (клетка
+    (line,rank)), **`neighbors`** («соседняя ячейка» — манхэттен-1, диагональ не сосед),
+    **`column`** («вертикальный ряд»), **`same_rank`** (горизонтальный ряд).
+  - **Расстановка** — `assign_party_ranks(player, allies, mirrored)` (+line по Т-схеме, overflow
+    стаи циклит линии); `assign_enemy_ranks(enemies)` (фронт=(n+1)//2, линии `_LINE_FILL_ORDER`
+    ЦЕНТР→ЛЕВО→ПРАВО).
+- **`Creature.rank`/`Creature.line`** = None дефолт (инертно). **`Player.mirrored_layout`**
+  (класс-флаг; `Summoner` = True → саммоны танкуют фронт, герой тыл).
+- **Перехват симметричен (С48)** — враг→игрок: `Enemy._choose_attack_target` через
+  `intercept_targets`. Игрок→враг: `CombatManager.get_target_enemy` через
+  `intercept_targets(enemies)` (авто-цель карт/реликвий/способностей) +
+  `_resolve_attack_target` (клэмп явного клика в прикрытый тыл → снап на фронт). AoE-карты
+  бьют `combat_manager.enemies` напрямую → мимо перехвата.
 - **Тактический Манёвр `[Tactical_Move]`** (`TacticalMoveEffect`, base.py) — атомарный
   переворот строя; смена строя = ЭФФЕКТ ДЕЙСТВИЯ (карта/реликвия/босс), не кнопка
   (анти-абуз). Рантайм `player.formation_mirrored` (тоггл; сброс к классовому дефолту
   каждый бой). `CombatManager.flip_formation`/`_init_positioning`/`_apply_positioning`
-  (гард `positioning_enabled`; пере-расстановка в `end_turn_phase` перед фазой врага →
-  саммоны хода/старта в строю). Карта «Перестроение» (basic.py, вне GENERIC-пула).
+  (гард `positioning_enabled`; `_init_positioning` расставляет и врагов; пере-расстановка
+  партии в `end_turn_phase` перед фазой врага). Карта «Перестроение» (basic.py, вне GENERIC).
 - **Живое включение** — `GameManager.spawn_procedural_enemy` ставит `positioning_enabled`
-  перед боем. Сим — `run_single_run(positioning=...)` opt-in (бот расставляет). Дефолт
-  off → baseline зелёный. A/B: зеркало = верный режим Призывателя (дефолт-герой-фронт −28).
-- **UI** — `panels._draw_rank_chip` (бейдж ФРОНТ/ТЫЛ на игроке+союзниках) + союзники по
-  рядам (фронт/тыл) при включённой позиционке; одноряд без рангов.
+  перед боем. Сим — `run_single_run(positioning=...)` opt-in (бот расставляет; перехват врага
+  сим-нативен через наследование `BotCombatManager`). Дефолт off → baseline зелёный. A/B:
+  v1 зеркало = верный режим Призывателя (дефолт-герой-фронт −28); v2 ON≈OFF (тактич. субстрат).
+- **UI** — `panels._draw_rank_chip` (бейдж ФРОНТ/ТЫЛ ·линия на игроке+союзниках+ВРАГАХ) +
+  союзники по рядам (фронт/тыл), внутри ряда сортировка по линии Л→Ц→П; одноряд без рангов.
+- **Следующие итерации** (та же data-модель): энфорс капа слотов · полный enemy-grid relayout
+  в UI · контент-носители `[Tactical_Move]` (боссы/реликвии) · механики-потребители
+  `neighbors`/`column` (AoE по соседям/колонке/ряду, детонации соседних клеток).
 
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
