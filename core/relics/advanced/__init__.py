@@ -14,6 +14,7 @@ from core.relics.advanced.damage import (
 )
 from core.relics.advanced.utility import СчастливаяМонетка
 from core.relics.advanced.persistent import КоронаВознесения, СердцеБездны
+from core.relics.advanced.epic_legendary import ЭхоВечности, НесокрушимыйБастион
 
 __all__ = [
     "ОкровавленныйШприц", "ГнилойКлык", "ФлаконСЖелчью", "ШипастаяБроня",
@@ -23,4 +24,5 @@ __all__ = [
     "ТрофейныйКлык", "БерсеркМедальон", "МеткаОхотника", "ТотемЯрости",
     "СчастливаяМонетка",
     "КоронаВознесения", "СердцеБездны",
+    "ЭхоВечности", "НесокрушимыйБастион",
 ]

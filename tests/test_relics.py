@@ -11,10 +11,10 @@ from core.relics import (
 )
 
 
-def test_в_пуле_28_уникальные_реликвии():
-    assert len(ALL_RELICS) == 28
+def test_в_пуле_30_уникальные_реликвии():
+    assert len(ALL_RELICS) == 30
     имена = [r().name for r in ALL_RELICS]
-    assert len(set(имена)) == 28
+    assert len(set(имена)) == 30
 
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):
@@ -159,3 +159,35 @@ def test_флакон_катализатора_мочит_врага(make_combat
     ФлаконКатализатора().on_combat_start(cm)
     # Враг один — он гарантированно становится Мокрым (2 хода).
     assert cm.enemy.wet == 2
+
+
+# --- Высокотировые движки (EPIC): Эхо Вечности / Несокрушимый Бастион ---
+
+def test_эхо_вечности_даёт_эхо_в_начале_хода(make_combat):
+    from core.relics import ЭхоВечности
+    cm = make_combat()
+    ЭхоВечности().on_turn_start(cm)
+    assert cm.player.echo == 1
+
+
+def test_несокрушимый_бастион_половину_щита_в_барьер(make_combat):
+    """Половина полученного щита → несгораемый Барьер (игроку)."""
+    from core.relics import НесокрушимыйБастион
+    cm = make_combat()
+    НесокрушимыйБастион().on_shield_gained(8, cm.player, cm)
+    assert cm.player.barrier == 4          # 50% от 8
+
+
+def test_бастион_малый_щит_не_даёт_барьер(make_combat):
+    from core.relics import НесокрушимыйБастион
+    cm = make_combat()
+    НесокрушимыйБастион().on_shield_gained(1, cm.player, cm)
+    assert cm.player.barrier == 0          # int(1*0.5)=0
+
+
+def test_бастион_игнорирует_щит_не_игрока(make_combat):
+    """Щит получил враг/союзник — Барьер игроку не начисляется."""
+    from core.relics import НесокрушимыйБастион
+    cm = make_combat()
+    НесокрушимыйБастион().on_shield_gained(8, cm.enemy, cm)
+    assert cm.player.barrier == 0
