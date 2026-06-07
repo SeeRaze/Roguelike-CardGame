@@ -160,8 +160,8 @@ def test_смерть_игрока_переводит_в_leaderboard():
     cm = _make_cm(gm=gm)
     cm.player.hp = 0
 
-    # Патчим send_run_record чтобы не лезть в сеть
-    with patch("managers.CombatManager.send_run_record"):
+    # Патчим send_run_record чтобы не лезть в сеть (живёт в managers.combat.defeat, С49)
+    with patch("managers.combat.defeat.send_run_record"):
         # Патчим LeaderboardView на уровне исходного модуля
         with patch("ui.LeaderboardView.LeaderboardView") as mock_lb:
             result = cm.check_player_defeat()

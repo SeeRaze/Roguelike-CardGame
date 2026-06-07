@@ -7,7 +7,15 @@
 `.play_card_by_index()` и т.д.) и путь импорта — байт-в-байт прежние.
 """
 from managers.combat.cardplay import CardPlayMixin
+from managers.combat.defeat import DefeatMixin
+from managers.combat.phases import TurnPhaseMixin
 from managers.combat.positioning import PositioningMixin
 from managers.combat.resolution import ResolutionMixin
 
-__all__ = ["CardPlayMixin", "PositioningMixin", "ResolutionMixin"]
+__all__ = [
+    "CardPlayMixin",
+    "DefeatMixin",
+    "PositioningMixin",
+    "ResolutionMixin",
+    "TurnPhaseMixin",
+]
