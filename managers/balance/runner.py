@@ -51,6 +51,10 @@ class _StubGM:
         self.relics        = relics if relics is not None else []
         self.current_floor = 1
         self.current_state = "COMBAT"
+        # Слой «правок правил» (RuleStack): пустой = базовый забег (инертно для урона).
+        # Ставки/парадоксы пушат сюда моды; EffectCalculator консультирует DAMAGE-scope.
+        from core.rules import RuleStack
+        self.rulestack     = RuleStack()
         # Экономика (зеркало GameManager). Дефолты совпадают с реальной игрой.
         self.player_gold   = 100
         self.player_keys   = 0
@@ -73,7 +77,7 @@ class _StubGM:
 
 def run_single_run(player_class, max_floor: int = 100, *,
                    draft=None, extra_cards=None, relics=None, economy=None,
-                   forge=None, events=None) -> dict:
+                   forge=None, events=None, stakes=None) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -97,6 +101,10 @@ def run_single_run(player_class, max_floor: int = 100, *,
                     задана: на фикс. EVENT-этажах бот играет азартный %-размен
                     (стохастический приток MaxHP/FP по акт-скейлу). По умолчанию
                     None → события выключены (регресс-нейтрально, baseline зелёный).
+      stakes      — список Ставок (core.rules.Stake или их id) или None. Если задан:
+                    на старте забега активируются (RuleStack: моды + одноразовый
+                    DECKBUILD — обрезка колоды / правка игрока). По умолчанию None →
+                    стек пуст, регресс-нейтрально. Делает RuleStack сим-нативным.
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
@@ -114,6 +122,17 @@ def run_single_run(player_class, max_floor: int = 100, *,
     # Реликвии билда — свежие инстансы на забег (хранят состояние, напр. _applied).
     relic_objs = [r() for r in (relics or [])]
     gm = _StubGM(relics=relic_objs)
+
+    # Ставки (RuleStack): пушим моды + одноразовый DECKBUILD (обрезка колоды / правка
+    # игрока на старте). stakes=None → стек пуст → регресс-нейтрально (baseline зелёный).
+    # Делает RuleStack симулятор-нативным: бот «надевает» правила → сим меряет
+    # выживаемость сломанного рулсета (спека _rulestack_design.md §5).
+    if stakes:
+        from core.rules import STAKES
+        gm.player       = player
+        gm.current_deck = deck
+        for st in stakes:
+            (STAKES[st] if isinstance(st, str) else st).activate(gm)
 
     hp_by_floor: dict = {}
 
