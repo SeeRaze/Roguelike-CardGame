@@ -22,19 +22,27 @@ class CardPlayMixin:
         selected_card = self.deck_manager.hand[card_index]
         effective_cost = getattr(selected_card, 'temp_cost', selected_card.cost)
 
-        overdraft = getattr(self.player, 'energy_overdraft', False)
-        if self.player.energy < effective_cost:
-            if not overdraft:
-                self.add_log_message("[!] Не хватает энергии!")
-                return False
-            # Долговой движок (§7): уходим в минус, но НЕ глубже жёсткого пола
-            # (амплитудный гард-рейл DEBT_MAX_OVERDRAFT).
-            from core.debt import DEBT_MAX_OVERDRAFT
-            if effective_cost - self.player.energy > DEBT_MAX_OVERDRAFT:
-                self.add_log_message("[!] Долг энергии слишком глубок!")
-                return False
-
-        self.player.use_energy(effective_cost, allow_debt=overdraft)
+        # БЕЗУМИЕ (Берсерк): карта стоит 0 энергии, но берёт HP (стоимость × ставка,
+        # сквозь щит). Для hp_overdraft уходит в МИНУС → множитель урона. Энергия не тронута.
+        if getattr(self.player, 'madness_active', False):
+            hp_cost = effective_cost * getattr(self.player, 'madness_hp_per_cost', 1)
+            if hp_cost > 0:
+                self.player.lose_hp(hp_cost)
+            self.add_log_message(
+                f"[БЕЗУМИЕ] {selected_card.name}: -{hp_cost} HP (0 энергии)")
+        else:
+            overdraft = getattr(self.player, 'energy_overdraft', False)
+            if self.player.energy < effective_cost:
+                if not overdraft:
+                    self.add_log_message("[!] Не хватает энергии!")
+                    return False
+                # Долговой движок (§7): уходим в минус, но НЕ глубже жёсткого пола
+                # (амплитудный гард-рейл DEBT_MAX_OVERDRAFT).
+                from core.debt import DEBT_MAX_OVERDRAFT
+                if effective_cost - self.player.energy > DEBT_MAX_OVERDRAFT:
+                    self.add_log_message("[!] Долг энергии слишком глубок!")
+                    return False
+            self.player.use_energy(effective_cost, allow_debt=overdraft)
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
         self._combo_triggered = False

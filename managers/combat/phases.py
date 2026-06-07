@@ -15,6 +15,9 @@ class TurnPhaseMixin:
     def start_turn_phase(self):
         # Новый ход — обнуляем счётчик сыгранных карт (предикаты first/nth card).
         self.cards_played_this_turn = 0
+        # БЕЗУМИЕ (Берсерк) длится один ход — сбрасываем (надо переактивировать). NO-OP
+        # для классов без безумия (атрибут просто становится False).
+        self.player.madness_active = False
 
         # Все живые враги выбирают намерение.
         # Хук on_turn_start: боссы обновляют состояние перед choose_intent
@@ -161,8 +164,9 @@ class TurnPhaseMixin:
                 lambda e=e: e.tick_statuses(self),
             )
             self._check_enemy_death(e)
-            # Если игрок умер от действий врага — прерываем
-            if self.player.hp <= 0:
+            # Если игрок ПОГИБ от действий врага — прерываем. Порог = пол HP (овердрафт-
+            # класс в минусе ещё жив; обычный класс — пол 0, байт-в-байт).
+            if self.player.hp <= self.player._hp_floor():
                 break
 
         self._guarded_action("тик игрока", lambda: self.player.tick_statuses(self))
@@ -190,7 +194,11 @@ class TurnPhaseMixin:
             self._check_victory()
             return
 
-        if self.player.hp > 0:
+        # Игрок ЖИВ (выше пола HP — для Берсерка это может быть МИНУС) → новый ход.
+        # Раньше было `hp > 0`: овердрафт-класс в минусе (живой!) не получал добор/сброс
+        # энергии и завис бы. Теперь порог = пол (_hp_floor), для обычных классов = 0
+        # (байт-в-байт). Если игрок мёртв (hp<=пол) — turn НЕ растёт, ниже фиксируем смерть.
+        if self.player.hp > self.player._hp_floor():
             self.turn_count += 1
             self.start_turn_phase()
 

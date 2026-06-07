@@ -140,13 +140,16 @@ class SummonerPolicy(BotPolicy):
 
 
 class BerserkerPolicy(BotPolicy):
-    """Ранняя Ярость действует больше ходов; жмём, пока HP безопасно высок."""
+    """«Отрицание Смерти»: входит в БЕЗУМИЕ, пока HP высок (дамп руки ценой HP → нырок
+    к красной зоне). В минусе НЕ ныряет глубже — энергокарты там и так множатся долгом.
+    Строгая расплата лимитирует сверху."""
 
     def on_turn_begin(self, combat) -> None:
         ab = _ability(combat)
         player = combat.player
-        if ab and player.hp >= player.max_hp * _BERSERK_HP_FRACTION:
-            ab.activate(combat)
+        if (ab and any(e.hp > 0 for e in combat.enemies)
+                and player.hp >= player.max_hp * _BERSERK_HP_FRACTION):
+            ab.activate(combat)              # Безумие: карты за 0 энергии ценой HP
 
 
 class WarriorPolicy(BotPolicy):

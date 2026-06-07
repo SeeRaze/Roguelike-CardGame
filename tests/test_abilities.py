@@ -51,13 +51,11 @@ def test_друид_токсичный_взрыв(make_combat):
     assert ab._used is True
 
 
-def test_берсерк_кровавая_ярость(make_combat):
+def test_берсерк_безумие(make_combat):
+    # Передел (этап 1): активка теперь «Безумие» — карты за 0 энергии ценой HP.
     player = Berserker()
     cm = make_combat(player=player)
-    урон_себе = max(1, player.max_hp // 10)
-    стартовое_hp = player.hp
     ab = BerserkerAbility()
-    ab.activate(cm)
-    assert player.hp == стартовое_hp - урон_себе
-    assert player.strength == урон_себе * 2    # ярость = урон × 2
-    assert ab._used is True
+    assert ab.activate(cm) is True
+    assert player.madness_active is True
+    assert ab.activate(cm) is False        # уже в безумии в этот ход — повтор не активирует

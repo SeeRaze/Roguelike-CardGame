@@ -67,17 +67,10 @@ class EffectCalculator:
                 if not dry_run:
                     print(f" [МАСТЕРСТВО] +{mastery} к урону (стихийный резонанс).")
 
-        # 2b. ПАССИВ БЕРСЕРКА: бонус урона от недостатка HP
-        if is_player_attack and type(attacker).__name__ == "Berserker":
-            if attacker.max_hp > 0:
-                missing = 1.0 - attacker.hp / attacker.max_hp
-                rage_bonus = int(missing * 10)
-                if rage_bonus > 0:
-                    base_damage += rage_bonus
-                    _rec("Ярость крови", "+", rage_bonus)
-                    if not dry_run:
-                        print(f" [БЕРСЕРК] Ярость крови: +{rage_bonus} к урону "
-                              f"({attacker.hp}/{attacker.max_hp} HP)")
+        # 2b. (Передел Берсерка, этап 1) Старый плоский пассив «Ярость крови» (бонус от
+        # недостатка HP) УБРАН — единственный движок урона Берсерка теперь HP-долг
+        # множитель (шаг 8-ter, только в МИНУСЕ): награда за НЫРОК в красную зону, без
+        # двойного счёта. Концепт «Отрицание Смерти».
 
         # 3. Слабость атакующего
         if attacker.weak > 0:

@@ -82,12 +82,15 @@ def test_обычный_расчёт_расходует_стаки_комбо(ma
     assert cm._combo_triggered is True
 
 
-def test_пассив_берсерка_добавляет_урон_от_недостатка_hp(make_combat):
-    # Берсерк бьёт сильнее, когда у него мало HP. На половине HP бонус = int(0.5*10) = 5.
+def test_берсерк_урон_только_от_минуса_hp(make_combat):
+    # Передел Берсерка (этап 1): плоский пассив «Ярость крови» УБРАН. В ПЛЮСЕ Берсерк
+    # бьёт как обычный боец (без бонуса); урон даёт ТОЛЬКО HP-долг множитель в МИНУСЕ.
     berserker = Berserker()
-    berserker.hp = berserker.max_hp // 2
     tgt = Creature("Цель", 50, 50)
     cm = make_combat(player=berserker, enemy=tgt)   # игрок == атакующий
+    berserker.hp = berserker.max_hp // 2            # положительный, но низкий
+    assert calc(berserker, tgt, 10, combat_manager=cm) == 10   # БЕЗ бонуса
+    berserker.hp = -5                               # долг HP 5 → ×1.5
     assert calc(berserker, tgt, 10, combat_manager=cm) == 15
 
 
