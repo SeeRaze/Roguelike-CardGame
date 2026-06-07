@@ -13,6 +13,7 @@ from core.positioning import (
     front_rank,
     back_rank,
     intercept_targets,
+    assign_party_ranks,
 )
 
 
@@ -130,3 +131,47 @@ def test_перехват_зеркало_двое_во_фронте_танкую
 
 def test_перехват_все_мертвы_пустой_список():
     assert intercept_targets([_c("a", hp=0), _c("b", hp=0)]) == []
+
+
+# ═══════════════════════════════════════════════════════════
+# §3 — расстановка партии (дефолт / зеркало / сброс)
+# ═══════════════════════════════════════════════════════════
+
+def test_расстановка_дефолт_герой_фронт_союзники_тыл():
+    hero = _c("hero")
+    s1, s2 = _c("s1"), _c("s2")
+    party = assign_party_ranks(hero, [s1, s2], mirrored=False)
+    assert hero.rank == Rank.FRONT
+    assert s1.rank == Rank.BACK and s2.rank == Rank.BACK
+    assert party == [hero, s1, s2]      # герой первым
+
+
+def test_расстановка_зеркало_союзники_фронт_герой_тыл():
+    hero = _c("hero")
+    s1, s2 = _c("s1"), _c("s2")
+    assign_party_ranks(hero, [s1, s2], mirrored=True)
+    assert hero.rank == Rank.BACK
+    assert s1.rank == Rank.FRONT and s2.rank == Rank.FRONT
+
+
+def test_расстановка_переставляет_без_протухших_рангов():
+    # Повторный вызов с другим флагом ПЕРЕназначает всё — нет утечки прошлого боя.
+    hero = _c("hero")
+    s1 = _c("s1")
+    assign_party_ranks(hero, [s1], mirrored=False)
+    assert hero.rank == Rank.FRONT and s1.rank == Rank.BACK
+    assign_party_ranks(hero, [s1], mirrored=True)
+    assert hero.rank == Rank.BACK and s1.rank == Rank.FRONT   # всё перевернулось
+
+
+def test_расстановка_без_союзников_только_герой():
+    hero = _c("hero")
+    party = assign_party_ranks(hero, mirrored=False)
+    assert hero.rank == Rank.FRONT
+    assert party == [hero]
+
+
+def test_player_mirrored_layout_по_дефолту_выкл():
+    # Флаг класса: дефолт False (большинство классов). Класс типа призывателя → True.
+    from core.players.base import Player
+    assert Player.mirrored_layout is False

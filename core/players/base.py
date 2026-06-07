@@ -5,6 +5,11 @@ from core.forge import INITIAL_LEVEL_CAP
 class Player(Creature):
     """Базовый каркас игрока. Содержит общую логику для всех классов."""
 
+    # Позиционка (§3): зеркальная раскладка партии. Дефолт False = герой во ФРОНТЕ,
+    # союзники в ТЫЛУ. Класс типа призывателя ставит True → инверсия (саммоны
+    # танкуют во фронте, герой в тылу). Читается assign_party_ranks при старте боя.
+    mirrored_layout = False
+
     def __init__(self, name, max_hp, max_energy, gold, starter_deck_factory):
         super().__init__(name=name, hp=max_hp, max_hp=max_hp)
 

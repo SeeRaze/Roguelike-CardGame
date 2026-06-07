@@ -91,3 +91,27 @@ def intercept_targets(party) -> list:
     if back:
         return back
     return alive
+
+
+# ── Расстановка партии (§3) ──────────────────────────────────────────────────────
+
+def assign_party_ranks(player, allies=None, mirrored: bool = False) -> list:
+    """Расставить партию по рангам. Дефолт: герой во ФРОНТЕ, союзники в ТЫЛУ.
+    ЗЕРКАЛО (mirrored=True, класс типа призывателя): инверсия — союзники во ФРОНТЕ
+    (танкуют), герой в ТЫЛУ.
+
+    (Пере)назначает .rank У ВСЕХ членов партии при каждом вызове — поэтому вызов на
+    старте каждого боя сам ПО СЕБЕ сбрасывает протухшие ранги: персистентная стая
+    переставляется заново, без утечки расстановки прошлого боя.
+
+    Расстановка БИНАРНАЯ (герой vs союзники). Жёсткие ёмкости слотов (party_layout
+    2/1) — забота UI/§5: разнос N союзников по слотам и показ капа делаем там.
+    Возвращает партию [player] + allies (порядок: герой первым)."""
+    allies = allies or []
+    hero_rank, ally_rank = (
+        (Rank.BACK, Rank.FRONT) if mirrored else (Rank.FRONT, Rank.BACK)
+    )
+    player.rank = hero_rank
+    for ally in allies:
+        ally.rank = ally_rank
+    return [player] + list(allies)
