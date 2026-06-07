@@ -1,6 +1,7 @@
 import random
 
 from core.Creature import Creature
+from core.positioning import intercept_targets
 
 
 class IntentAttack:
@@ -74,14 +75,25 @@ class Enemy(Creature):
         pass
 
     def _choose_attack_target(self, player, combat_manager):
-        """Цель атаки врага — СЛУЧАЙНАЯ из {игрок + живые союзники}.
-        Без союзников (или без боя) бьёт игрока, как раньше. Случайный выбор —
-        фундамент под будущий статус «провокация» (он сможет форсировать цель)
-        и под призывные классы: стая естественно поглощает часть ударов."""
+        """Цель ОДИНОЧНОЙ атаки врага — через ПОЛНЫЙ ПЕРЕХВАТ позиционки.
+
+        Партия = {игрок + союзники}. `intercept_targets` (core/positioning) даёт
+        допустимые цели: пока жив ФРОНТ — урон не проходит в ТЫЛ; когда фронт пал —
+        открывается тыл. Если позиционка ВЫКЛЮЧЕНА (ни у кого нет ранга), кандидаты
+        = {игрок + живые союзники} → выбор байт-в-байт прежний.
+
+        Случайность сохранена (фундамент под статус «провокация»). random.choice
+        зовём только при >1 кандидате — иначе цель однозначна (важно: старый код
+        не дёргал random без живых союзников; этот инвариант держит тесты)."""
         if not combat_manager:
             return player
-        allies = [a for a in getattr(combat_manager, "allies", []) if a.hp > 0]
-        return random.choice([player] + allies) if allies else player
+        party = [player] + list(getattr(combat_manager, "allies", []))
+        candidates = intercept_targets(party)
+        if not candidates:
+            return player
+        if len(candidates) == 1:
+            return candidates[0]
+        return random.choice(candidates)
 
     def execute_intent(self, player, combat_manager=None):
         self.turn_count += 1
