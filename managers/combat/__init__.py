@@ -7,5 +7,6 @@
 `.play_card_by_index()` и т.д.) и путь импорта — байт-в-байт прежние.
 """
 from managers.combat.positioning import PositioningMixin
+from managers.combat.resolution import ResolutionMixin
 
-__all__ = ["PositioningMixin"]
+__all__ = ["PositioningMixin", "ResolutionMixin"]
