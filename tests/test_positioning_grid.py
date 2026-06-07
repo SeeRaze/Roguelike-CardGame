@@ -14,6 +14,7 @@ from core.positioning import (
     column,
     same_rank,
     assign_enemy_ranks,
+    assign_party_ranks,
     intercept_targets,
 )
 
@@ -210,4 +211,81 @@ def test_враги_перехват_фронт_прикрывает_тыл():
     a.hp = 0
     b.hp = 0
     assert intercept_targets([a, b, c]) == [c]           # фронт пал → тыл открыт
+
+
+# ═══════════════════════════════════════════════════════════
+# §9 — заселение ЛИНИЙ: партия по Т-схеме (cell/neighbors/column реальны)
+# ═══════════════════════════════════════════════════════════
+
+def test_партия_дефолт_герой_центр_фронт_союзники_края_тыла():
+    hero = _c("hero")
+    s1, s2 = _c("s1"), _c("s2")
+    assign_party_ranks(hero, [s1, s2], mirrored=False)
+    assert cell(hero) == (Line.CENTER, Rank.FRONT)
+    assert cell(s1) == (Line.LEFT, Rank.BACK)
+    assert cell(s2) == (Line.RIGHT, Rank.BACK)
+
+
+def test_партия_зеркало_саммоны_края_фронта_герой_центр_тыла():
+    hero = _c("hero")
+    s1, s2 = _c("s1"), _c("s2")
+    assign_party_ranks(hero, [s1, s2], mirrored=True)
+    assert cell(hero) == (Line.CENTER, Rank.BACK)
+    assert cell(s1) == (Line.LEFT, Rank.FRONT)
+    assert cell(s2) == (Line.RIGHT, Rank.FRONT)
+
+
+def test_партия_overflow_линии_циклятся():
+    # 3 союзника на 2 слота тыла → линии повторяются (делят клетку), не падаем.
+    hero = _c("hero")
+    s1, s2, s3 = _c("s1"), _c("s2"), _c("s3")
+    assign_party_ranks(hero, [s1, s2, s3], mirrored=False)
+    assert s1.line == Line.LEFT and s2.line == Line.RIGHT
+    assert s3.line == Line.LEFT          # цикл
+    assert all(s.rank == Rank.BACK for s in (s1, s2, s3))
+
+
+def test_партия_без_союзников_только_герой_центр():
+    hero = _c("hero")
+    assign_party_ranks(hero, mirrored=False)
+    assert cell(hero) == (Line.CENTER, Rank.FRONT)
+
+
+def test_партия_column_героя_и_соседство():
+    # Дефолт: герой (Ц,Ф). Союзник (Л,Т) — НЕ в колонке героя (другая линия) и
+    # НЕ сосед (диагональ). Союзник, посаженный в (Ц,Т), был бы соседом по вертикали.
+    hero = _c("hero")
+    s_left = _c("sL")
+    assign_party_ranks(hero, [s_left], mirrored=False)   # s_left → (Л,Т)
+    assert column(Line.CENTER, [hero, s_left]) == [hero]
+    assert neighbors(hero, [hero, s_left]) == []          # (Ц,Ф)-(Л,Т) диагональ
+
+
+# ═══════════════════════════════════════════════════════════
+# §9 — заселение ЛИНИЙ: враги (cell/neighbors реальны на вражеской стороне)
+# ═══════════════════════════════════════════════════════════
+
+def test_враги_линия_один_центр():
+    e = _c("e")
+    assign_enemy_ranks([e])
+    assert cell(e) == (Line.CENTER, Rank.FRONT)
+
+
+def test_враги_линия_двое_колонка_по_центру():
+    # 2 врага → 1Ф/1Б, оба ЦЕНТР (первый в _LINE_FILL_ORDER) → вертикальная колонка.
+    a, b = _c("a"), _c("b")
+    assign_enemy_ranks([a, b])
+    assert cell(a) == (Line.CENTER, Rank.FRONT)
+    assert cell(b) == (Line.CENTER, Rank.BACK)
+    assert neighbors(a, [a, b]) == [b]    # соседи по вертикали (колонка)
+
+
+def test_враги_линия_трое_фронт_центр_лево():
+    a, b, c = _c("a"), _c("b"), _c("c")
+    assign_enemy_ranks([a, b, c])
+    assert cell(a) == (Line.CENTER, Rank.FRONT)
+    assert cell(b) == (Line.LEFT, Rank.FRONT)
+    assert cell(c) == (Line.CENTER, Rank.BACK)
+    assert set(neighbors(a, [a, b, c])) == {b, c}   # центр-фронт смежен лево-фронт + центр-тыл
+
 
