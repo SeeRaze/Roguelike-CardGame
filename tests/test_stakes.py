@@ -32,6 +32,27 @@ def test_реестр_содержит_аскета_и_хрупкость():
     assert all(isinstance(s, Stake) for s in STAKES.values())
 
 
+def test_кровавый_кредит_открывает_долг_ресурсов():
+    """Живая активация долга (§4): Ставка ставит флаги овердрафта на игрока →
+    энергия и HP могут уходить в минус в реальном бою."""
+    player = Creature("Игрок", 50, 50)
+    gm = _gm(player=player)
+    assert getattr(player, "energy_overdraft", False) is False   # до Ставки — выкл
+    STAKES["blood_credit"].activate(gm)
+    assert player.energy_overdraft is True
+    assert player.hp_overdraft is True
+    assert _hit(gm, 10) == 10                     # сам по себе урон не усилен (без минуса)
+
+
+def test_кровавый_кредит_без_награды_урона_в_плюсе():
+    """Кредит — ТОЛ, не бафф: в плюсе по ресурсам урон не меняется (множит лишь долг)."""
+    player = Creature("Игрок", 50, 50)
+    gm = _gm(player=player)
+    STAKES["blood_credit"].activate(gm)
+    player.hp = -2                                # ушёл в долг HP → теперь множитель
+    assert _hit(gm, 10) == 12                     # ×1.20 от глубины долга, не от Ставки
+
+
 def test_аскет_обрезает_колоду_без_урон_награды():
     """Калибровка С46: Аскет = чистая обрезка ≤6, БЕЗ урон-награды (true ascension)."""
     deck = list(range(15))                       # 15 «карт»

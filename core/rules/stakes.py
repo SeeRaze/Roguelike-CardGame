@@ -70,6 +70,28 @@ class _HalfMaxHp(RuleMod):
         p.hp = min(p.hp, p.max_hp)
 
 
+class _EnableDebt(RuleMod):
+    """DECKBUILD-scope (run-setup): открыть ДОЛГ ресурсов на игроке на весь забег (§4).
+
+    Ставит флаги energy_overdraft/hp_overdraft → CombatManager (гейт энергии в минус) и
+    Creature (пол HP в минус) пускают ресурсы за 0 (power now, pay later). Это и есть
+    «живая активация» долга: до Ставки долг существовал только в симуляторе. Флаг живёт
+    на player (переживает бои забега). Долг — ТОЛ, не наказание: риск = сам движок."""
+
+    def __init__(self, stake_id, stake_name):
+        super().__init__(
+            f"{stake_id}:debt", f"{stake_name}: долг ресурсов", Scope.DECKBUILD,
+            source="stake",
+        )
+
+    def apply(self, ctx):
+        p = ctx.get("player")
+        if p is None:
+            return
+        p.energy_overdraft = True
+        p.hp_overdraft = True
+
+
 class Stake:
     """Именованная Ставка — бандл RuleMod (ограничение + награда). Активация пушит
     моды в RuleStack забега и применяет одноразовый DECKBUILD run-setup сразу."""
@@ -118,7 +140,16 @@ def _build_stakes():
         [_HalfMaxHp("fragile", "Хрупкость", FRAGILE_HP_FRACTION),
          _DamageMult("fragile", "Хрупкость", FRAGILE_DAMAGE_MULT)],
     )
-    return {s.id: s for s in (ascetic, fragile)}
+    # Кровавый Кредит — открывает ДОЛГ (овердрафт энергии и HP) на весь забег: можно
+    # уходить в минус ради множителя урона ценой близости к смерти. Риск = сам движок
+    # (power now, pay later), без доп. урон-награды. Живая активация долга (§4, С49).
+    blood_credit = Stake(
+        "blood_credit", "Кровавый Кредит",
+        "Можно уходить в МИНУС по энергии и здоровью: глубина долга множит урон, но "
+        "приближает смерть. Сила сейчас — расплата потом.",
+        [_EnableDebt("blood_credit", "Кровавый Кредит")],
+    )
+    return {s.id: s for s in (ascetic, fragile, blood_credit)}
 
 
 # Реестр доступных Ставок (id -> Stake).
