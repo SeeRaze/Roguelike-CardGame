@@ -77,7 +77,7 @@ class _StubGM:
 
 def run_single_run(player_class, max_floor: int = 100, *,
                    draft=None, extra_cards=None, relics=None, economy=None,
-                   forge=None, events=None, stakes=None) -> dict:
+                   forge=None, events=None, stakes=None, debt=False) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -105,6 +105,10 @@ def run_single_run(player_class, max_floor: int = 100, *,
                     на старте забега активируются (RuleStack: моды + одноразовый
                     DECKBUILD — обрезка колоды / правка игрока). По умолчанию None →
                     стек пуст, регресс-нейтрально. Делает RuleStack сим-нативным.
+      debt        — bool (Долговой движок §7). True → бот может уходить в долг по
+                    энергии (овердрафт: power now → HP-гашение pay later). По
+                    умолчанию False → флаг не ставится, бот играет как раньше
+                    (регресс-нейтрально, baseline зелёный).
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
@@ -133,6 +137,12 @@ def run_single_run(player_class, max_floor: int = 100, *,
         gm.current_deck = deck
         for st in stakes:
             (STAKES[st] if isinstance(st, str) else st).activate(gm)
+
+    # Долговой движок (§7): овердрафт энергии. debt=False → флаг не ставится → бот
+    # играет как раньше (регресс-нейтрально, baseline зелёный). debt=True → бот
+    # уходит в долг (bot.py фильтр) → сим меряет «power now, pay later».
+    if debt:
+        player.energy_overdraft = True
 
     hp_by_floor: dict = {}
 

@@ -29,10 +29,21 @@ class BotCombatManager(CombatManager):
             policy.on_turn_begin(self)   # проактивные способности (призыв/ярость)
 
             # Ход игрока: разыгрываем доступные карты, пока есть чем
+            overdraft = getattr(self.player, 'energy_overdraft', False)
             while self.player.hp > 0:
                 hand = self.deck_manager.hand
-                playable = [c for c in hand
-                            if self.player.energy >= getattr(c, 'temp_cost', c.cost)]
+                if overdraft:
+                    # Долговой движок (§7): бот допускает уход энергии в минус, но не
+                    # глубже жёсткого пола (как гейт play_card_by_index).
+                    from core.debt import DEBT_MAX_OVERDRAFT
+                    playable = [
+                        c for c in hand
+                        if getattr(c, 'temp_cost', c.cost) - self.player.energy
+                        <= DEBT_MAX_OVERDRAFT
+                    ]
+                else:
+                    playable = [c for c in hand
+                                if self.player.energy >= getattr(c, 'temp_cost', c.cost)]
                 if not playable:
                     break
                 card = policy.pick_card(playable, self)
