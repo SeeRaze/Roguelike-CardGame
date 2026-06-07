@@ -201,6 +201,11 @@ class HubView:
         }
         if cls_name not in CLASS_MAP:
             return
+        # Гейт яруса (С50): залоченный класс яруса 2 нельзя выбрать.
+        from core import progression
+        if not progression.is_unlocked(getattr(gm, "meta", None), cls_name):
+            print(f"[HubView] Класс {cls_name} заблокирован — нужен анлок")
+            return
         if type(gm.player).__name__ == cls_name:
             return
         gm.player       = CLASS_MAP[cls_name]()

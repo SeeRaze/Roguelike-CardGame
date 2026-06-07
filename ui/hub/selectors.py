@@ -1,18 +1,38 @@
 # ui/hub/selectors.py
 # Отрисовка селектора классов (6 карточек). Возвращает кликабельные прямоугольники.
 import pygame
+from core import progression
 from ui.hub.data import (
     CLASS_INFO, _PANEL_COLOR, _BTN_BORDER, _TITLE_COLOR, _TEXT_COLOR,
     _MUTED_COLOR, _CLS_W, _CLS_H, _CLS_GAP, _CLS_Y, _CLS_X0,
 )
 
 
+def _draw_locked_overlay(screen, rect):
+    """Завеса «ЗАКРЫТО» поверх карточки залоченного класса (ярус 2 без анлока).
+    Карточка остаётся в class_buttons, но _select_class откажет в выборе."""
+    veil = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+    veil.fill((8, 8, 14, 175))
+    screen.blit(veil, rect.topleft)
+    pygame.draw.rect(screen, (90, 90, 110), rect, 2, border_radius=12)
+
+    font_lock = pygame.font.SysFont("Arial", 22, bold=True)
+    font_hint = pygame.font.SysFont("Arial", 14)
+    lock = font_lock.render("ЗАКРЫТО", True, (210, 210, 230))
+    screen.blit(lock, (rect.centerx - lock.get_width() // 2,
+                       rect.centery - lock.get_height() // 2))
+    hint = font_hint.render("открой за прогресс", True, (150, 150, 170))
+    screen.blit(hint, (rect.centerx - hint.get_width() // 2, rect.centery + 18))
+
+
 def draw_class_selector(screen, gm, mouse_pos) -> dict:
-    """Нарисовать 6 карточек классов. Возвращает {имя_класса: Rect} для кликов."""
+    """Нарисовать 6 карточек классов. Возвращает {имя_класса: Rect} для кликов.
+    Залоченные (ярус 2 без анлока) рисуются с завесой «ЗАКРЫТО» и не выбираются."""
     font_label = pygame.font.SysFont("Arial", 22, bold=True)
     font_stats = pygame.font.SysFont("Arial", 17, bold=True)
     font_desc  = pygame.font.SysFont("Arial", 16)
 
+    meta = getattr(gm, "meta", None)
     selected_name = type(gm.player).__name__
     class_buttons = {}
 
@@ -22,8 +42,9 @@ def draw_class_selector(screen, gm, mouse_pos) -> dict:
         rect = pygame.Rect(bx, by, _CLS_W, _CLS_H)
         class_buttons[cls_name] = rect
 
-        is_selected = (cls_name == selected_name)
-        is_hovered  = rect.collidepoint(mouse_pos)
+        unlocked    = progression.is_unlocked(meta, cls_name)
+        is_selected = unlocked and (cls_name == selected_name)
+        is_hovered  = unlocked and rect.collidepoint(mouse_pos)
 
         # Фон карточки
         if is_selected:
@@ -88,5 +109,9 @@ def draw_class_selector(screen, gm, mouse_pos) -> dict:
             surf = fnt.render(line, True, col)
             screen.blit(surf, (rect.centerx - surf.get_width() // 2, text_y))
             text_y += line_h
+
+        # Завеса поверх содержимого — карточка читается как недоступная.
+        if not unlocked:
+            _draw_locked_overlay(screen, rect)
 
     return class_buttons
