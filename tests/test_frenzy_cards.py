@@ -1,11 +1,10 @@
 # tests/test_frenzy_cards.py
 # Проверяем движок Разбойника «Кровожадность»: рост frenzy за атаки,
 # усиление Кровотечения, карты.
-import pytest
 from core.cards.base import Card, DamageEffect
 from core.cards.debuff.bleed import BleedEffect, create_lacerate
 from core.cards.rogue import (
-    FrenzyEffect, create_bloodlust, create_serrated_edge,
+    create_bloodlust, create_serrated_edge,
 )
 from core.players import Rogue
 from core.enemies import Cultist
@@ -191,7 +190,6 @@ def test_накопление_bleed_разбойника_за_ходы():
     """Frenzy-усиленные наложения + half-decay = растущий dot (компаунд)."""
     cm = FakeFrenzyCombat()
     cm.player.frenzy = 4
-    edge = create_serrated_edge  # bleed 2 + frenzy
 
     # Ход 1: наложили bleed (2 + 4 frenzy = 6)
     from core.cards.debuff.bleed import BleedEffect

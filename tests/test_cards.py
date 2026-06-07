@@ -5,7 +5,7 @@
 # Эффекты — фундамент боя: если execute() работает неверно, ломаются все карты.
 from core.cards.base import (
     Card, DamageEffect, ShieldEffect, HealEffect,
-    StatusEffect, PoisonEffect, RegenEffect,
+    StatusEffect, PoisonEffect,
 )
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect

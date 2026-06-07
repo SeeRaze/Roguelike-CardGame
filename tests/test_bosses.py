@@ -1,7 +1,6 @@
 # tests/test_bosses.py
 # Комплексные тесты 5 боссов-фильтров: механики, фазы, хуки, диспатч.
 # Паттерн: каждая механика — один тест (surgical, как в остальных тестах).
-import pytest
 from core.Creature import Creature
 from core.enemies.base import Enemy, IntentHeal
 from core.enemies.bosses.base import BossBase

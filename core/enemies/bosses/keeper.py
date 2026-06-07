@@ -69,7 +69,6 @@ class TimeKeeper(BossBase):
 
     def execute_intent(self, player, combat_manager=None):
         """Переопределено для Temporal Shift: хил + опц. Слабость в фазе 2."""
-        from core.enemies.base import IntentAttack, IntentDefend
 
         intent = self.intent
 

@@ -1,12 +1,10 @@
 # tests/test_mastery_cards.py
 # Проверяем движок Мага «Мастерство стихий»: бонус урона, рост от комбо, карты.
-import pytest
-from core.cards.base import Card, DamageEffect, StatusEffect
 from core.cards.mage import (
-    MasteryEffect, create_arcane_focus, create_elemental_surge, create_boil,
+    MasteryEffect, create_arcane_focus, create_elemental_surge,
 )
 from core.EffectCalculator import EffectCalculator
-from core.players import Mage, Warrior
+from core.players import Mage
 from core.enemies import Cultist
 
 

@@ -1,7 +1,6 @@
 # tests/test_barrier_cards.py
 # Проверяем механику Барьера: несгораемый щит между ходами, карты Воина.
-import pytest
-from core.cards.base import Card, BarrierEffect, ShieldEffect, DamageEffect
+from core.cards.base import BarrierEffect
 from core.cards.warrior import (
     create_steel_barricade, create_bastion, create_retribution,
 )
@@ -106,7 +105,6 @@ def test_барьер_суммируется_с_carry_воина():
 
 def test_барьер_работает_как_движок_возмездия():
     """Полный цикл: барьер→щит→Возмездие. Моделируем 2 хода."""
-    from core.EffectCalculator import EffectCalculator
     cm = FakeBarrierCombat()
 
     # Ход 1: играем Стальной заслон (барьер 2) + Защиту (щит 6)

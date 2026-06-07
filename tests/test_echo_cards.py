@@ -1,9 +1,7 @@
 # tests/test_echo_cards.py
 # Проверяем механику Эха: статус на игроке, ретриггер карт, карты эха.
-import pytest
 from core.cards.echo import (
-    EchoEffect, EchoPayoffEffect,
-    create_echo_resonance, create_echo_strike, create_echo_cascade,
+    EchoEffect, create_echo_resonance, create_echo_strike, create_echo_cascade,
 )
 from core.cards.base import Card, DamageEffect, ShieldEffect
 from core.players import Warrior

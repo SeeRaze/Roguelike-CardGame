@@ -1,7 +1,6 @@
 # tests/test_enemies.py
 # Проверяем врагов: базовый Enemy (намерения, обратная совместимость,
 # выполнение намерений) и конкретных врагов (Cultist, SlimeAndGoblins, BossTitan).
-from core.Creature import Creature
 from core.enemies.base import Enemy, IntentAttack, IntentDefend, IntentDebuff, IntentNone
 from core.enemies.cultist import Cultist
 from core.enemies.slime import SlimeAndGoblins
