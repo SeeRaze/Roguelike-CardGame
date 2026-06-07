@@ -18,6 +18,7 @@ class HubView:
         self.hover_progress:   float = 0.0
         self.is_deck_hovered:  bool  = False
         self.class_buttons:    dict  = {}
+        self.stake_buttons:    dict  = {}
         self.is_start_hovered: bool  = False
 
     def reset(self):
@@ -64,7 +65,42 @@ class HubView:
             view, screen, gm, mouse_pos, font_hint, self.hover_progress
         )
         self._draw_meta_stats(screen, gm)
+        self._draw_stake_toggles(screen, gm)
         self._draw_start_button(view, screen, mouse_pos)
+
+    def _draw_stake_toggles(self, screen, gm):
+        """Ряд тогглов Ставок (опт-ин сложность поверх RuleStack). Клик переключает
+        выбор в gm.pending_stakes; применяются на старте забега. Свободная полоса
+        между «Хроникой странника» и кнопкой старта."""
+        from core.rules import STAKES
+        self.stake_buttons = {}
+        font_lbl = pygame.font.SysFont("Arial", 20, bold=True)
+        font_btn = pygame.font.SysFont("Arial", 18, bold=True)
+
+        cx = SCREEN_W // 2
+        y  = 866
+        btn_w, btn_h, gap = 300, 40, 24
+
+        lbl = font_lbl.render("СТАВКИ (необязательно — риск ради награды):",
+                              True, _MUTED_COLOR)
+        screen.blit(lbl, (cx - lbl.get_width() // 2, y - 30))
+
+        items = list(STAKES.values())
+        total = len(items) * btn_w + (len(items) - 1) * gap
+        x0 = cx - total // 2
+        pending = getattr(gm, "pending_stakes", [])
+        for i, st in enumerate(items):
+            rect = pygame.Rect(x0 + i * (btn_w + gap), y, btn_w, btn_h)
+            on = st.id in pending
+            pygame.draw.rect(screen, (60, 110, 60) if on else (40, 40, 60),
+                             rect, border_radius=8)
+            pygame.draw.rect(screen, (120, 220, 120) if on else _BTN_BORDER,
+                             rect, 2, border_radius=8)
+            mark = "[+]" if on else "[ ]"
+            t = font_btn.render(f"{mark} {st.name}", True, _TEXT_COLOR)
+            screen.blit(t, (rect.centerx - t.get_width() // 2,
+                            rect.centery - t.get_height() // 2))
+            self.stake_buttons[st.id] = rect
 
     def _draw_meta_stats(self, screen, gm):
         """«Игра помнит тебя»: пожизненные статы из меты (Сессия 40). Панель в
@@ -133,11 +169,22 @@ class HubView:
                 self._select_class(gm, cls_name)
                 return
 
+        # Тогглы Ставок (опт-ин сложность): клик переключает выбор в gm.pending_stakes.
+        for stake_id, rect in getattr(self, "stake_buttons", {}).items():
+            if rect.collidepoint(mouse_pos):
+                if stake_id in gm.pending_stakes:
+                    gm.pending_stakes.remove(stake_id)
+                else:
+                    gm.pending_stakes.append(stake_id)
+                return
+
         if hasattr(view, 'btn_start_run') and \
                 view.btn_start_run.collidepoint(mouse_pos):
             print(f" >>> СТАРТ ЗАБЕГА | Класс: {type(gm.player).__name__} <<<")
             self.reset()
             gm.current_floor = 1
+            # Ставки применяются ДО хила — Хрупкость должна успеть урезать макс. HP.
+            gm.activate_pending_stakes()
             gm.player.hp     = gm.player.max_hp
             gm.setup_next_floor()
 

@@ -297,6 +297,33 @@ HP-баре зовут её (расхождений «показано vs нан
   понадобится цепная детонация (детонация запускает детонацию), её надо провести
   централизованно через `_guarded`, а не вызывать handler напрямую.
 
+### RuleStack — слой «правок правил» (фундамент «слома игры»)
+Полная спека: `_rulestack_design.md` (корень). Обобщение паттерна реестров +
+`ReactionOrder` + `TriggerGuard` с уровня боя на ВЕСЬ забег. Базовый забег = пустой
+стек (точки врезки вшиты с первого фрейма, при пустом стеке — no-op). Парадокс-режим
+(автоматический push хаотичных правил) — СКРЫТЫЙ режим (анлок), эмерджит позже.
+- **`core/rules/RuleStack.py`** — `Scope` (IntEnum, КОГДА срабатывает правило:
+  DECKBUILD=10 · RUN=20 · ROOM_ENTER=30 · COMBAT_START=40 · TURN_START/END=50/60 ·
+  REACTION=70 · DAMAGE=80 · ON_DEATH=90, зазоры под вставку) + `RuleMod` (атом слома:
+  id/name/scope/priority/source/cost/predicate/apply, мутирует ctx) + `RuleStack`
+  (push/pop/clear/active/total_cost/mods_for/apply). Чистый модуль, без pygame.
+- **Точка врезки (срез):** `EffectCalculator.calculate_damage` после Заточки зовёт
+  `gm.rulestack.apply(Scope.DAMAGE, ctx)` — внешний слой глобальных правок урона.
+  Инертно при пустом стеке / `gm` без `rulestack` (симулятор-стаб). Прочие scope
+  врезаются по мере появления потребителя (YAGNI).
+- **Ставки/Анте** (`core/rules/stakes.py`) — первый КОНТЕНТ слома, опт-ин сложность
+  базовой игры (Balatro-stake). `Stake` = именованный бандл `RuleMod`. «Аскет»
+  (DECKBUILD ≤10 карт + DAMAGE ×1.5), «Хрупкость» (DECKBUILD ½ макс. HP + DAMAGE ×2).
+  `Stake.activate(gm)`: пушит моды + применяет СВОИ одноразовые DECKBUILD-моды
+  напрямую (НЕ `rs.apply` над всем стеком — иначе одноразовый мод другой Ставки
+  сработал бы повторно). Реестр `STAKES`.
+- **Владение/активация:** `GameManager.rulestack` (пустой с `__init__`) +
+  `pending_stakes` (выбор в Хабе) → `activate_pending_stakes()` на старте забега (ДО
+  хила). Тогглы — `ui/hub/base.py::_draw_stake_toggles`.
+- **Сим-нативность** (козырь): `runner.run_single_run(stakes=...)` + `_StubGM.rulestack`
+  → бот «надевает» правила, дуал-сим меряет выживаемость сломанного рулсета.
+  `stakes=None` регресс-нейтрально (baseline зелёный).
+
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
 - **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** и **`SpreadEffect`** (air.py — стихия «Воздух», см. ниже). `DetonateEffect` (base.py) — подрывает детонационные комбо на цели (см. «Комбо — два реестра»).

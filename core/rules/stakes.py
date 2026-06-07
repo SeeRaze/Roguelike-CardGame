@@ -78,17 +78,23 @@ class Stake:
         return list(self._mods)
 
     def activate(self, game_manager):
-        """Применить Ставку к забегу: запушить все моды в RuleStack + один раз
-        прогнать DECKBUILD (run-setup: обрезка колоды / правка игрока). DAMAGE-моды
-        остаются в стеке и работают весь забег; DECKBUILD-моды больше не вызываются."""
-        rs = game_manager.rulestack
-        for m in self._mods:
-            rs.push(m)
-        rs.apply(Scope.DECKBUILD, {
+        """Применить Ставку к забегу: запушить моды в RuleStack + применить СВОИ
+        одноразовые DECKBUILD-моды (run-setup: обрезка колоды / правка игрока).
+
+        ВАЖНО: применяем именно СВОЙ DECKBUILD-мод напрямую, а НЕ rs.apply(DECKBUILD)
+        над всем стеком — иначе при активации второй Ставки одноразовые DECKBUILD-моды
+        ранее добавленной Ставки сработали бы ПОВТОРНО (двойное урезание HP/колоды).
+        DAMAGE-моды просто живут в стеке и работают весь забег."""
+        rs  = game_manager.rulestack
+        ctx = {
             "deck":         game_manager.current_deck,
             "player":       game_manager.player,
             "game_manager": game_manager,
-        })
+        }
+        for m in self._mods:
+            rs.push(m)
+            if m.scope == Scope.DECKBUILD and (m.predicate is None or m.predicate(ctx)):
+                m.apply(ctx)
 
 
 def _build_stakes():

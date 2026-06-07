@@ -63,6 +63,17 @@ def test_активация_пушит_моды_в_стек():
     assert "ascetic:trim" in ids and "ascetic:dmg" in ids
 
 
+def test_две_ставки_не_дублируют_одноразовый_run_setup():
+    """Регресс: активация второй Ставки НЕ должна повторно прогонять одноразовый
+    DECKBUILD-мод первой (раньше Хрупкость урезала HP дважды → 90→45→22)."""
+    player = Creature("Игрок", 90, 90)
+    gm = _gm(deck=list(range(15)), player=player)
+    STAKES["fragile"].activate(gm)            # 90 -> 45
+    STAKES["ascetic"].activate(gm)            # не должна тронуть HP ещё раз
+    assert player.max_hp == 45                # ровно ½, не ¼
+    assert len(gm.current_deck) == 10         # Аскет обрезал один раз
+
+
 def test_награда_урона_только_для_атак_игрока():
     """DAMAGE-мод Ставки не множит урон врага по игроку (predicate is_player_attack)."""
     player = Creature("Игрок", 80, 80)

@@ -43,6 +43,9 @@ class GameManager:
         # Слой «правок правил» (фундамент слома игры): базовый забег = пустой стек.
         # Ставки/парадоксы пушат сюда RuleMod; движок консультирует в точках врезки.
         self.rulestack     = RuleStack()
+        # Ставки, выбранные игроком на старте забега (id из core.rules.STAKES).
+        # Активируются в момент старта (HubView), не при выборе → переключаемы.
+        self.pending_stakes: list = []
         self.current_deck  = self.player.get_starter_deck()
         # Паспорт ковки: каждой карте старт-колоды — стабильный uid инстанса (39.5).
         for card in self.current_deck:
@@ -58,6 +61,21 @@ class GameManager:
 
     def start_game(self):
         print("--- GameManager: Глобальный мозг запущен в режиме Главного Меню! ---")
+
+    def activate_pending_stakes(self):
+        """Применить выбранные на старте Ставки к забегу (RuleStack): пуш модов +
+        одноразовый DECKBUILD (обрезка колоды / правка игрока). Зовётся в момент
+        старта забега (HubView), ДО хила игрока — чтобы Хрупкость (½ макс. HP)
+        учлась. Список чистится после активации (idempotent при повторном старте)."""
+        if not self.pending_stakes:
+            return
+        from core.rules import STAKES
+        for sid in self.pending_stakes:
+            stake = STAKES.get(sid)
+            if stake is not None:
+                stake.activate(self)
+                print(f"[Ставка] Активирована: {stake.name}")
+        self.pending_stakes = []
 
     def get_removal_price(self) -> int:
         base = (15 + self.current_floor * 2) + self.removal_count * 25
