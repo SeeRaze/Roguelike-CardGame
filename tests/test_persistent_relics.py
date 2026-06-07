@@ -133,3 +133,49 @@ def test_сим_раннер_триггерит_хук_на_этажах_20_40(m
     R.run_single_run(Druid, max_floor=40, relics=[_SpyFactory])
     assert len(spy_holder) == 1
     assert spy_holder[0].boss_floors == [20, 40]
+
+
+# ─── Сердце Бездны (оборонный компаунд: +%макс.HP за босса) ───────────────
+
+
+def test_сердце_бездны_в_пуле():
+    from core.relics import СердцеБездны, RELIC_POOL
+    from core.rarity import Rarity
+    names = [r().name for r in ALL_RELICS]
+    assert "Сердце Бездны" in names
+    assert СердцеБездны in RELIC_POOL[Rarity.EPIC]
+
+
+def test_сердце_бездны_растит_макс_хп_и_лечит():
+    """Босс: +15% к макс. HP + мгновенный хил на ту же дельту."""
+    from core.relics import СердцеБездны
+    p = Druid()
+    p.hp = p.max_hp           # полное HP
+    base = p.max_hp
+    gain = max(1, round(base * СердцеБездны.GROWTH_PCT))
+    СердцеБездны().on_boss_defeated(p)
+    assert p.max_hp == base + gain
+    assert p.hp == base + gain          # хил на дельту → снова полное
+
+
+def test_сердце_бездны_хил_не_превышает_новый_максимум():
+    from core.relics import СердцеБездны
+    p = Druid()
+    p.hp = 1                  # почти мёртв
+    base = p.max_hp
+    gain = max(1, round(base * СердцеБездны.GROWTH_PCT))
+    СердцеБездны().on_boss_defeated(p)
+    assert p.hp == 1 + gain
+    assert p.hp <= p.max_hp
+
+
+def test_сердце_бездны_компаунд_за_боссов():
+    """Несколько боссов компаундят макс. HP (растущая дельта от 15%)."""
+    from core.relics import СердцеБездны
+    p = Druid()
+    r = СердцеБездны()
+    start = p.max_hp
+    for _ in range(3):
+        r.on_boss_defeated(p)
+    # 3 раза по +15% от текущего → строго больше линейного 3×15%
+    assert p.max_hp > start * 1.45
