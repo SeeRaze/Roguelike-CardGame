@@ -395,13 +395,17 @@ HP-баре зовут её (расхождений «показано vs нан
   v1 зеркало = верный режим Призывателя (дефолт-герой-фронт −28); v2 ON≈OFF (тактич. субстрат).
 - **UI** — `panels._draw_rank_chip` (бейдж ФРОНТ/ТЫЛ ·линия на игроке+союзниках+ВРАГАХ) +
   союзники по рядам (фронт/тыл), внутри ряда сортировка по линии Л→Ц→П; одноряд без рангов.
+- **Потребители субстрата (С49 §1, начато):** `SplashDamageEffect` (`core/cards/cleave.py`)
+  — ПЕРВЫЙ потребитель `neighbors`: бьёт цель + сплеш по соседним клеткам (карта
+  «Рассекающий удар», generic). Оживил ось `neighbors`/`cell`; `column`/`same_rank` ещё
+  без потребителя.
 - **Следующие итерации** (та же data-модель): энфорс капа слотов · полный enemy-grid relayout
   в UI · контент-носители `[Tactical_Move]` (боссы/реликвии) · механики-потребители
-  `neighbors`/`column` (AoE по соседям/колонке/ряду, детонации соседних клеток).
+  `column`/`same_rank` (AoE по колонке/ряду, детонации соседних клеток).
 
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
-- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** и **`SpreadEffect`** (air.py — стихия «Воздух», см. ниже). `DetonateEffect` (base.py) — подрывает детонационные комбо на цели (см. «Комбо — два реестра»).
+- **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** и **`SpreadEffect`** (air.py — стихия «Воздух», см. ниже). `DetonateEffect` (base.py) — подрывает детонационные комбо на цели (см. «Комбо — два реестра»). **`SplashDamageEffect`** (cleave.py — наследник `DamageEffect`: цель + сплеш по `neighbors`, см. «Позиционка»).
 - **Стихия «Воздух» / Поток** (`core/cards/air.py`, Сессия 36): `FlowEffect(count_base, count_upg)` — НЕ статус существа, а эффект-кирпич. При розыгрыше снижает `temp_cost` на 1 у `count` случайных карт в руке (переиспользует систему `temp_cost` Разбойника). «До конца хода» само: `DeckManager.discard_hand` чистит `temp_cost`. Разыгрываемую карту исключает через транзиентный `CombatManager._card_being_played`. Архетип — темпо/энергия.
 - **Фабрики карт** — функции `create_*()`, сгруппированы по модулям: `basic.py` (strike/defend/heavy_blade/iron_wall), `fire.py`, `water.py`, `poison.py`, `heal.py`, `buff/` (strength/thorns/regen/vampirism), `debuff/` (vulnerable/weak/bleed). Все реэкспортируются из `core/cards/__init__.py`.
 - `card_type` ∈ `"attack"`/`"defend"`/… — используется реликвиями (напр. СвинцовыйНабалдашник ловит первую `attack`).
