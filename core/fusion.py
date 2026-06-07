@@ -21,11 +21,23 @@ from core.rarity import Rarity
 # Пол стоимости Глитч-карты (анти-абуз 0-cost). Ручка баланса — _balance_knobs.md.
 FUSED_COST_FLOOR = 1
 
+# Кап числа эффектов на Глитч-карте — ГАРД-РЕЙЛ против ЦЕПНОГО фьюжна (Глитч + ещё карта
+# + ещё…), который иначе растил бы стопку эффектов без предела → переполнение чисел/UI.
+# Ручка — _balance_knobs.md.
+MAX_FUSED_EFFECTS = 6
+
 # Явный порядок тиров редкости: Rarity — это Enum СТРОК (не упорядочен), поэтому
 # max(rarity_a, rarity_b) НЕ работает напрямую. Индекс в этом кортеже = «высота» тира.
 _RARITY_ORDER = (
     Rarity.COMMON, Rarity.UNCOMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY,
 )
+
+
+def can_fuse(card_a, card_b) -> bool:
+    """Можно ли слить две карты: суммарное число эффектов не превышает MAX_FUSED_EFFECTS.
+    Предикат для ВЫЗЫВАТЕЛЯ (отказать в слиянии / погасить кнопку UI) — enforcement
+    делает слой триггера; `fuse_cards` защитно поднимает ошибку как страховку."""
+    return len(card_a.effects) + len(card_b.effects) <= MAX_FUSED_EFFECTS
 
 
 def fused_cost(card_a, card_b) -> int:
@@ -75,7 +87,15 @@ def fuse_cards(card_a, card_b) -> Card:
 
     Метит результат: `is_fused=True` (UI/гард-рейлы) + `fused_from=(имя_a, имя_b)`.
     Эффекты переиспользуются по ссылке — кирпичи неизменяемая конфигурация (base_val/
-    upgrade_val), общее владение безопасно."""
+    upgrade_val), общее владение безопасно.
+
+    Защитно поднимает ValueError при превышении MAX_FUSED_EFFECTS (гард-рейл цепного
+    фьюжна) — вызыватель обязан заранее проверить `can_fuse`; это страховка контракта."""
+    if not can_fuse(card_a, card_b):
+        raise ValueError(
+            f"Слияние превысит кап эффектов ({MAX_FUSED_EFFECTS}): "
+            f"{len(card_a.effects)} + {len(card_b.effects)}"
+        )
     fused = Card(
         name=_fused_name(card_a, card_b),
         cost=fused_cost(card_a, card_b),

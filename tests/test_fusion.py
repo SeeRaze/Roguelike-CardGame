@@ -1,6 +1,11 @@
 # tests/test_fusion.py
 # Чистый механизм Card Fusion (§2 этап 1): fuse_cards / fused_cost / higher_rarity.
-from core.fusion import fuse_cards, fused_cost, higher_rarity, FUSED_COST_FLOOR
+import pytest
+
+from core.fusion import (
+    fuse_cards, fused_cost, higher_rarity, can_fuse,
+    FUSED_COST_FLOOR, MAX_FUSED_EFFECTS,
+)
 from core.cards.base import Card, DamageEffect, ShieldEffect
 from core.rarity import Rarity
 
@@ -86,6 +91,30 @@ def test_изгнание_наследуется_если_у_любого():
     assert g.exile is True
     g2 = fuse_cards(_card("A", 1, exile=False), _card("B", 1, exile=False))
     assert g2.exile is False
+
+
+def test_can_fuse_кап_эффектов():
+    half = MAX_FUSED_EFFECTS // 2
+    a = _card("A", 1, effects=[DamageEffect(1, 1) for _ in range(half)])
+    b = _card("B", 1, effects=[DamageEffect(1, 1) for _ in range(half)])
+    assert can_fuse(a, b) is True                      # ровно кап — можно
+    big = _card("C", 1, effects=[DamageEffect(1, 1) for _ in range(MAX_FUSED_EFFECTS)])
+    assert can_fuse(big, _card("D", 1)) is False       # превышение — нельзя
+
+
+def test_fuse_защитно_падает_при_превышении_капа():
+    big = _card("C", 1, effects=[DamageEffect(1, 1) for _ in range(MAX_FUSED_EFFECTS)])
+    with pytest.raises(ValueError):
+        fuse_cards(big, _card("D", 1))
+
+
+def test_цепной_фьюжн_до_капа():
+    """Глитч можно слить ещё раз, пока не упёрлись в кап (цепное слияние)."""
+    g = fuse_cards(_card("A", 1, effects=[DamageEffect(1, 1)]),
+                   _card("B", 1, effects=[DamageEffect(2, 2)]))   # 2 эффекта
+    assert can_fuse(g, _card("C", 1, effects=[DamageEffect(3, 3)]))  # 2+1 ≤ кап
+    g2 = fuse_cards(g, _card("C", 1, effects=[DamageEffect(3, 3)]))
+    assert len(g2.effects) == 3 and g2.is_fused
 
 
 def test_глитч_играбелен_как_карта():
