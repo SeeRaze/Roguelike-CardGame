@@ -347,6 +347,32 @@ HP-баре зовут её (расхождений «показано vs нан
   playable. `debt=False` регресс-нейтрально (baseline зелёный). A/B: размен-движок
   (Воин +16.5 … Призыв −9.5). Активация через Ставку «всё в минус» — следующий шаг.
 
+### Позиционка 3×3 — фронт/тыл (кейстоун, С47) — `core/positioning.py`
+Субстрат Парадокс-режима и class-redesign. Срез v1 — ось РАНГА (фронт/тыл) на стороне
+игрока; враги «толпа». МЕХАНИЗМ class-agnostic. Сетка = ИНДЕКС над `enemies[]`/`allies[]`,
+НЕ новый источник правды (анти-рассинхрон).
+- **`core/positioning.py`** (чистый модуль) — `Rank` (FRONT/BACK) + раскладки данными
+  (`DEFAULT_LAYOUT` 1ф/2т, `MIRRORED_LAYOUT` 2ф/1т, `party_layout`/`slot_capacity`) +
+  хелперы `living`/`has_positions`/`front_rank`/`back_rank` + **`intercept_targets`**
+  (полный перехват: жив фронт → одиночный урон не в тыл; нет рангов → все живые =
+  старый пул) + **`assign_party_ranks(player, allies, mirrored)`** (дефолт герой→ФРОНТ;
+  зеркало → инверсия).
+- **`Creature.rank`** = None дефолт (инертно). **`Player.mirrored_layout`** (класс-флаг;
+  `Summoner` = True → саммоны танкуют фронт, герой тыл).
+- **Перехват** — `Enemy._choose_attack_target` через `intercept_targets` (random только
+  при >1 кандидате → байт-в-байт старого без рангов).
+- **Тактический Манёвр `[Tactical_Move]`** (`TacticalMoveEffect`, base.py) — атомарный
+  переворот строя; смена строя = ЭФФЕКТ ДЕЙСТВИЯ (карта/реликвия/босс), не кнопка
+  (анти-абуз). Рантайм `player.formation_mirrored` (тоггл; сброс к классовому дефолту
+  каждый бой). `CombatManager.flip_formation`/`_init_positioning`/`_apply_positioning`
+  (гард `positioning_enabled`; пере-расстановка в `end_turn_phase` перед фазой врага →
+  саммоны хода/старта в строю). Карта «Перестроение» (basic.py, вне GENERIC-пула).
+- **Живое включение** — `GameManager.spawn_procedural_enemy` ставит `positioning_enabled`
+  перед боем. Сим — `run_single_run(positioning=...)` opt-in (бот расставляет). Дефолт
+  off → baseline зелёный. A/B: зеркало = верный режим Призывателя (дефолт-герой-фронт −28).
+- **UI** — `panels._draw_rank_chip` (бейдж ФРОНТ/ТЫЛ на игроке+союзниках) + союзники по
+  рядам (фронт/тыл) при включённой позиционке; одноряд без рангов.
+
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
 - **Кирпичи-эффекты** (`core/cards/base.py`): `DamageEffect`, `ShieldEffect`, `StatusEffect`, `HealEffect`, `RegenEffect`, `PoisonEffect` (+ `VampireDamageEffect` — DEPRECATED). Каждый: `execute(player, enemy, combat_manager, is_upgraded)`, берёт `base_val`/`upgrade_val`. Фиче-специфичные кирпичи живут в своём модуле: `ShieldDamageEffect` (warrior.py), `BleedEffect` (debuff/bleed.py), `VampireBuffEffect` (buff/vampirism.py), **`FlowEffect`** и **`SpreadEffect`** (air.py — стихия «Воздух», см. ниже). `DetonateEffect` (base.py) — подрывает детонационные комбо на цели (см. «Комбо — два реестра»).
