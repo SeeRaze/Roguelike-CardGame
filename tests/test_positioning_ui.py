@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 from core.players import Summoner
 from core.Summon import Summon
-from core.positioning import Rank, assign_party_ranks
+from core.positioning import Rank, Line, assign_party_ranks
 from ui.combat import panels
 
 
@@ -74,3 +74,50 @@ def test_зеркало_оба_саммона_во_фронт_ряду():
     assert len(view.ally_panel_rects) == 2
     # Оба во фронте → один ряд (одинаковый y).
     assert view.ally_panel_rects[0].y == view.ally_panel_rects[1].y
+
+
+# ═══════════════════════════════════════════════════════════
+# §11 — ось ЛИНИЙ в визуале: бейдж +линия, колонки союзников Л→Ц→П, бейдж врага
+# ═══════════════════════════════════════════════════════════
+
+def test_бейдж_с_линией_шире_чем_без():
+    screen = pygame.Surface((400, 200))
+    font = pygame.font.SysFont("Arial", 16)
+    no_line = panels._draw_rank_chip(screen, font, Rank.FRONT, 0, 0)
+    with_line = panels._draw_rank_chip(screen, font, Rank.FRONT, 0, 0, Line.CENTER)
+    assert with_line.width > no_line.width      # «·Ц» добавилось
+
+
+def test_бейдж_none_ничего_не_рисует():
+    screen = pygame.Surface((400, 200))
+    font = pygame.font.SysFont("Arial", 16)
+    assert panels._draw_rank_chip(screen, font, None, 0, 0, Line.LEFT) is None
+
+
+def test_союзники_фронт_сортируются_по_линии_лево_раньше_право():
+    screen = pygame.Surface((1920, 1080))
+    view = _view()
+    right, left = _wolf("Правый"), _wolf("Левый")
+    right.rank = Rank.FRONT
+    right.line = Line.RIGHT
+    left.rank = Rank.FRONT
+    left.line = Line.LEFT
+    # На вход подаём в ОБРАТНОМ порядке (правый раньше) → сорт по линии переставит.
+    panels.draw_ally_panels(view, screen, [right, left])
+    assert len(view.ally_panel_rects) == 2
+    # Колонки по линии: ЛЕВО (меньший x) раньше ПРАВО.
+    assert view.ally_panel_rects[0].x < view.ally_panel_rects[1].x
+
+
+def test_панели_врагов_с_рангами_рисуются():
+    from core.enemies.cultist import Cultist
+    screen = pygame.Surface((1920, 1080))
+    view = _view()
+    es = [Cultist(f"К{i}", 30, 30) for i in range(3)]
+    for e in es:
+        e.set_intent("attack", 5)
+    from core.positioning import assign_enemy_ranks
+    assign_enemy_ranks(es)                       # 2 фронт / 1 тыл + линии
+    panels.draw_enemy_panels(view, screen, es, Summoner())   # не падает
+    assert len(view.enemy_panel_rects) == 3      # rect на каждого врага (таргет-маппинг цел)
+

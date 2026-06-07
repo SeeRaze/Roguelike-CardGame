@@ -1,7 +1,7 @@
 # ui/combat/panels.py
 # Боковые панели боевого экрана: панель игрока, панель врага, лог.
 import pygame
-from core.positioning import Rank
+from core.positioning import Rank, Line
 from ui.combat.hud import CombatHUD, _RELIC_BADGE, _RELIC_GAP
 from ui.combat.layout import (
     _PANEL_BG, _PANEL_BORDER, _GOLD, _WHITE, _RED, _GREEN, _BLUE, _GRAY,
@@ -12,13 +12,19 @@ from ui.combat.layout import (
 _RANK_FRONT_COLOR = (230, 130, 60)
 _RANK_BACK_COLOR  = (120, 160, 220)
 
+# Ось линий (§11): краткий ярлык колонки в бейдже — «ФРОНТ·Ц», «ТЫЛ·Л».
+_LINE_ABBR = {Line.LEFT: "Л", Line.CENTER: "Ц", Line.RIGHT: "П"}
 
-def _draw_rank_chip(screen, font, rank, x, y):
-    """Мини-бейдж ранга позиционки (ФРОНТ/ТЫЛ) слева-направо от (x, y).
+
+def _draw_rank_chip(screen, font, rank, x, y, line=None):
+    """Мини-бейдж 2D-позиции: ранг (ФРОНТ/ТЫЛ) + опц. линия (·Л/·Ц/·П) от (x, y).
     rank=None → ничего не рисует (позиционка выключена). Возвращает Rect или None."""
     if rank is None:
         return None
     text  = "ФРОНТ" if rank == Rank.FRONT else "ТЫЛ"
+    abbr  = _LINE_ABBR.get(line)
+    if abbr:
+        text = f"{text}·{abbr}"
     color = _RANK_FRONT_COLOR if rank == Rank.FRONT else _RANK_BACK_COLOR
     label = font.render(text, True, color)
     chip  = pygame.Rect(x, y, label.get_width() + 8, label.get_height() + 4)
@@ -40,7 +46,7 @@ def draw_player_panel(view, screen, player, intent_dmg):
     screen.blit(title, (x, y))
     # Позиционка (§5b): бейдж ранга героя рядом с заголовком (None → нет бейджа).
     _draw_rank_chip(screen, view.card_desc_font, getattr(player, "rank", None),
-                    x + title.get_width() + 16, y + 6)
+                    x + title.get_width() + 16, y + 6, getattr(player, "line", None))
 
     y += 44
     CombatHUD.draw_hp_bar(
@@ -167,6 +173,11 @@ def draw_enemy_panels(view, screen, enemies, player, projection=None):
         enemy_label = f"ВРАГ: {enemy.name}" if n <= 2 else enemy.name.split("(")[0].strip()
         screen.blit(name_font.render(enemy_label, True, _WHITE), (x, y))
 
+        # Позиционка (§11): бейдж ранга врага (ФРОНТ/ТЫЛ·линия) в правом-верхнем углу —
+        # читаемость перехвата (жив фронт → тыл недостижим). None → нет (позиционка off).
+        _draw_rank_chip(screen, view.card_desc_font, getattr(enemy, "rank", None),
+                        px + panel_w - 78, py + 8, getattr(enemy, "line", None))
+
         # --- HP-бар (ширина под панель) ---
         bar_w = panel_w - inner_pad * 2
         y += 36
@@ -235,10 +246,14 @@ def draw_ally_panels(view, screen, allies):
 
     # Раскладка по рядам: с рангами → фронт/тыл; без рангов → один ряд (как раньше).
     positioned = any(getattr(a, "rank", None) is not None for a in living)
+    # Колонки по линии (§11): внутри ряда сортируем Л→Ц→П, чтобы 2D-сетка читалась.
+    _line_order = {Line.LEFT: 0, Line.CENTER: 1, Line.RIGHT: 2}
     if positioned:
         rows = [
-            [a for a in living if getattr(a, "rank", None) == Rank.FRONT],
-            [a for a in living if getattr(a, "rank", None) == Rank.BACK],
+            sorted([a for a in living if getattr(a, "rank", None) == Rank.FRONT],
+                   key=lambda a: _line_order.get(getattr(a, "line", None), 1)),
+            sorted([a for a in living if getattr(a, "rank", None) == Rank.BACK],
+                   key=lambda a: _line_order.get(getattr(a, "line", None), 1)),
         ]
     else:
         rows = [living]
@@ -261,7 +276,7 @@ def draw_ally_panels(view, screen, allies):
             name_surf = view.card_desc_font.render(ally.name[:12], True, _GREEN)
             screen.blit(name_surf, (x, y))
             _draw_rank_chip(screen, view.card_desc_font, getattr(ally, "rank", None),
-                            x + name_surf.get_width() + 6, y)
+                            x + name_surf.get_width() + 6, y, getattr(ally, "line", None))
 
             # HP-бар
             y += 26
