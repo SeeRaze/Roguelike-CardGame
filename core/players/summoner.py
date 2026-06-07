@@ -16,6 +16,11 @@ def get_summoner_deck():
 
 
 class Summoner(Player):
+    # Позиционка (§3/§4): зеркальная раскладка — саммоны во ФРОНТЕ танкуют, герой в
+    # ТЫЛУ. Инертно, пока позиционка выключена (positioning_enabled). Канонический
+    # зеркальный класс (см. _positioning_design.md / class-concepts-ideas).
+    mirrored_layout = True
+
     def __init__(self):
         super().__init__(
             name="Призыватель",

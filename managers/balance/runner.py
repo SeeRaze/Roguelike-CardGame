@@ -77,7 +77,8 @@ class _StubGM:
 
 def run_single_run(player_class, max_floor: int = 100, *,
                    draft=None, extra_cards=None, relics=None, economy=None,
-                   forge=None, events=None, stakes=None, debt=False) -> dict:
+                   forge=None, events=None, stakes=None, debt=False,
+                   positioning=False) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -109,6 +110,11 @@ def run_single_run(player_class, max_floor: int = 100, *,
                     энергии (овердрафт: power now → HP-гашение pay later). По
                     умолчанию False → флаг не ставится, бот играет как раньше
                     (регресс-нейтрально, baseline зелёный).
+      positioning — bool (Позиционка §4). True → бот расставляет партию по рангам
+                    (фронт/тыл) каждый ход → полный перехват: фронт танкует за тыл.
+                    Зеркало берётся из класс-флага mirrored_layout (Призыватель →
+                    саммоны фронт). По умолчанию False → флаг не ставится, рангов
+                    нет → перехват = старый пул (регресс-нейтрально, baseline зелёный).
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
@@ -143,6 +149,12 @@ def run_single_run(player_class, max_floor: int = 100, *,
     # уходит в долг (bot.py фильтр) → сим меряет «power now, pay later».
     if debt:
         player.energy_overdraft = True
+
+    # Позиционка (§4): расстановка партии по рангам. positioning=False → флаг не
+    # ставится → ранги None → перехват = старый пул (регресс-нейтрально, baseline
+    # зелёный). positioning=True → бот переставляет партию каждый ход (bot.py).
+    if positioning:
+        player.positioning_enabled = True
 
     hp_by_floor: dict = {}
 

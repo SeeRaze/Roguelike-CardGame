@@ -28,6 +28,11 @@ class BotCombatManager(CombatManager):
 
             policy.on_turn_begin(self)   # проактивные способности (призыв/ярость)
 
+            # Позиционка (§4, opt-in): после призыва переставляем партию по рангам,
+            # чтобы свежие саммоны получили ранг до фазы врага. NO-OP без флага
+            # positioning_enabled → baseline зелёный.
+            self._apply_positioning()
+
             # Ход игрока: разыгрываем доступные карты, пока есть чем
             overdraft = getattr(self.player, 'energy_overdraft', False)
             while self.player.hp > 0:

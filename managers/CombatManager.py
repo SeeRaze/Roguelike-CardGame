@@ -79,6 +79,23 @@ class CombatManager:
                 return e
         return None
 
+    def _apply_positioning(self) -> None:
+        """Расставить партию по рангам, ЕСЛИ позиционка включена (флаг
+        player.positioning_enabled). Иначе NO-OP → ранги остаются None → перехват
+        ведёт себя как раньше (baseline зелёный, паттерн opt-in как debt/stakes).
+
+        Идемпотентно: переустанавливает ранги каждый вызов, поэтому новые саммоны,
+        призванные посреди боя, получают ранг союзника, а протухшие — заменяются.
+        Зовётся ботом после призыва (on_turn_begin); живая игра подключит свои точки
+        вызова в §5 (UI). Зеркало берётся из класс-флага mirrored_layout."""
+        if not getattr(self.player, 'positioning_enabled', False):
+            return
+        from core.positioning import assign_party_ranks
+        assign_party_ranks(
+            self.player, self.allies,
+            mirrored=getattr(self.player, 'mirrored_layout', False),
+        )
+
     def add_log_message(self, message):
         self.combat_log.append(message)
         if len(self.combat_log) > 6:
