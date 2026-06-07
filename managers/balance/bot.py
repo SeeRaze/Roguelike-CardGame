@@ -12,8 +12,9 @@ class BotCombatManager(CombatManager):
     (приоритет карт + тайминг способности), пока может, затем завершает ход."""
 
     def check_player_defeat(self) -> bool:
-        """Подавляем сеть/UI: просто фиксируем факт смерти."""
-        if self.player.hp > 0:
+        """Подавляем сеть/UI: просто фиксируем факт смерти. Floor-aware (§4): при HP-
+        овердрафте игрок выживает в минусе до пола _hp_floor() (дефолт 0 → как раньше)."""
+        if self.player.hp > self.player._hp_floor():
             return False
         self.player.hp = 0
         return True
@@ -22,7 +23,7 @@ class BotCombatManager(CombatManager):
         """Прогнать бой до конца. Возвращает True, если игрок выжил."""
         policy = get_policy(type(self.player).__name__)
 
-        while self.player.hp > 0 and any(e.hp > 0 for e in self.enemies):
+        while self.player.hp > self.player._hp_floor() and any(e.hp > 0 for e in self.enemies):
             if self.turn_count > max_turns:
                 break   # страховка от зацикливания (напр. нечем добить врага)
 
@@ -35,7 +36,7 @@ class BotCombatManager(CombatManager):
 
             # Ход игрока: разыгрываем доступные карты, пока есть чем
             overdraft = getattr(self.player, 'energy_overdraft', False)
-            while self.player.hp > 0:
+            while self.player.hp > self.player._hp_floor():
                 hand = self.deck_manager.hand
                 if overdraft:
                     # Долговой движок (§7): бот допускает уход энергии в минус, но не
@@ -61,4 +62,4 @@ class BotCombatManager(CombatManager):
 
             self.end_turn_phase()
 
-        return self.player.hp > 0
+        return self.player.hp > self.player._hp_floor()

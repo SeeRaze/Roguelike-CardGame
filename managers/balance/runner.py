@@ -78,7 +78,7 @@ class _StubGM:
 def run_single_run(player_class, max_floor: int = 100, *,
                    draft=None, extra_cards=None, relics=None, economy=None,
                    forge=None, events=None, stakes=None, debt=False,
-                   positioning=False) -> dict:
+                   hp_debt=False, positioning=False) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -144,11 +144,19 @@ def run_single_run(player_class, max_floor: int = 100, *,
         for st in stakes:
             (STAKES[st] if isinstance(st, str) else st).activate(gm)
 
-    # Долговой движок (§7): овердрафт энергии. debt=False → флаг не ставится → бот
+    # Долговой движок (§7): овердрафт ЭНЕРГИИ. debt=False → флаг не ставится → бот
     # играет как раньше (регресс-нейтрально, baseline зелёный). debt=True → бот
     # уходит в долг (bot.py фильтр) → сим меряет «power now, pay later».
+    # ОСИ РАЗВЯЗАНЫ (§4): energy и HP меряются отдельными ручками (чистый A/B по каждой);
+    # живая Ставка «Кровавый Кредит» включает обе сразу — у сима гранулярнее.
     if debt:
         player.energy_overdraft = True
+
+    # Долг HP (§4, субстрат Берсерка): hp_debt=True → HP уходит в минус (floor-aware
+    # смерть, множитель урона). Отдельная ось — на 100 этажей делает Воина (щит) почти
+    # неубиваемым → измерять на СНИЖЕННОМ кап-этаже. debt-флаг не трогает (baseline зелёный).
+    if hp_debt:
+        player.hp_overdraft = True
 
     # Позиционка (§4): расстановка партии по рангам. positioning=False → флаг не
     # ставится → ранги None → перехват = старый пул (регресс-нейтрально, baseline
