@@ -172,6 +172,19 @@ class EffectCalculator:
                 final_damage = int(final_damage * atk_mult)
                 _rec("Заточка", "×", atk_mult)
 
+        # 8-bis. ДОЛГ ЭНЕРГИИ (§7) — овердрафт: глубже минус энергии → больше урон
+        # (power now, pay later; гашение HP в end_turn_phase). Инертно при energy>=0
+        # (нормальная игра без овердрафта). Линейная кривая по умолчанию, экспонента —
+        # рубильником в core/debt. Pure → считается и в превью (показывает заём силы).
+        if is_player_attack:
+            energy = getattr(player, "energy", 0)
+            if energy < 0:
+                from core.debt import energy_debt_multiplier
+                debt_mult = energy_debt_multiplier(-energy)
+                if debt_mult != 1.0:
+                    final_damage = int(final_damage * debt_mult)
+                    _rec("Долг", "×", debt_mult)
+
         # 9. RULESTACK (DAMAGE-scope) — глобальные правки урона от активных «правил»
         # (Ставки/парадоксы). Внешний слой: после всех боевых множителей; считается и
         # в превью (детерминированно, без побочек). Инертно при пустом стеке / отсутствии
