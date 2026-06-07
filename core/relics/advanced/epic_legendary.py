@@ -98,3 +98,54 @@ class СтеклянныйГлаз(Relic):
             combat_manager.add_log_message(
                 f"[Реликвия] '{self.name}': карта '{card.name}' сгорела НАВСЕГДА!"
             )
+
+
+class ГнилоеСердце(Relic):
+    """LEGENDARY-джокер. Твой максимальный запас HP падает до 1 — но весь
+    полученный за ход щит превращается в несгораемый Барьер, а Сила растёт от
+    накопленного Барьера. «Идеальный симулятор выживания под глухой стеной»:
+    любой неотражённый удар убивает (1 HP), поэтому надо выблокировать всё —
+    а накопленная оборона конвертируется в атаку.
+
+    Реализация на долгоживущих примитивах: on_combat_start сажает max_hp=1;
+    on_turn_end (новый хук, ДО удара врага) банкует текущий щит в Барьер
+    (несгораемый — переносится через start_turn_phase: shield=carry+barrier) и
+    выставляет Силу = Барьер//SHIELD_TO_RAGE. Вклад в Силу отслеживается
+    инкрементально (self._granted_rage), чтобы не затирать Силу из других
+    источников (Тотем Ярости и т.п.)."""
+
+    # Сколько Барьера даёт +1 к Силе.
+    SHIELD_TO_RAGE = 10
+
+    def __init__(self):
+        super().__init__(
+            "Гнилое Сердце",
+            "Макс. HP падает до 1.\n"
+            "Весь полученный за ход щит становится несгораемым Барьером,\n"
+            "а Сила растёт от накопленного Барьера (Барьер ÷ 10).",
+            Rarity.LEGENDARY,
+        )
+        # Сколько Силы уже выдано этой реликвией в текущем бою (для инкремента).
+        self._granted_rage = 0
+
+    def on_combat_start(self, combat_manager):
+        player = combat_manager.player
+        player.max_hp = 1
+        player.hp = 1
+        self._granted_rage = 0
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': макс. HP = 1. Выживание на одном Барьере!"
+        )
+
+    def on_turn_end(self, combat_manager):
+        player = combat_manager.player
+        # Банкуем щит, накопленный за ход, в несгораемый Барьер.
+        if player.shield > 0:
+            player.barrier += player.shield
+        # Сила = Барьер//K; обновляем ТОЛЬКО свой вклад (не затирая чужую Силу).
+        target_rage = player.barrier // self.SHIELD_TO_RAGE
+        player.strength += target_rage - self._granted_rage
+        self._granted_rage = target_rage
+        combat_manager.add_log_message(
+            f"[Реликвия] '{self.name}': Барьер {player.barrier}, Сила +{target_rage}."
+        )

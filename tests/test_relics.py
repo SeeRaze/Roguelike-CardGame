@@ -11,10 +11,10 @@ from core.relics import (
 )
 
 
-def test_в_пуле_31_уникальные_реликвии():
-    assert len(ALL_RELICS) == 31
+def test_в_пуле_32_уникальные_реликвии():
+    assert len(ALL_RELICS) == 32
     имена = [r().name for r in ALL_RELICS]
-    assert len(set(имена)) == 31
+    assert len(set(имена)) == 32
 
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):
@@ -225,3 +225,42 @@ def test_стеклянный_глаз_не_сжигает_при_удаче(mak
     monkeypatch.setattr(mod.random, "random", lambda: 0.5)    # >= BURN_CHANCE
     СтеклянныйГлаз().on_card_played(карта, cm)
     assert карта in cm.gm.current_deck
+
+
+# --- LEGENDARY-джокер: Гнилое Сердце (1 HP, щит→барьер→сила) ---
+
+def test_гнилое_сердце_в_пуле_legendary():
+    from core.relics import ГнилоеСердце, RELIC_POOL
+    from core.rarity import Rarity
+    assert ГнилоеСердце in RELIC_POOL[Rarity.LEGENDARY]
+
+
+def test_гнилое_сердце_сажает_макс_хп_в_1(make_combat):
+    from core.relics import ГнилоеСердце
+    cm = make_combat()
+    ГнилоеСердце().on_combat_start(cm)
+    assert cm.player.max_hp == 1
+    assert cm.player.hp == 1
+
+
+def test_гнилое_сердце_банкует_щит_в_барьер_и_растит_силу(make_combat):
+    from core.relics import ГнилоеСердце
+    cm = make_combat()
+    relic = ГнилоеСердце()
+    relic.on_combat_start(cm)
+    cm.player.shield = 25
+    relic.on_turn_end(cm)
+    assert cm.player.barrier == 25          # весь щит банкнут в Барьер
+    assert cm.player.strength == 2          # 25 // 10
+
+
+def test_гнилое_сердце_не_затирает_чужую_силу(make_combat):
+    """Инкрементальный вклад: внешняя Сила сохраняется."""
+    from core.relics import ГнилоеСердце
+    cm = make_combat()
+    relic = ГнилоеСердце()
+    relic.on_combat_start(cm)
+    cm.player.strength = 5                  # сила из другого источника
+    cm.player.shield = 30
+    relic.on_turn_end(cm)
+    assert cm.player.strength == 5 + 3       # 30//10 поверх внешних 5
