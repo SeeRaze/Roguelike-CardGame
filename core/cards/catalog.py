@@ -28,6 +28,7 @@ from core.cards import (
     create_boil, create_arcane_focus, create_elemental_surge,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
     create_bloodlust, create_serrated_edge,
+    create_cleaving_strike,
 )
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
@@ -47,6 +48,7 @@ GENERIC_FACTORIES = [
     create_drain, create_blood_feast, create_life_tap,
     create_lacerate, create_hemorrhage, create_open_wound,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
+    create_cleaving_strike,
 ]
 
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────
