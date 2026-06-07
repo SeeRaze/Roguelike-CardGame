@@ -186,6 +186,24 @@ class DetonateEffect:
                 det["handler"](enemy, combat_manager)
 
 
+class TacticalMoveEffect:
+    """[Tactical_Move]: атомарно переворачивает СТРОЙ партии (фронт↔тыл) — эффект
+    ДЕЙСТВИЯ, а НЕ бесплатная кнопка. Живёт на карте / пассивке реликвии / намерении
+    босса. Делает позиционку глубокой комбо/босс-механикой (фронт-танк меняется на
+    лету). Позиционка off → инертно: flip_formation сам no-op без флага."""
+
+    def __init__(self, *_):
+        # Числовых параметров нет; *_ глотает (base,upgrade) ради единообразия фабрик.
+        pass
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None:
+            return
+        flip = getattr(combat_manager, "flip_formation", None)
+        if flip is not None:
+            flip()
+
+
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
                  rarity=Rarity.COMMON, exile=False, card_class=None):

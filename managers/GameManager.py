@@ -140,6 +140,10 @@ class GameManager:
         привязка к бою (создание CombatManager и active_combat)."""
         enemies = build_enemy_group(self.current_floor, is_elite)
         from managers.CombatManager import CombatManager
+        # Позиционка (§5): в ЖИВОЙ игре включена всегда. Флаг ставится ДО создания боя,
+        # чтобы CombatManager._init_positioning расставил строй на старте. Сим включает
+        # позиционку отдельно (runner, opt-in) → baseline не задет этой строкой.
+        self.player.positioning_enabled = True
         self.active_combat = CombatManager(
             self.player, enemies, self.current_deck, self
         )

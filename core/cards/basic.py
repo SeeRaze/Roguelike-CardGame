@@ -1,4 +1,6 @@
-from core.cards.base import Card, DamageEffect, ShieldEffect, DetonateEffect
+from core.cards.base import (
+    Card, DamageEffect, ShieldEffect, DetonateEffect, TacticalMoveEffect,
+)
 from core.rarity import Rarity
 
 def create_strike():
@@ -21,6 +23,18 @@ def create_catalyst():
         "Катализатор", 1, "skill",
         "Детонация: подрывает готовые стихийные комбо на цели.",
         [DetonateEffect()],
+        rarity=Rarity.UNCOMMON,
+    )
+
+def create_tactical_reposition():
+    """«Перестроение» — носитель эффекта [Tactical_Move]: атомарно переворачивает
+    СТРОЙ партии (фронт↔тыл). Делает позиционку управляемой ценой ДЕЙСТВИЯ (карта),
+    а не бесплатной кнопкой. НЕ в случайном пуле наград (catalog) — осознанная
+    выдача/комбо-механика; бот её не драфтит → baseline безопасен."""
+    return Card(
+        "Перестроение", 1, "skill",
+        "Манёвр: меняет местами фронт и тыл вашей партии.",
+        [TacticalMoveEffect()],
         rarity=Rarity.UNCOMMON,
     )
 

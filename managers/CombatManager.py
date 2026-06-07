@@ -59,6 +59,12 @@ class CombatManager:
 
         self.start_turn_phase()
 
+        # Позиционка (§5): инициализация строя на старте боя — ПОСЛЕ on_combat_start
+        # и start_turn_phase, чтобы саммоны старта боя тоже встали в строй. Сбрасывает
+        # рантайм-строй к классовому дефолту (флип Манёвра не переносится между боями)
+        # + первичная расстановка. NO-OP без флага positioning_enabled (baseline зелёный).
+        self._init_positioning()
+
     # --- Обратная совместимость: старый код читает self.enemy ---
     @property
     def enemy(self):
@@ -86,15 +92,38 @@ class CombatManager:
 
         Идемпотентно: переустанавливает ранги каждый вызов, поэтому новые саммоны,
         призванные посреди боя, получают ранг союзника, а протухшие — заменяются.
-        Зовётся ботом после призыва (on_turn_begin); живая игра подключит свои точки
-        вызова в §5 (UI). Зеркало берётся из класс-флага mirrored_layout."""
+        Зовётся ботом после призыва (on_turn_begin); живая игра подключает вызов в
+        __init__ (_init_positioning). Строй берётся из РАНТАЙМ player.formation_mirrored
+        (тоггл Тактического Манёвра), с фолбэком на классовый mirrored_layout."""
         if not getattr(self.player, 'positioning_enabled', False):
             return
         from core.positioning import assign_party_ranks
-        assign_party_ranks(
-            self.player, self.allies,
-            mirrored=getattr(self.player, 'mirrored_layout', False),
-        )
+        mirrored = getattr(self.player, 'formation_mirrored', None)
+        if mirrored is None:
+            mirrored = getattr(self.player, 'mirrored_layout', False)
+        assign_party_ranks(self.player, self.allies, mirrored=mirrored)
+
+    def _init_positioning(self) -> None:
+        """Инициализация строя на СТАРТЕ боя: сброс рантайм-строя к классовому
+        дефолту (флип Тактического Манёвра НЕ переносится между боями) + первичная
+        расстановка. NO-OP без флага positioning_enabled (baseline/сим-baseline зелёный)."""
+        if not getattr(self.player, 'positioning_enabled', False):
+            return
+        self.player.formation_mirrored = getattr(self.player, 'mirrored_layout', False)
+        self._apply_positioning()
+
+    def flip_formation(self) -> None:
+        """Атомарный переворот строя партии — эффект [Tactical_Move] (карта/реликвия/
+        босс). Тогглит рантайм formation_mirrored и переназначает ранги: фронт↔тыл.
+        NO-OP без позиционки (положенный гард, как _apply_positioning)."""
+        if not getattr(self.player, 'positioning_enabled', False):
+            return
+        cur = getattr(self.player, 'formation_mirrored', None)
+        if cur is None:
+            cur = getattr(self.player, 'mirrored_layout', False)
+        self.player.formation_mirrored = not cur
+        self._apply_positioning()
+        self.add_log_message(" -> [МАНЁВР] Строй партии перевёрнут!")
 
     def add_log_message(self, message):
         self.combat_log.append(message)
@@ -344,6 +373,11 @@ class CombatManager:
                     f"конец хода {getattr(relic, 'name', '?')}",
                     lambda relic=relic: relic.on_turn_end(self),
                 )
+
+        # Позиционка (§5): пере-расстановка ПРЯМО перед фазой врага → саммоны,
+        # призванные в этот ход (карта/способность) или на старте боя, получают ранг
+        # ДО выбора цели врагом. NO-OP без флага (baseline зелёный). Идемпотентно.
+        self._apply_positioning()
 
         # Враги действуют: сброс щита → исполнение намерения → тик статусов.
         # Каждый источник — под предохранителем глубины (R3): тик/намерение, что
