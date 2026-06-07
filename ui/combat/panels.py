@@ -1,11 +1,31 @@
 # ui/combat/panels.py
 # Боковые панели боевого экрана: панель игрока, панель врага, лог.
 import pygame
+from core.positioning import Rank
 from ui.combat.hud import CombatHUD, _RELIC_BADGE, _RELIC_GAP
 from ui.combat.layout import (
     _PANEL_BG, _PANEL_BORDER, _GOLD, _WHITE, _RED, _GREEN, _BLUE, _GRAY,
     _INTENT_OTHER, _PANEL_W, _PANEL_TOP, _P_PX, _P_IX, _E_PX, _E_IW,
 )
+
+# Позиционка (§5b): бейдж ранга ФРОНТ/ТЫЛ. Фронт — тёплый («на острие»), тыл — прохладный.
+_RANK_FRONT_COLOR = (230, 130, 60)
+_RANK_BACK_COLOR  = (120, 160, 220)
+
+
+def _draw_rank_chip(screen, font, rank, x, y):
+    """Мини-бейдж ранга позиционки (ФРОНТ/ТЫЛ) слева-направо от (x, y).
+    rank=None → ничего не рисует (позиционка выключена). Возвращает Rect или None."""
+    if rank is None:
+        return None
+    text  = "ФРОНТ" if rank == Rank.FRONT else "ТЫЛ"
+    color = _RANK_FRONT_COLOR if rank == Rank.FRONT else _RANK_BACK_COLOR
+    label = font.render(text, True, color)
+    chip  = pygame.Rect(x, y, label.get_width() + 8, label.get_height() + 4)
+    pygame.draw.rect(screen, (25, 25, 35), chip, border_radius=4)
+    pygame.draw.rect(screen, color, chip, 1, border_radius=4)
+    screen.blit(label, (chip.x + 4, chip.y + 2))
+    return chip
 
 
 def draw_player_panel(view, screen, player, intent_dmg):
@@ -16,7 +36,11 @@ def draw_player_panel(view, screen, player, intent_dmg):
 
     x, y = _P_IX, _PANEL_TOP + 20
 
-    screen.blit(view.main_font.render("ИГРОК", True, _WHITE), (x, y))
+    title = view.main_font.render("ИГРОК", True, _WHITE)
+    screen.blit(title, (x, y))
+    # Позиционка (§5b): бейдж ранга героя рядом с заголовком (None → нет бейджа).
+    _draw_rank_chip(screen, view.card_desc_font, getattr(player, "rank", None),
+                    x + title.get_width() + 16, y + 6)
 
     y += 44
     CombatHUD.draw_hp_bar(
@@ -190,8 +214,13 @@ def draw_enemy_panels(view, screen, enemies, player, projection=None):
 
 
 def draw_ally_panels(view, screen, allies):
-    """Отрисовка панелей союзников в центральной зоне (x=590..1330)."""
-    if not allies:
+    """Отрисовка панелей союзников в центральной зоне (x=590..1330).
+
+    Позиционка (§5b): если союзники расставлены по рангам — рисуем ДВА ряда (фронт
+    сверху, тыл снизу) + бейдж ранга на каждой панели. Без рангов (позиционка off) —
+    прежний одноряд (нулевой визуальный регресс)."""
+    living = [a for a in allies if a.hp > 0]
+    if not living:
         view.ally_panel_rects = []
         return
 
@@ -204,49 +233,59 @@ def draw_ally_panels(view, screen, allies):
 
     view.ally_panel_rects = []
 
-    for i, ally in enumerate(allies):
-        if ally.hp <= 0:
-            continue
+    # Раскладка по рядам: с рангами → фронт/тыл; без рангов → один ряд (как раньше).
+    positioned = any(getattr(a, "rank", None) is not None for a in living)
+    if positioned:
+        rows = [
+            [a for a in living if getattr(a, "rank", None) == Rank.FRONT],
+            [a for a in living if getattr(a, "rank", None) == Rank.BACK],
+        ]
+    else:
+        rows = [living]
 
-        px = start_x + i * (ally_w + gap)
-        py = start_y
-        panel_rect = pygame.Rect(px, py, ally_w, ally_h)
-        view.ally_panel_rects.append(panel_rect)
+    for row_idx, row in enumerate(rows):
+        py = start_y + row_idx * (ally_h + gap)
+        for col_idx, ally in enumerate(row):
+            px = start_x + col_idx * (ally_w + gap)
+            panel_rect = pygame.Rect(px, py, ally_w, ally_h)
+            view.ally_panel_rects.append(panel_rect)
 
-        # Фон и рамка (зеленоватый оттенок для союзников)
-        ally_bg = (20, 40, 20)
-        pygame.draw.rect(screen, ally_bg, panel_rect, border_radius=10)
-        pygame.draw.rect(screen, (60, 140, 60), panel_rect, 2, border_radius=10)
+            # Фон и рамка (зеленоватый оттенок для союзников)
+            ally_bg = (20, 40, 20)
+            pygame.draw.rect(screen, ally_bg, panel_rect, border_radius=10)
+            pygame.draw.rect(screen, (60, 140, 60), panel_rect, 2, border_radius=10)
 
-        x, y = px + 10, py + 10
+            x, y = px + 10, py + 10
 
-        # Имя (обрезаем если длинное)
-        name_text = ally.name[:14]
-        screen.blit(view.card_desc_font.render(name_text, True, _GREEN), (x, y))
+            # Имя (обрезаем если длинное) + бейдж ранга справа.
+            name_surf = view.card_desc_font.render(ally.name[:12], True, _GREEN)
+            screen.blit(name_surf, (x, y))
+            _draw_rank_chip(screen, view.card_desc_font, getattr(ally, "rank", None),
+                            x + name_surf.get_width() + 6, y)
 
-        # HP-бар
-        y += 26
-        bar_w = ally_w - 20
-        CombatHUD.draw_hp_bar(
-            screen, x, y, bar_w, 16,
-            ally.hp, ally.max_hp, ally.shield,
-        )
-        y += 20
-        hp_text = f"HP:{ally.hp}/{ally.max_hp}"
-        if ally.shield > 0:
-            hp_text += f" +{ally.shield}щ"
-        screen.blit(view.card_desc_font.render(hp_text, True, _WHITE), (x, y))
+            # HP-бар
+            y += 26
+            bar_w = ally_w - 20
+            CombatHUD.draw_hp_bar(
+                screen, x, y, bar_w, 16,
+                ally.hp, ally.max_hp, ally.shield,
+            )
+            y += 20
+            hp_text = f"HP:{ally.hp}/{ally.max_hp}"
+            if ally.shield > 0:
+                hp_text += f" +{ally.shield}щ"
+            screen.blit(view.card_desc_font.render(hp_text, True, _WHITE), (x, y))
 
-        # Атака
-        y += 24
-        atk_text = f"Атака: {ally.attack_power}"
-        screen.blit(view.card_desc_font.render(atk_text, True, _GOLD), (x, y))
+            # Атака
+            y += 24
+            atk_text = f"Атака: {ally.attack_power}"
+            screen.blit(view.card_desc_font.render(atk_text, True, _GOLD), (x, y))
 
-        # Статусы (компактно)
-        y += 24
-        CombatHUD.draw_status_badges(
-            screen, view.card_desc_font, ally, x, y
-        )
+            # Статусы (компактно)
+            y += 24
+            CombatHUD.draw_status_badges(
+                screen, view.card_desc_font, ally, x, y
+            )
 
 
 def draw_combat_log(view, screen, combat):
