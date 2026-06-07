@@ -237,6 +237,10 @@ HP-баре зовут её (расхождений «показано vs нан
   урон ×`player.atk_mult` (компаунд-множитель, копится ковкой «Заточка» на костре).
   Считается и в `dry_run` (детерминирован, без побочек) → виден в превью. Живёт весь
   забег как `max_hp`; инертен при `atk_mult=1.0` ⇒ без ковки не влияет.
+- **Шаг 8-bis — Долг энергии** (С46, §7 долговой движок): если атакует игрок и
+  `player.energy<0` (овердрафт), урон ×`energy_debt_multiplier(-energy)` (`core/debt.py`,
+  линейная кривая по умолч., экспонента рубильником `DEBT_CURVE_MODE`). Считается и в
+  превью (показывает заём силы); инертен при `energy>=0` ⇒ без овердрафта не влияет.
 
 ### UI урона — ясность (аудит механик С40)
 - **Число на карте = гарантированное** (`EffectCalculator.preview().guaranteed`): баффы
@@ -312,17 +316,36 @@ HP-баре зовут её (расхождений «показано vs нан
   Инертно при пустом стеке / `gm` без `rulestack` (симулятор-стаб). Прочие scope
   врезаются по мере появления потребителя (YAGNI).
 - **Ставки/Анте** (`core/rules/stakes.py`) — первый КОНТЕНТ слома, опт-ин сложность
-  базовой игры (Balatro-stake). `Stake` = именованный бандл `RuleMod`. «Аскет»
-  (DECKBUILD ≤10 карт + DAMAGE ×1.5), «Хрупкость» (DECKBUILD ½ макс. HP + DAMAGE ×2).
-  `Stake.activate(gm)`: пушит моды + применяет СВОИ одноразовые DECKBUILD-моды
-  напрямую (НЕ `rs.apply` над всем стеком — иначе одноразовый мод другой Ставки
-  сработал бы повторно). Реестр `STAKES`.
+  базовой игры (Balatro/Ascension). Калибровка С46 = **true ascension** (роняют
+  выживаемость; награда за риск = Энтропия позже, не урон). `Stake` = именованный
+  бандл `RuleMod`. «Аскет» (DECKBUILD ≤6 карт, БЕЗ урон-награды), «Хрупкость»
+  (DECKBUILD 30% макс. HP + DAMAGE ×1.25). Находка: ось «лимит карт» структурно не
+  штраф (консистентность), универсальна только ось HP. `Stake.activate(gm)`: пушит
+  моды + применяет СВОИ одноразовые DECKBUILD-моды напрямую (НЕ `rs.apply` над всем
+  стеком). Реестр `STAKES`. Числа: `_balance_knobs.md` §8.
 - **Владение/активация:** `GameManager.rulestack` (пустой с `__init__`) +
   `pending_stakes` (выбор в Хабе) → `activate_pending_stakes()` на старте забега (ДО
   хила). Тогглы — `ui/hub/base.py::_draw_stake_toggles`.
 - **Сим-нативность** (козырь): `runner.run_single_run(stakes=...)` + `_StubGM.rulestack`
   → бот «надевает» правила, дуал-сим меряет выживаемость сломанного рулсета.
   `stakes=None` регресс-нейтрально (baseline зелёный).
+
+### Долговой движок — овердрафт ресурсов (§7, С46) — `core/debt.py`
+«Power now, pay later»: ресурс уходит в МИНУС при розыгрыше (овердрафт) → глубина долга
+даёт множитель урона → в конце хода долг гасится HP-процентом (расплата). Обобщение
+минус-HP Берсерка; «вторая экспонента» риск-driven. Срез — на ЭНЕРГИИ.
+- **`core/debt.py`** (чистый модуль) — ручки (`DEBT_DAMAGE_PER_POINT`/`DEBT_CURVE_MODE`
+  linear|exp-рубильник/`DEBT_EXP_RATE`/`DEBT_MAX_OVERDRAFT`/`DEBT_HP_INTEREST`) + pure
+  `energy_debt_multiplier(debt)` (линейно по умолч.). Числа: `_balance_knobs.md` §9.
+- **Овердрафт** — `Creature.use_energy(amount, allow_debt)` пускает энергию в минус
+  (дефолт False → клампинг). Гейт `CombatManager.play_card_by_index` при
+  `player.energy_overdraft` пускает в долг до `DEBT_MAX_OVERDRAFT` (амплитудный гард-рейл).
+- **Множитель урона** — шаг 8-bis `EffectCalculator` (см. выше), инертен при `energy>=0`.
+- **Гашение** — `CombatManager._settle_energy_debt` в `end_turn_phase` (ДО сброса энергии
+  в `start_turn_phase`): `lose_hp(долг × DEBT_HP_INTEREST)` сквозь щит. Под `_guarded_action`.
+- **Сим-нативность** — `run_single_run(debt=...)` ставит флаг; `bot.py` овердрафт-фильтр
+  playable. `debt=False` регресс-нейтрально (baseline зелёный). A/B: размен-движок
+  (Воин +16.5 … Призыв −9.5). Активация через Ставку «всё в минус» — следующий шаг.
 
 ### Карты и эффекты (core/cards/)
 Карта = `Card(name, cost, card_type, description, effects, rarity, exile)`, где `effects` — список «кирпичей»-эффектов. `Card.apply(player, enemy, cm)` вызывает `effect.execute(...)` по очереди.
