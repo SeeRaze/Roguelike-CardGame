@@ -11,9 +11,15 @@
 from core.rules.RuleStack import RuleMod, Scope
 
 # Лимит карт стартовой колоды для Ставки «Аскет».
-ASCETIC_MAX_CARDS = 10
-# Доля макс. HP, остающаяся при Ставке «Хрупкость».
-FRAGILE_HP_FRACTION = 0.5
+# Калибровка С46 (true ascension): ≤6 — суровая обрезка. Аскет БЕЗ урон-награды:
+# награда за риск = слой Энтропии/очков позже, не урон в забеге (спека §9 п.1).
+# NB: ось «лимит карт» структурно НЕ штраф (тонкая колода = консистентность) — классы
+# с компактным стартером (Воин/Берсерк) её любят. Универсальный штраф — только ось HP.
+ASCETIC_MAX_CARDS = 6
+# Доля макс. HP, остающаяся при Ставке «Хрупкость» (универсальный ascension-штраф).
+FRAGILE_HP_FRACTION = 0.30
+# Урон-награда «Хрупкости»: частичная компенсация, НЕ покрывает HP-штраф (выживание падает).
+FRAGILE_DAMAGE_MULT = 1.25
 
 
 class _DamageMult(RuleMod):
@@ -98,17 +104,19 @@ class Stake:
 
 
 def _build_stakes():
+    # Аскет — ЧИСТОЕ ограничение (true ascension): без урон-награды, награда = Энтропия позже.
     ascetic = Stake(
         "ascetic", "Аскет",
-        f"Стартовая колода не больше {ASCETIC_MAX_CARDS} карт. Зато урон ×1.5.",
-        [_TrimDeck("ascetic", "Аскет", ASCETIC_MAX_CARDS),
-         _DamageMult("ascetic", "Аскет", 1.5)],
+        f"Стартовая колода не больше {ASCETIC_MAX_CARDS} карт. Суровое испытание.",
+        [_TrimDeck("ascetic", "Аскет", ASCETIC_MAX_CARDS)],
     )
+    # Хрупкость — HP-штраф с частичной урон-компенсацией (net выживание всё равно падает).
     fragile = Stake(
         "fragile", "Хрупкость",
-        "Максимальное здоровье вдвое меньше. Зато урон ×2.",
+        f"Максимальное здоровье — лишь {FRAGILE_HP_FRACTION:.0%}. "
+        f"Взамен урон ×{FRAGILE_DAMAGE_MULT:g}.",
         [_HalfMaxHp("fragile", "Хрупкость", FRAGILE_HP_FRACTION),
-         _DamageMult("fragile", "Хрупкость", 2.0)],
+         _DamageMult("fragile", "Хрупкость", FRAGILE_DAMAGE_MULT)],
     )
     return {s.id: s for s in (ascetic, fragile)}
 
