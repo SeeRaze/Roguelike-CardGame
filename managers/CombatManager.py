@@ -142,11 +142,19 @@ class CombatManager:
         selected_card = self.deck_manager.hand[card_index]
         effective_cost = getattr(selected_card, 'temp_cost', selected_card.cost)
 
+        overdraft = getattr(self.player, 'energy_overdraft', False)
         if self.player.energy < effective_cost:
-            self.add_log_message("[!] Не хватает энергии!")
-            return False
+            if not overdraft:
+                self.add_log_message("[!] Не хватает энергии!")
+                return False
+            # Долговой движок (§7): уходим в минус, но НЕ глубже жёсткого пола
+            # (амплитудный гард-рейл DEBT_MAX_OVERDRAFT).
+            from core.debt import DEBT_MAX_OVERDRAFT
+            if effective_cost - self.player.energy > DEBT_MAX_OVERDRAFT:
+                self.add_log_message("[!] Долг энергии слишком глубок!")
+                return False
 
-        self.player.use_energy(effective_cost)
+        self.player.use_energy(effective_cost, allow_debt=overdraft)
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
         self._combo_triggered = False
@@ -289,9 +297,26 @@ class CombatManager:
         self._trigger_guard.depth = 0
         return self._guarded(label, fn)
 
+    def _settle_energy_debt(self):
+        """Гашение долга энергии (§7, «pay later»): HP-штраф = долг × DEBT_HP_INTEREST.
+        Зовётся в end_turn_phase ДО сброса энергии (start_turn_phase обнулил бы долг).
+        lose_hp бьёт сквозь щит (как минус-HP Берсерка)."""
+        from core.debt import DEBT_HP_INTEREST
+        debt = -self.player.energy
+        interest = debt * DEBT_HP_INTEREST
+        self.add_log_message(
+            f"[ДОЛГ] Гашение энергии: -{interest} HP за {debt} ед. долга.")
+        self.player.lose_hp(interest)
+        self.player.energy = 0
+
     def end_turn_phase(self):
         self.add_log_message("Вы завершили ход.")
         self.deck_manager.discard_hand()
+
+        # Гашение долга энергии (§7): непогашенный овердрафт оплачивается HP ДО сброса
+        # энергии в start_turn_phase. Под _guarded_action (своё событие, сброс гарда).
+        if getattr(self.player, 'energy', 0) < 0:
+            self._guarded_action("гашение долга энергии", self._settle_energy_debt)
 
         # Хук on_turn_end реликвий — «конец хода игрока», ДО действий врагов
         # (Гнилое Сердце банкует щит в Барьер до того, как враг ударит). Под

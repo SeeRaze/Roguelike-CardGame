@@ -58,8 +58,10 @@ class Player(Creature):
         for key in self._COMBAT_RESET_KEYS:
             self.statuses[key] = 0
 
-    def use_energy(self, amount: int) -> None:
-        self.energy = max(self.energy - amount, 0)
+    def use_energy(self, amount: int, allow_debt: bool = False) -> None:
+        # allow_debt=True (долговой движок §7): энергия может уйти В МИНУС (овердрафт).
+        # Дефолт False → клампинг на 0 (обычная игра, регресс-нейтрально).
+        self.energy = self.energy - amount if allow_debt else max(self.energy - amount, 0)
         print(
             f" [ЭНЕРГИЯ] Потрачено {amount}. Осталось: {self.energy}/{self.max_energy}"
         )
