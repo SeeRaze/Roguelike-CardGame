@@ -45,3 +45,33 @@ def test_положительная_энергия_не_трогает_урон(
     player = Creature("Игрок", 50, 50)
     player.energy = 3                                   # нет долга → инертно
     assert _hit(player, 10) == 10
+
+
+# ── ДОЛГ HP (С49, субстрат Берсерка) — pure-формула, симметрична энергии ──────────
+
+def test_hp_формула_инертна_без_долга():
+    from core.debt import hp_debt_multiplier
+    assert hp_debt_multiplier(0) == 1.0
+    assert hp_debt_multiplier(-5) == 1.0               # «отрицат. долг» = нет долга
+
+
+def test_hp_линейная_кривая_дефолт():
+    from core.debt import hp_debt_multiplier
+    assert hp_debt_multiplier(1) == 1.10               # +0.10/ед.
+    assert round(hp_debt_multiplier(10), 4) == 2.0     # пол-глубина → ×2
+
+
+def test_hp_экспонента_рубильником(monkeypatch):
+    from core.debt import hp_debt_multiplier
+    monkeypatch.setattr(debt, "HP_DEBT_CURVE_MODE", "exp")
+    monkeypatch.setattr(debt, "HP_DEBT_EXP_RATE", 0.2)
+    assert hp_debt_multiplier(1) == 1.2
+    assert round(hp_debt_multiplier(2), 4) == 1.44
+
+
+def test_общая_формула_ресурс_агностична():
+    """_debt_multiplier — одна кривая для обоих ресурсов (energy/hp читают её по своим ручкам)."""
+    from core.debt import _debt_multiplier
+    assert _debt_multiplier(0, "linear", 0.25, 0.2) == 1.0
+    assert _debt_multiplier(4, "linear", 0.25, 0.2) == 2.0
+    assert _debt_multiplier(2, "exp", 0.25, 0.2) == 1.44
