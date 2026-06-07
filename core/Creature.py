@@ -19,6 +19,11 @@ class Creature:
         self.hp     = hp
         self.max_hp = max_hp
         self.shield = 0
+        # Позиция в партии (core/positioning.Rank): FRONT/BACK или None.
+        # Дефолт None = «позиции нет» (позиционка off) → весь позиционный код
+        # инертен. Инициализируем здесь, т.к. кастомный __getattr__ кинул бы
+        # AttributeError при чтении неинициализированного атрибута.
+        self.rank   = None
         object.__setattr__(self, 'statuses', {k: 0 for k in _STATUS_KEYS})
 
     def __getattr__(self, name):
