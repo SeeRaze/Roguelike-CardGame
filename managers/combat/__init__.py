@@ -6,7 +6,8 @@
 импортируют CombatManager (нет циклов). Внешний API (`CombatManager(...)`,
 `.play_card_by_index()` и т.д.) и путь импорта — байт-в-байт прежние.
 """
+from managers.combat.cardplay import CardPlayMixin
 from managers.combat.positioning import PositioningMixin
 from managers.combat.resolution import ResolutionMixin
 
-__all__ = ["PositioningMixin", "ResolutionMixin"]
+__all__ = ["CardPlayMixin", "PositioningMixin", "ResolutionMixin"]
