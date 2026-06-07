@@ -13,6 +13,8 @@ from core.positioning import (
     neighbors,
     column,
     same_rank,
+    assign_enemy_ranks,
+    intercept_targets,
 )
 
 
@@ -166,3 +168,46 @@ def test_same_rank_горизонтальный_ряд():
     party = [f1, f2, b1]
     assert same_rank(Rank.FRONT, party) == [f1, f2]
     assert same_rank(Rank.BACK, party) == [b1]
+
+
+# ═══════════════════════════════════════════════════════════
+# §8 — assign_enemy_ranks (враги на сетке: фронт первая половина)
+# ═══════════════════════════════════════════════════════════
+
+def test_враги_один_во_фронте():
+    e = _c("e1")
+    assign_enemy_ranks([e])
+    assert e.rank == Rank.FRONT
+
+
+def test_враги_двое_1фронт_1тыл():
+    a, b = _c("a"), _c("b")
+    assign_enemy_ranks([a, b])
+    assert a.rank == Rank.FRONT and b.rank == Rank.BACK
+
+
+def test_враги_трое_2фронт_1тыл():
+    a, b, c = _c("a"), _c("b"), _c("c")
+    assign_enemy_ranks([a, b, c])
+    assert [a.rank, b.rank, c.rank] == [Rank.FRONT, Rank.FRONT, Rank.BACK]
+
+
+def test_враги_четверо_2фронт_2тыл():
+    es = [_c(f"e{i}") for i in range(4)]
+    assign_enemy_ranks(es)
+    assert [e.rank for e in es] == [Rank.FRONT, Rank.FRONT, Rank.BACK, Rank.BACK]
+
+
+def test_враги_пустой_список_безопасно():
+    assert assign_enemy_ranks([]) == []
+
+
+def test_враги_перехват_фронт_прикрывает_тыл():
+    # После расстановки intercept_targets даёт только фронт, пока он жив.
+    a, b, c = _c("a"), _c("b"), _c("c")
+    assign_enemy_ranks([a, b, c])
+    assert set(intercept_targets([a, b, c])) == {a, b}   # тыл c прикрыт
+    a.hp = 0
+    b.hp = 0
+    assert intercept_targets([a, b, c]) == [c]           # фронт пал → тыл открыт
+

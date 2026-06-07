@@ -79,11 +79,34 @@ class CombatManager:
             self.enemies.append(value)
 
     def get_target_enemy(self):
-        """Первый живой враг — цель для авто-таргетинга."""
-        for e in self.enemies:
-            if e.hp > 0:
-                return e
-        return None
+        """Первый ДОПУСТИМЫЙ живой враг — авто-таргетинг одиночной атаки С УЧЁТОМ
+        перехвата врага (С48 §8, зеркало v1): пока жив ФРОНТ врага — цель только
+        фронт; фронт пал → открывается тыл. Без рангов у врагов (позиционка off)
+        intercept_targets вернёт всех живых → первый живой, байт-в-байт как раньше
+        (baseline зелёный). Канал для авто-цели карт/реликвий/способностей."""
+        from core.positioning import intercept_targets
+        candidates = intercept_targets(self.enemies)
+        return candidates[0] if candidates else None
+
+    def _resolve_attack_target(self, target):
+        """Цель ОДИНОЧНОЙ атаки игрока с учётом перехвата врага (С48 §8).
+        None → авто (get_target_enemy, уже перехват-aware). ЯВНАЯ цель, прикрытая
+        живым фронтом → СНАП на допустимую (фронт), чтобы клик в тыл не обходил
+        перехват. Позиционка off / нет рангов у врагов → цель как есть (baseline).
+        AoE-карты игнорируют target (бьют всех напрямую) → снап для них безвреден."""
+        if target is None:
+            return self.get_target_enemy()
+        from core.positioning import has_positions, intercept_targets
+        if not has_positions(self.enemies):
+            return target
+        candidates = intercept_targets(self.enemies)
+        if target in candidates or not candidates:
+            return target
+        self.add_log_message(
+            f"[ПОЗИЦИЯ] {getattr(target, 'name', 'Цель')} прикрыт(а) фронтом "
+            f"— удар уходит по фронту."
+        )
+        return candidates[0]
 
     def _apply_positioning(self) -> None:
         """Расставить партию по рангам, ЕСЛИ позиционка включена (флаг
@@ -111,6 +134,9 @@ class CombatManager:
             return
         self.player.formation_mirrored = getattr(self.player, 'mirrored_layout', False)
         self._apply_positioning()
+        # Враги тоже на сетке (§8): ранги фронт/тыл → симметричный перехват игрок→враг.
+        from core.positioning import assign_enemy_ranks
+        assign_enemy_ranks(self.enemies)
 
     def flip_formation(self) -> None:
         """Атомарный переворот строя партии — эффект [Tactical_Move] (карта/реликвия/
@@ -204,8 +230,7 @@ class CombatManager:
         self.add_log_message(f"Вы разыграли: {selected_card.name}")
 
         self._combo_triggered = False
-        if target is None:
-            target = self.get_target_enemy()
+        target = self._resolve_attack_target(target)
         if target is None or target.hp <= 0:
             self.add_log_message("[!] Нет целей для атаки!")
             return False
