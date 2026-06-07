@@ -412,3 +412,53 @@ def test_aoe_убивает_двух_врагов_оба_обработаны():
     cm._process_enemy_deaths()
     assert gm.stats["monsters_killed"] == 2
     assert all(e._death_processed for e in cm.enemies)
+
+
+# ═══════════════════════════════════════════════════════════
+# Очередь отложенных эффектов (§3) — живая врезка в бой
+# ═══════════════════════════════════════════════════════════
+
+def test_очередь_отложенных_заведена_и_инертна():
+    """CombatManager даёт пустую очередь; tick в end_turn_phase no-op (baseline)."""
+    cm = _make_cm()
+    assert len(cm.delayed_queue) == 0
+    cm._tick_delayed_effects()        # пустая → ничего не делает, не падает
+    assert len(cm.delayed_queue) == 0
+
+
+def test_tick_исполняет_созревшее_через_n_ходов():
+    """Эффект «через 2 хода» молчит на первом тике, срабатывает на втором и получает
+    сам CombatManager аргументом (контракт action(cm))."""
+    cm = _make_cm()
+    fired = []
+    cm.delayed_queue.schedule(2, lambda c: fired.append(c), label="бомба")
+    cm._tick_delayed_effects()
+    assert fired == []                # ход 1 — ещё не созрел
+    assert len(cm.delayed_queue) == 1
+    cm._tick_delayed_effects()
+    assert fired == [cm]              # ход 2 — сработал, получил cm
+    assert len(cm.delayed_queue) == 0
+
+
+def test_созревший_эффект_свип_смертей():
+    """Отложенный эффект, добивший врага, обработан свипом (on_kill/статы/persist),
+    а не оставлен «висеть» до фазы врага."""
+    gm = SimpleNamespace(stats={"monsters_killed": 0, "bosses_killed": 0})
+    enemy = Cultist("Цель", 30, 30)
+    cm = _make_cm(enemy=enemy, gm=gm)
+    cm.delayed_queue.schedule(1, lambda c: c.enemies[0].take_damage(999), label="мина")
+    cm._tick_delayed_effects()
+    assert enemy.hp <= 0
+    assert enemy._death_processed is True
+    assert gm.stats["monsters_killed"] == 1
+
+
+def test_end_turn_phase_тикает_очередь():
+    """Интеграция: tick реально вызывается из end_turn_phase (созревший «через 1»
+    срабатывает в конце хода игрока)."""
+    cm = _make_cm()
+    fired = []
+    cm.delayed_queue.schedule(1, lambda c: fired.append(True), label="конец хода")
+    cm.end_turn_phase()
+    assert fired == [True]
+    assert len(cm.delayed_queue) == 0

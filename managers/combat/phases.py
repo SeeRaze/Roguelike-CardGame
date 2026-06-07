@@ -73,6 +73,27 @@ class TurnPhaseMixin:
         self.player.lose_hp(interest)
         self.player.energy = 0
 
+    def _tick_delayed_effects(self):
+        """Очередь отложенных эффектов (§3): уменьшить ВСЕ таймеры на 1, исполнить
+        созревшие. Каждый созревший — под _guarded_action (своё событие, сброс глубины
+        гарда → конечность каскада, инвариант R3); эффект, планирующий НОВОЕ отложенное
+        при исполнении, не теряется (tick переустановил очередь до возврата). После
+        исполнения — свип смертей врагов через _process_enemy_deaths (тайм-бомба могла
+        добить врага; идемпотентно с фазой врага). NO-OP при пустой очереди — потребителя
+        пока нет (как субстрат позиционки до §1), baseline зелёный.
+
+        ТАЙМИНГ (дизайн-дефолт, пересмотреть при появлении потребителя): срабатывание в
+        конце хода игрока. Развилка зафиксирована в _project_map (§ отложенные эффекты)."""
+        due = self.delayed_queue.tick()
+        if not due:
+            return
+        for effect in due:
+            self._guarded_action(
+                f"отложенный эффект: {effect.label or '?'}",
+                lambda effect=effect: effect.action(self),
+            )
+        self._process_enemy_deaths()
+
     def end_turn_phase(self):
         self.add_log_message("Вы завершили ход.")
         self.deck_manager.discard_hand()
@@ -91,6 +112,11 @@ class TurnPhaseMixin:
                     f"конец хода {getattr(relic, 'name', '?')}",
                     lambda relic=relic: relic.on_turn_end(self),
                 )
+
+        # Очередь отложенных эффектов (§3): созревшие «через N ходов» срабатывают в
+        # КОНЦЕ ХОДА ИГРОКА (после on_turn_end реликвий, ПЕРЕД фазой врага). NO-OP без
+        # потребителя — очередь пуста, baseline зелёный.
+        self._tick_delayed_effects()
 
         # Позиционка (§5): пере-расстановка ПРЯМО перед фазой врага → саммоны,
         # призванные в этот ход (карта/способность) или на старте боя, получают ранг

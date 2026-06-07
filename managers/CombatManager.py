@@ -1,5 +1,6 @@
 from managers.DeckManager import DeckManager
 from core.forge import TriggerGuard
+from core.scheduler import DelayedQueue
 from managers.combat import (
     CardPlayMixin,
     DefeatMixin,
@@ -54,6 +55,10 @@ class CombatManager(
         # детонации суммарно за один розыгрыш карты, обрывает на MAX_TRIGGER_DEPTH —
         # анти-∞-цикл и анти-переполнение чисел в реал-тайме. Сброс на каждом розыгрыше.
         self._trigger_guard = TriggerGuard()
+        # Очередь отложенных эффектов (§3): «сработать через N ходов». Скоуп — бой
+        # (новый CombatManager на каждый бой → не переносится). Инертна без потребителя
+        # (tick в end_turn_phase отдаёт [] на пустой очереди → baseline зелёный).
+        self.delayed_queue = DelayedQueue()
 
         self.add_log_message("=== БОЙ НАЧАЛСЯ ===")
 
