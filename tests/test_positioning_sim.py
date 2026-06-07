@@ -87,3 +87,41 @@ def test_runner_positioning_opt_in_смоук():
     random.seed(99)
     res = run_single_run(Summoner, max_floor=5, positioning=True)
     assert "death_floor" in res and "hp_by_floor" in res
+
+
+# ═══════════════════════════════════════════════════════════
+# §10 — сим-нативность ПЕРЕХВАТА ВРАГА: BotCombatManager (наследует
+# _init_positioning) ранжирует врагов; авто-таргет бота идёт во фронт.
+# ═══════════════════════════════════════════════════════════
+
+def _bot_cm(positioning):
+    from core.players.warrior import Warrior
+    from core.enemies.cultist import Cultist
+    from core.cards import create_strike
+    from managers.balance.bot import BotCombatManager
+    player = Warrior()
+    if positioning:
+        player.positioning_enabled = True
+    enemies = [Cultist(f"К{i}", 30, 30) for i in range(3)]
+    cm = BotCombatManager(player, enemies, [create_strike()])
+    return cm, enemies
+
+
+def test_sim_враги_ранжируются_в_боте():
+    cm, es = _bot_cm(positioning=True)
+    assert [e.rank for e in es] == [Rank.FRONT, Rank.FRONT, Rank.BACK]
+
+
+def test_sim_бот_автоцель_во_фронт():
+    cm, es = _bot_cm(positioning=True)
+    assert cm.get_target_enemy() in (es[0], es[1])    # тыл недостижим
+    es[0].hp = 0
+    es[1].hp = 0
+    assert cm.get_target_enemy() is es[2]             # фронт пал → тыл открыт
+
+
+def test_sim_off_враги_без_рангов_baseline():
+    cm, es = _bot_cm(positioning=False)
+    assert all(e.rank is None for e in es)
+    assert cm.get_target_enemy() is es[0]             # первый живой, как раньше
+
