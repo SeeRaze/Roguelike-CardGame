@@ -49,6 +49,7 @@ def _default_meta() -> dict:
         },
         "class_best": {},    # class -> {best_floor, kills, max_damage, runs}
         "runs":       [],    # [{username, class, max_floor, kills, max_damage}]
+        "unlocks":    [],    # имена открытых классов яруса 2+ (С50, ярус 1 всегда открыт)
     }
 
 
@@ -133,10 +134,17 @@ def _apply_run(meta: dict, run: dict) -> dict:
     return meta
 
 
-def record_run(run: dict) -> None:
-    """Записать завершённый забег: обновить кэш в памяти + сохранить на диск."""
-    _apply_run(get_meta(), run)
+def record_run(run: dict) -> list:
+    """Записать завершённый забег: обновить кэш в памяти + сохранить на диск.
+    Возвращает список НОВООТКРЫТЫХ классов (С50) — забег мог выполнить условие
+    анлока яруса 2; вызыватель может показать всплывашку «Открыт новый класс!».
+    Список пуст, если ничего не открылось (обычный случай)."""
+    from core import progression
+    meta = get_meta()
+    _apply_run(meta, run)
+    fresh = progression.newly_unlocked(meta)   # грант анлоков по итогам забега
     save()
+    return fresh
 
 
 def leaderboard_rows(meta: dict, network_rows=None) -> list:

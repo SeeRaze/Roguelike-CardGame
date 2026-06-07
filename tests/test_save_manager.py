@@ -106,6 +106,34 @@ def test_runs_ring_capped():
     assert meta["runs"][-1]["max_floor"] == SM.RUNS_CAP + 9   # последние сохранены
 
 
+# ─── Анлоки классов (С50) ─────────────────────────────────────────────────────
+
+def test_default_meta_has_empty_unlocks():
+    assert SM._default_meta()["unlocks"] == []
+
+
+def test_record_run_grants_and_persists_unlock(isolated_save):
+    # Этаж 6 выполняет условие Rogue(≥5)+Summoner(≥6); Druid (боссов≥1) тоже.
+    fresh = SM.record_run(_run(floor=6, bosses=1))
+    assert set(fresh) == {"Rogue", "Druid", "Summoner"}    # возвращены новооткрытые
+    SM.reset_cache()                                       # имитируем перезапуск
+    assert set(SM.get_meta()["unlocks"]) == {"Rogue", "Druid", "Summoner"}
+
+
+def test_record_run_no_unlock_returns_empty(isolated_save):
+    assert SM.record_run(_run(floor=3, bosses=0)) == []    # условия не выполнены
+
+
+def test_old_save_without_unlocks_key_is_merge_safe(isolated_save):
+    # Сейв из старой версии (Сессия 40) не имеет ключа "unlocks".
+    isolated_save.write_text(json.dumps({
+        "version": SM.SAVE_VERSION,
+        "stats": {"total_runs": 1, "best_floor": 4},
+    }), encoding="utf-8")
+    SM.reset_cache()
+    assert SM.get_meta()["unlocks"] == []                  # дефолт подставлен, не падаем
+
+
 # ─── leaderboard_rows ─────────────────────────────────────────────────────────
 
 def test_leaderboard_sorts_by_floor_then_kills():
