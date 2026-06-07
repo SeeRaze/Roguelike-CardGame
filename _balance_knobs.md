@@ -232,7 +232,8 @@ true ascension**: Ставка РОНЯЕТ выживаемость, награ
 | `Player.mirrored_layout` | **False** (Summoner: True) | класс-флаг зеркальной раскладки |
 | `_LINE_FILL_ORDER` | **(CENTER, LEFT, RIGHT)** | порядок заселения линий врага внутри ранга; `positioning.py` |
 | `assign_enemy_ranks` | фронт = **(n+1)//2** | формация врага: 1→1Ф · 2→1Ф/1Б · 3→2Ф/1Б · 4→2Ф/2Б |
-| `SplashDamageEffect.SPLASH_RATIO` | **0.5** | сплеш по соседям как доля урона цели; `core/cards/cleave.py` (§1 потребитель `neighbors`) |
+| `_PositionalAoEEffect.SPLASH_RATIO` | **0.5** | доля урона цели по вторичным целям; `core/cards/cleave.py` (§1 потребители) |
+| `ColumnStrikeEffect.SPLASH_RATIO` | **1.0** | «Прокол» бьёт всю колонку полным уроном (пробивает перехват в тыл) |
 
 📊 A/B v1 (wall, N=40 seed=99): Призыватель OFF 61 / ЗЕРКАЛО 62 (Δ+1) / ДЕФОЛТ герой-фронт
 **33** (−28! хилого героя выносит одиночный урон) → зеркало = верный режим призывного класса.

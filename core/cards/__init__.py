@@ -24,4 +24,7 @@ from core.cards.mage import create_boil, create_arcane_focus, create_elemental_s
 from core.cards.echo import create_echo_resonance, create_echo_strike, create_echo_cascade
 from core.cards.rogue import create_bloodlust, create_serrated_edge
 from core.cards.druid import create_virulent_strain, VirulenceEffect
-from core.cards.cleave import SplashDamageEffect, create_cleaving_strike
+from core.cards.cleave import (
+    SplashDamageEffect, ColumnStrikeEffect, RankStrikeEffect,
+    create_cleaving_strike, create_piercing_thrust, create_wide_swing,
+)
