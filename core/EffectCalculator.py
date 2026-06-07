@@ -185,6 +185,19 @@ class EffectCalculator:
                     final_damage = int(final_damage * debt_mult)
                     _rec("Долг", "×", debt_mult)
 
+        # 8-ter. ДОЛГ HP (§7, С49, субстрат Берсерка «Отрицание Смерти») — HP в МИНУСЕ →
+        # больше урон (глубина минуса = заём силы у жизни). Инертно при hp>=0 (HP уходит
+        # ниже 0 только при флаге hp_overdraft → клампы Creature). Композируется с энерго-
+        # долгом. Pure → считается и в превью (показывает заём силы кровью).
+        if is_player_attack:
+            hp = getattr(player, "hp", 0)
+            if hp < 0:
+                from core.debt import hp_debt_multiplier
+                hp_mult = hp_debt_multiplier(-hp)
+                if hp_mult != 1.0:
+                    final_damage = int(final_damage * hp_mult)
+                    _rec("Долг HP", "×", hp_mult)
+
         # 9. RULESTACK (DAMAGE-scope) — глобальные правки урона от активных «правил»
         # (Ставки/парадоксы). Внешний слой: после всех боевых множителей; считается и
         # в превью (детерминированно, без побочек). Инертно при пустом стеке / отсутствии

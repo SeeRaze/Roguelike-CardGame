@@ -91,12 +91,25 @@ class Creature:
 
         return healed
 
+    def _hp_floor(self) -> int:
+        """Пол HP — нижняя граница, до которой может опуститься self.hp.
+
+        Норма → 0 (старое поведение, все клампы байт-в-байт). При HP-ОВЕРДРАФТЕ
+        (субстрат Берсерка «Отрицание Смерти», флаг self.hp_overdraft) → отрицательный
+        пол -HP_DEBT_MAX_OVERDRAFT: HP уходит в МИНУС (долг жизни), глубина минуса даёт
+        множитель урона (EffectCalculator), а достижение пола = неминуемая смерть
+        (defeat-проверка). Дефолт-инертен: у врагов/обычных классов флага нет → пол 0."""
+        if getattr(self, 'hp_overdraft', False):
+            from core.debt import HP_DEBT_MAX_OVERDRAFT
+            return -HP_DEBT_MAX_OVERDRAFT
+        return 0
+
     def lose_hp(self, amount: int) -> int:
         """Прямой урон СКВОЗЬ ЩИТ — напрямую в HP, минуя shield.
         Идиом из berserker.py / DetonationRegistry / яд («сквозь щит»).
         Переиспользуется вне боя (Ритуал крови костра, Проклятый сундук)
         и не дёргает боевые хуки (шипы/вампир). Возвращает фактический урон."""
-        lost = max(0, min(amount, self.hp))
+        lost = max(0, min(amount, self.hp - self._hp_floor()))
         self.hp -= lost
         print(f"[{self.name}] теряет {lost} HP сквозь щит. "
               f"Текущее HP: {self.hp}/{self.max_hp}")
@@ -128,13 +141,13 @@ class Creature:
             damage_left = amount - self.shield
             self.shield = 0
             self.hp    -= damage_left
-        self.hp = max(self.hp, 0)
+        self.hp = max(self.hp, self._hp_floor())
         print(f"[{self.name}] Итог -> Щит: {self.shield}, HP: {self.hp}")
 
         if self.statuses.get('thorns', 0) > 0 and attacker is not None:
             print(f" [ШИПЫ] {self.name} отражает "
                   f"{self.statuses['thorns']} урона на {attacker.name}!")
-            attacker.hp = max(attacker.hp - self.statuses['thorns'], 0)
+            attacker.hp = max(attacker.hp - self.statuses['thorns'], attacker._hp_floor())
 
         if amount > 0 and attacker is not None:
             vamp = attacker.statuses.get('vampire', 0)
@@ -165,7 +178,7 @@ class Creature:
                             bleed_dmg, self, combat_manager
                         )
             print(f" [КРОВЬ] {self.name} истекает кровью: +{bleed_dmg} урона!")
-            self.hp = max(self.hp - bleed_dmg, 0)
+            self.hp = max(self.hp - bleed_dmg, self._hp_floor())
             if combat_manager:
                 combat_manager.add_log_message(
                     f" [КРОВЬ] {self.name} получает +{bleed_dmg} "

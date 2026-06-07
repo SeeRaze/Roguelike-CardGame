@@ -73,6 +73,17 @@ class TurnPhaseMixin:
         self.player.lose_hp(interest)
         self.player.energy = 0
 
+    def _settle_hp_debt(self):
+        """Хук расплаты по ДОЛГУ HP (§4, С49, субстрат Берсерка). По умолчанию NO-OP:
+        игрок остаётся в минусе (близость к полу-смерти = структурная расплата, множитель
+        даёт EffectCalculator). СЕАМ под класс Берсерка: если у игрока есть
+        on_hp_debt_settle(cm) — зовём его в минусе (грация-ход + конверсия |HP|→FP при
+        победе подключатся ТАМ, не в ядре). Инертно без хука/без минуса → baseline зелёный."""
+        if self.player.hp < 0:
+            hook = getattr(self.player, 'on_hp_debt_settle', None)
+            if hook:
+                hook(self)
+
     def _tick_delayed_effects(self):
         """Очередь отложенных эффектов (§3): уменьшить ВСЕ таймеры на 1, исполнить
         созревшие. Каждый созревший — под _guarded_action (своё событие, сброс глубины
@@ -102,6 +113,9 @@ class TurnPhaseMixin:
         # энергии в start_turn_phase. Под _guarded_action (своё событие, сброс гарда).
         if getattr(self.player, 'energy', 0) < 0:
             self._guarded_action("гашение долга энергии", self._settle_energy_debt)
+
+        # Расплата по долгу HP (§4): хук-сеам под Берсерка. NO-OP без хука/без минуса.
+        self._guarded_action("расплата долга HP", self._settle_hp_debt)
 
         # Хук on_turn_end реликвий — «конец хода игрока», ДО действий врагов
         # (Гнилое Сердце банкует щит в Барьер до того, как враг ударит). Под
