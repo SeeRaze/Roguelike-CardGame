@@ -337,7 +337,7 @@ HP-баре зовут её (расхождений «показано vs нан
 - **`start_turn_phase`**: цикл по всем живым врагам → `choose_intent()` → пассив игрока считает carry щита → `_iron_will_shield = shield`; сброс щита до carry → `energy = max_energy` → добор `5 + bonus_draw` → (Разбойник: случайной карте `temp_cost -= 1`) → хуки реликвий `on_turn_start` → `ability.on_turn_start` (штрафы).
 - **`play_card_by_index(idx, target=None)`**: проверка энергии → если цель не передана: `get_target_enemy()` (первый живой враг) → ставит `self._card_being_played = card` → `card.apply(player, target, self)` → `_card_being_played = None` → пассив `on_card_played_passive` → реликвии `on_card_played` → карта в `discard_pile`/`exile_pile` → `_process_enemy_deaths()` (смерть в момент килла) → `_check_victory()`. `_card_being_played` нужен `FlowEffect` (стихия Воздух), чтобы не удешевлять саму разыгрываемую карту.
 - **`_process_enemy_deaths()`**: свип `_check_enemy_death` по ВСЕМ `self.enemies` (AoE-детонации могут добить нескольких) под `_guarded_action`. Зовётся в момент убивающего действия игрока — `play_card_by_index` (перед `_check_victory`) и ветка активной способности (`InputHandler`) — симметрично фазе врага. Чинит регресс С43: до этого `on_kill`/счётчик/перенос стаи жили только в `end_turn_phase`, и победа картой их теряла. Идемпотентно (`_death_processed`).
-- **`end_turn_phase`**: сброс руки → цикл по живым врагам: `shield=0`, `execute_intent()`, `tick_statuses()`, `_check_enemy_death()` (вызывает `on_kill` на реликвиях + стата) → игрок `tick_statuses()` → цикл по союзникам: `choose_action()`, `execute_action()`, `tick_statuses()`, `_check_ally_death()` → проверка победы: `all(e.hp <= 0)` → `check_player_defeat()`.
+- **`end_turn_phase`**: сброс руки → **хуки реликвий `on_turn_end`** (под `_guarded_action`, ДО действий врагов — Гнилое Сердце банкует щит до удара) → цикл по живым врагам: `shield=0`, `execute_intent()`, `tick_statuses()`, `_check_enemy_death()` (вызывает `on_kill` на реликвиях + стата) → игрок `tick_statuses()` → цикл по союзникам: `choose_action()`, `execute_action()`, `tick_statuses()`, `_check_ally_death()` → проверка победы: `all(e.hp <= 0)` → `check_player_defeat()`.
 - **Мульти-враги**: этажи 1–4: 1 враг, 5–8: 2 врага, 9+: 3 врага. HP каждого уменьшен пропорционально. Босс всегда один.
 - **Таргетинг**: клик по вражеской панели меняет `_target_index`. Жёлтая рамка вокруг выбранной цели. `play_card_by_index` получает цель из `TargetingSystem.get_current_target()`.
 - **Союзники**: карты призыва (`create_summon_wolf`/`golem`) создают `Summon` в `combat.allies`. В конце хода союзники атакуют случайного живого врага. Панели союзников — в центральной зоне (x=590..1330).
@@ -436,6 +436,24 @@ barrier/mastery/echo/virulence сбрасываются `reset_combat_statuses`)
   Замер-свип: механизм флипает наклон (Маг пробивает эт.100 при ×2.0/босс); ×1.25 =
   «заметно, но не ломает» для ОДНОЙ реликвии. A/B (+Корона): Warrior wr50 80→98%,
   Mage 91→97%, у Druid медиана почти не движется (стена оборонительная — [[balance-findings-druid-engine]]).
+- **`СердцеБездны`** (EPIC, `persistent.py`) — ОБОРОННОЕ зеркало Короны: каждый босс
+  +`GROWTH_PCT`(=15%) к `player.max_hp` навсегда + хил на дельту. Растит экспоненту
+  ВЫЖИВАЕМОСТИ (p в R(f)) — закрывает дефицит оборонного кат.4-компаунда. Компаунд
+  хранится прямо в `max_hp` (перенос тем же игроком, авто-сброс на новом забеге).
+
+### Реликвии — высокотировые движки и джокеры (EPIC/LEGENDARY)
+`core/relics/advanced/epic_legendary.py` — высокотировый контент на ДОЛГОЖИВУЩИХ
+примитивах (echo/barrier/щит/×урон/изгнание), без привязки к классам:
+- **`ЭхоВечности`** (EPIC) — `on_turn_start` → Эхо 1 (ретриггер-движок темпа).
+- **`НесокрушимыйБастион`** (EPIC) — `on_shield_gained` → `BARRIER_FRACTION`(=0.5) от
+  щита в несгораемый Барьер (без рекурсии: `add_status`, не `gain_shield`).
+- **`СтеклянныйГлаз`** (LEGENDARY-джокер) — `on_damage_calculated` ×`DAMAGE_MULT`(=3);
+  `on_card_played` с шансом `BURN_CHANCE`(=0.10) удаляет карту из `gm.current_deck`
+  навсегда (хук ДО discard → карта отыгрывает текущий розыгрыш, исчезает со след. боя).
+- **`ГнилоеСердце`** (LEGENDARY-джокер) — `on_combat_start` сажает `max_hp=1`;
+  `on_turn_end` банкует щит в Барьер + Сила = Барьер//`SHIELD_TO_RAGE`(=10), вклад в
+  Силу инкрементальный (`_granted_rage`, не затирает чужую Силу).
+- NB: новые EPIC/LEG в ceiling-билды НЕ добавлены → baseline-гард не затронут.
 
 ### Реликвии — UI в бою (инвентарь)
 - Полоса сверху (`ui/combat/panels.py::draw_relic_bar`): компактные **бейджи** (квадрат с рамкой
