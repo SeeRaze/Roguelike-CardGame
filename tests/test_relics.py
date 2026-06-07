@@ -11,10 +11,10 @@ from core.relics import (
 )
 
 
-def test_в_пуле_30_уникальные_реликвии():
-    assert len(ALL_RELICS) == 30
+def test_в_пуле_31_уникальные_реликвии():
+    assert len(ALL_RELICS) == 31
     имена = [r().name for r in ALL_RELICS]
-    assert len(set(имена)) == 30
+    assert len(set(имена)) == 31
 
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):
@@ -191,3 +191,37 @@ def test_бастион_игнорирует_щит_не_игрока(make_comba
     cm = make_combat()
     НесокрушимыйБастион().on_shield_gained(8, cm.enemy, cm)
     assert cm.player.barrier == 0
+
+
+# --- LEGENDARY-джокер: Стеклянный Глаз (×3 урон + 10% сжечь карту) ---
+
+def test_стеклянный_глаз_утраивает_урон_атак():
+    from core.relics import СтеклянныйГлаз
+    relic = СтеклянныйГлаз()
+    assert relic.on_damage_calculated(10, is_player_attack=True) == 30
+    assert relic.on_damage_calculated(10, is_player_attack=False) == 10   # не атака игрока
+
+
+def test_стеклянный_глаз_сжигает_карту_при_неудаче(make_combat, monkeypatch):
+    """random < 0.10 → карта удаляется из gm.current_deck навсегда."""
+    from core.relics import СтеклянныйГлаз
+    import core.relics.advanced.epic_legendary as mod
+    cm = make_combat()
+    карта = SimpleNamespace(name="Удар")
+    cm.gm.current_deck = [карта, SimpleNamespace(name="Защита")]
+    monkeypatch.setattr(mod.random, "random", lambda: 0.05)   # < BURN_CHANCE
+    СтеклянныйГлаз().on_card_played(карта, cm)
+    assert карта not in cm.gm.current_deck
+    assert len(cm.gm.current_deck) == 1
+
+
+def test_стеклянный_глаз_не_сжигает_при_удаче(make_combat, monkeypatch):
+    """random >= 0.10 → колода не трогается."""
+    from core.relics import СтеклянныйГлаз
+    import core.relics.advanced.epic_legendary as mod
+    cm = make_combat()
+    карта = SimpleNamespace(name="Удар")
+    cm.gm.current_deck = [карта]
+    monkeypatch.setattr(mod.random, "random", lambda: 0.5)    # >= BURN_CHANCE
+    СтеклянныйГлаз().on_card_played(карта, cm)
+    assert карта in cm.gm.current_deck

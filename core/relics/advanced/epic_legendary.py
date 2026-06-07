@@ -3,6 +3,8 @@
 # Артефакты»-джокеры (LEGENDARY: меняют правила игры ценой трейдоффа).
 # Все — на ДОЛГОЖИВУЩИХ примитивах (echo/barrier/щит/×урон/изгнание карт), без
 # привязки к конкретным классам (классы переписывают — см. [[class-redesign-incoming]]).
+import random
+
 from core.relics.base import Relic
 from core.rarity import Rarity
 
@@ -57,3 +59,42 @@ class НесокрушимыйБастион(Relic):
         combat_manager.add_log_message(
             f"[Реликвия] '{self.name}': +{bonus} Барьера (несгораемый)!"
         )
+
+
+class СтеклянныйГлаз(Relic):
+    """LEGENDARY-джокер. Все атаки наносят ×DAMAGE_MULT урона, но при розыгрыше
+    ЛЮБОЙ карты с шансом BURN_CHANCE она сгорает из колоды НАВСЕГДА (до конца
+    забега). «Машина смерти, у которой кончаются патроны» — огромный множитель
+    урона ценой истончения колоды (риск остаться без карт на поздних этажах).
+
+    Реализация: ×урон через on_damage_calculated (как Проклятая Корона, считается
+    и в превью); сжигание — удаление сыгранной карты из мастер-колоды
+    `gm.current_deck` (тот же объект, что в руке) в on_card_played. Карта успевает
+    отыграть текущий розыгрыш (хук — ДО discard), исчезает со следующего боя."""
+
+    DAMAGE_MULT = 3
+    BURN_CHANCE = 0.10
+
+    def __init__(self):
+        super().__init__(
+            "Стеклянный Глаз",
+            "Атаки наносят тройной урон.\n"
+            "Но каждая сыгранная карта с шансом 10% сгорает из колоды навсегда.",
+            Rarity.LEGENDARY,
+        )
+
+    def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
+        if is_player_attack:
+            return base_dmg * self.DAMAGE_MULT
+        return base_dmg
+
+    def on_card_played(self, card, combat_manager):
+        if random.random() >= self.BURN_CHANCE:
+            return
+        gm = getattr(combat_manager, 'gm', None)
+        deck = getattr(gm, 'current_deck', None) if gm else None
+        if deck is not None and card in deck:
+            deck.remove(card)
+            combat_manager.add_log_message(
+                f"[Реликвия] '{self.name}': карта '{card.name}' сгорела НАВСЕГДА!"
+            )
