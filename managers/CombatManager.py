@@ -93,6 +93,14 @@ class CombatManager(
         else:
             self.enemies.append(value)
 
+    @property
+    def corpses(self) -> list:
+        """Трупы на поле (павшие враги с тегом [Corpse]) — субстрат Некроманта. Это те же
+        мёртвые объекты в self.enemies (не отдельный список) → без дублирования состояния.
+        Пуст, пока никто не погиб; потребителей (поглощение/взрыв) пока нет → инертно."""
+        from core.corpse import corpses_in
+        return corpses_in(self.enemies)
+
     def add_log_message(self, message):
         self.combat_log.append(message)
         if len(self.combat_log) > 6:

@@ -462,3 +462,39 @@ def test_end_turn_phase_тикает_очередь():
     cm.end_turn_phase()
     assert fired == [True]
     assert len(cm.delayed_queue) == 0
+
+
+# ═══════════════════════════════════════════════════════════
+# Трупы на сетке (субстрат Некроманта) — врезка в смерть-путь
+# ═══════════════════════════════════════════════════════════
+
+def test_павший_враг_становится_трупом():
+    """_check_enemy_death помечает павшего врага тегом [Corpse], сохраняя клетку."""
+    from core.corpse import is_corpse
+    gm = SimpleNamespace(stats={"monsters_killed": 0, "bosses_killed": 0})
+    enemy = Cultist("Жертва", 30, 30)
+    cm = _make_cm(enemy=enemy, gm=gm)
+    rank0, line0 = enemy.rank, enemy.line
+    enemy.hp = 0
+    cm._process_enemy_deaths()
+    assert is_corpse(enemy) is True
+    assert enemy.rank == rank0 and enemy.line == line0   # координата цела
+    assert cm.corpses == [enemy]                          # виден через cm.corpses
+
+
+def test_живой_враг_не_труп():
+    cm = _make_cm()                                       # Культист жив
+    assert cm.corpses == []
+
+
+def test_труп_не_мешает_победе():
+    """Труп = мёртвый объект (hp<=0) → victory=all(hp<=0) срабатывает как раньше."""
+    from core.corpse import is_corpse
+    p = Warrior()
+    cm = CombatManager(p, [Cultist("К1", 30, 30), Cultist("К2", 30, 30)],
+                       _simple_deck())
+    for e in cm.enemies:
+        e.hp = 0
+    cm._process_enemy_deaths()
+    assert all(is_corpse(e) for e in cm.enemies)          # оба — трупы
+    assert all(e.hp <= 0 for e in cm.enemies)             # victory-инвариант цел
