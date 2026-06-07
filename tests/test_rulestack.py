@@ -2,7 +2,11 @@
 # Ядро RuleStack (фундамент «слома игры»): Scope/RuleMod/RuleStack.
 # Проверяем диспетч: push/pop, порядок по priority, apply мутирует ctx, predicate-гейт,
 # пустой стек = no-op. Чистая логика, без pygame.
+from types import SimpleNamespace
+
 from core.rules import RuleStack, RuleMod, Scope
+from core.Creature import Creature
+from core.EffectCalculator import EffectCalculator
 
 
 def _mult_mod(id, factor, *, priority=0, predicate=None):
@@ -102,3 +106,72 @@ def test_clear_снимает_всё():
     rs.push(_mult_mod("a", 2)); rs.push(_mult_mod("b", 3))
     rs.clear()
     assert rs.active() == []
+
+
+# ─── Сквозная врезка: RuleStack DAMAGE-scope в EffectCalculator ───────────────
+
+
+def _dmg_mult_mod(factor):
+    """RuleMod DAMAGE-scope: умножает урон игрока на factor."""
+    m = RuleMod("stake_dmg", "Ставка", Scope.DAMAGE,
+                predicate=lambda ctx: ctx["is_player_attack"])
+    m.apply = lambda ctx, f=factor: ctx.__setitem__("damage", int(ctx["damage"] * f))
+    return m
+
+
+def _cm_with_stack(player, rulestack):
+    """Минимальный combat_manager + gm с rulestack для calculate_damage."""
+    gm = SimpleNamespace(rulestack=rulestack, relics=[], stats={})
+    return SimpleNamespace(player=player, gm=gm,
+                           add_log_message=lambda _: None)
+
+
+def test_damage_scope_удваивает_урон_игрока():
+    player = Creature("Игрок", 50, 50)
+    target = Creature("Враг", 100, 100)
+    rs = RuleStack(); rs.push(_dmg_mult_mod(2))
+    cm = _cm_with_stack(player, rs)
+    dmg = EffectCalculator.calculate_damage(player, target, 10,
+                                            game_manager=cm.gm, combat_manager=cm)
+    assert dmg == 20
+
+
+def test_пустой_стек_урон_не_трогает():
+    """Базовый забег = пустой стек → регресс-нейтрально."""
+    player = Creature("Игрок", 50, 50)
+    target = Creature("Враг", 100, 100)
+    cm = _cm_with_stack(player, RuleStack())
+    dmg = EffectCalculator.calculate_damage(player, target, 10,
+                                            game_manager=cm.gm, combat_manager=cm)
+    assert dmg == 10
+
+
+def test_отсутствие_rulestack_у_gm_инертно():
+    """gm без rulestack (симулятор-стаб) → врезка no-op."""
+    player = Creature("Игрок", 50, 50)
+    target = Creature("Враг", 100, 100)
+    gm = SimpleNamespace(relics=[], stats={})         # нет rulestack
+    cm = SimpleNamespace(player=player, gm=gm, add_log_message=lambda _: None)
+    dmg = EffectCalculator.calculate_damage(player, target, 10,
+                                            game_manager=gm, combat_manager=cm)
+    assert dmg == 10
+
+
+def test_damage_scope_не_трогает_урон_врага():
+    """predicate is_player_attack → удар врага по игроку не множится Ставкой."""
+    player = Creature("Игрок", 50, 50)
+    enemy  = Creature("Враг", 50, 50)
+    rs = RuleStack(); rs.push(_dmg_mult_mod(2))
+    cm = _cm_with_stack(player, rs)
+    # attacker=enemy, не player → is_player_attack False
+    dmg = EffectCalculator.calculate_damage(enemy, player, 10,
+                                            game_manager=cm.gm, combat_manager=cm)
+    assert dmg == 10
+
+
+def test_gm_владеет_rulestack():
+    """GameManager создаёт пустой RuleStack с первого фрейма."""
+    from managers.GameManager import GameManager
+    gm = GameManager()
+    assert isinstance(gm.rulestack, RuleStack)
+    assert gm.rulestack.active() == []

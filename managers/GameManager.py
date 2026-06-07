@@ -5,6 +5,7 @@ from managers.RewardManager   import build_rewards
 from managers                 import SaveManager
 from core.players             import Warrior
 from core.forge               import assign_forge_uid, combat_fp_gain, next_cap_for_boss
+from core.rules               import RuleStack
 
 # ENEMY_REGISTRY реэкспортируется для обратной совместимости (живёт в EnemySpawner).
 __all__ = ["GameManager", "ENEMY_REGISTRY"]
@@ -39,6 +40,9 @@ class GameManager:
         self.current_floor = 1
         self.removal_count = 0
         self.relics        = []
+        # Слой «правок правил» (фундамент слома игры): базовый забег = пустой стек.
+        # Ставки/парадоксы пушат сюда RuleMod; движок консультирует в точках врезки.
+        self.rulestack     = RuleStack()
         self.current_deck  = self.player.get_starter_deck()
         # Паспорт ковки: каждой карте старт-колоды — стабильный uid инстанса (39.5).
         for card in self.current_deck:

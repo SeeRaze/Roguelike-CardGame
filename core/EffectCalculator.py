@@ -172,6 +172,22 @@ class EffectCalculator:
                 final_damage = int(final_damage * atk_mult)
                 _rec("Заточка", "×", atk_mult)
 
+        # 9. RULESTACK (DAMAGE-scope) — глобальные правки урона от активных «правил»
+        # (Ставки/парадоксы). Внешний слой: после всех боевых множителей; считается и
+        # в превью (детерминированно, без побочек). Инертно при пустом стеке / отсутствии
+        # rulestack у gm (симулятор-стаб, базовый забег без правил).
+        rulestack = getattr(game_manager, "rulestack", None)
+        if rulestack is not None:
+            from core.rules import Scope
+            ctx = {"damage": final_damage, "is_player_attack": is_player_attack,
+                   "attacker": attacker, "target": target, "player": player,
+                   "dry_run": dry_run}
+            before = final_damage
+            rulestack.apply(Scope.DAMAGE, ctx)
+            final_damage = int(ctx["damage"])
+            if final_damage != before:
+                _rec("Правило", "+", final_damage - before)
+
         if not dry_run and game_manager and hasattr(game_manager, 'stats'):
             if final_damage > game_manager.stats.get("max_damage_dealt", 0):
                 game_manager.stats["max_damage_dealt"] = final_damage
