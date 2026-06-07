@@ -342,22 +342,30 @@ HP-баре зовут её (расхождений «показано vs нан
   → бот «надевает» правила, дуал-сим меряет выживаемость сломанного рулсета.
   `stakes=None` регресс-нейтрально (baseline зелёный).
 
-### Долговой движок — овердрафт ресурсов (§7, С46) — `core/debt.py`
+### Долговой движок — овердрафт ресурсов (§7 С46 + §4 С49) — `core/debt.py`
 «Power now, pay later»: ресурс уходит в МИНУС при розыгрыше (овердрафт) → глубина долга
-даёт множитель урона → в конце хода долг гасится HP-процентом (расплата). Обобщение
-минус-HP Берсерка; «вторая экспонента» риск-driven. Срез — на ЭНЕРГИИ.
-- **`core/debt.py`** (чистый модуль) — ручки (`DEBT_DAMAGE_PER_POINT`/`DEBT_CURVE_MODE`
-  linear|exp-рубильник/`DEBT_EXP_RATE`/`DEBT_MAX_OVERDRAFT`/`DEBT_HP_INTEREST`) + pure
-  `energy_debt_multiplier(debt)` (линейно по умолч.). Числа: `_balance_knobs.md` §9.
-- **Овердрафт** — `Creature.use_energy(amount, allow_debt)` пускает энергию в минус
-  (дефолт False → клампинг). Гейт `CombatManager.play_card_by_index` при
-  `player.energy_overdraft` пускает в долг до `DEBT_MAX_OVERDRAFT` (амплитудный гард-рейл).
-- **Множитель урона** — шаг 8-bis `EffectCalculator` (см. выше), инертен при `energy>=0`.
-- **Гашение** — `CombatManager._settle_energy_debt` в `end_turn_phase` (ДО сброса энергии
-  в `start_turn_phase`): `lose_hp(долг × DEBT_HP_INTEREST)` сквозь щит. Под `_guarded_action`.
-- **Сим-нативность** — `run_single_run(debt=...)` ставит флаг; `bot.py` овердрафт-фильтр
-  playable. `debt=False` регресс-нейтрально (baseline зелёный). A/B: размен-движок
-  (Воин +16.5 … Призыв −9.5). Активация через Ставку «всё в минус» — следующий шаг.
+даёт множитель урона → расплата. «Вторая экспонента» риск-driven. ДВА ресурса:
+- **`core/debt.py`** (чистый модуль) — общая pure `_debt_multiplier(depth, mode, per_point,
+  exp_rate)` + обёртки по ресурсу (читают свои ручки живьём → рубильник exp per-resource):
+  `energy_debt_multiplier` (ручки `DEBT_*`) и `hp_debt_multiplier` (ручки `HP_DEBT_*`).
+  Числа: `_balance_knobs.md` §9.
+- **Долг ЭНЕРГИИ (С46):** `Creature.use_energy(allow_debt)` пускает энергию в минус; гейт
+  `play_card_by_index` при `player.energy_overdraft` до `DEBT_MAX_OVERDRAFT`. Множитель —
+  шаг 8-bis `EffectCalculator`. Гашение — `_settle_energy_debt` в `end_turn_phase`
+  (`lose_hp(долг × DEBT_HP_INTEREST)` сквозь щит, под `_guarded_action`).
+- **Долг HP (С49, субстрат Берсерка «Отрицание Смерти»):** `Creature._hp_floor()` =
+  `-HP_DEBT_MAX_OVERDRAFT` при `player.hp_overdraft` (иначе 0) — клампы `lose_hp`/
+  `take_damage`/шипы/кровь пускают HP в МИНУС. Множитель — шаг 8-ter `EffectCalculator`
+  (`hp<0`). Смерть `defeat.check_player_defeat` на ДНЕ (`hp<=_hp_floor()`) — игрок ВЫЖИВАЕТ
+  в минусе. Хук-сеам `phases._settle_hp_debt` (NO-OP; класс Берсерка переопределит
+  `player.on_hp_debt_settle` — грация-ход + |HP|→FP при победе). Всё инертно без флага.
+- **Живая активация (§4):** Ставка **«Кровавый Кредит»** (`core/rules/stakes._EnableDebt`,
+  DECKBUILD run-setup) ставит `energy_overdraft`+`hp_overdraft` на игрока на забег → долг
+  доступен в РЕАЛЬНОМ бою (до этого жил только в симе). Авто-тоггл в Хабе.
+- **Сим-нативность** — оси РАЗВЯЗАНЫ: `run_single_run(debt=...)` (энергия) и `hp_debt=...`
+  (HP) — чистый A/B по каждой; `bot.py` floor-aware (`_hp_floor()`). Оба False → baseline
+  зелёный. Энергия A/B: размен-движок (Воин +16.5 … Призыв −9.5). HP-долг: «стол» на
+  глубине (классы со щитом неубиваемы → медиана неинформативна) — механика в юнит-тестах.
 
 ### Позиционка — 2D-сетка РАНГ × ЛИНИЯ (кейстоун, С47 v1 → С48 v2) — `core/positioning.py`
 Субстрат Парадокс-режима и class-redesign. **2D-решётка на ОБЕИХ сторонах**: ось РАНГА
