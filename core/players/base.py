@@ -83,3 +83,10 @@ class Player(Creature):
 
     def on_heal_passive(self, healed_amount: int, combat_manager) -> None:
         pass
+
+    def on_combat_won(self, combat_manager) -> None:
+        """Хук ПОБЕДЫ в бою (все враги мертвы) — переопределяется в подклассах.
+        По умолчанию NO-OP. Берсерк («Отрицание Смерти») конвертирует здесь |минус HP| → FP
+        (death-spiral кормит ковку). Зовётся ОДИН раз при победе из _check_victory (живая
+        игра) и из бот-цикла (симулятор)."""
+        pass

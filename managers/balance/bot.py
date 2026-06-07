@@ -56,10 +56,16 @@ class BotCombatManager(CombatManager):
                 idx  = hand.index(card)
                 self.play_card_by_index(idx)
                 if all(e.hp <= 0 for e in self.enemies):
+                    self.player.on_combat_won(self)   # пик победы (Берсерк: |HP|→FP)
                     return True
 
             policy.on_turn_end(self)      # реактивные способности (по набранным стакам)
 
             self.end_turn_phase()
 
+        # Внешний цикл вышел: все враги мертвы (победа) или игрок пал. Пик победы (Берсерк)
+        # фиксируем, только если враги мертвы И игрок жив (победа в фазе врага/союзника).
+        if (all(e.hp <= 0 for e in self.enemies)
+                and self.player.hp > self.player._hp_floor()):
+            self.player.on_combat_won(self)
         return self.player.hp > self.player._hp_floor()

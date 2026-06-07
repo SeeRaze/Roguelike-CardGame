@@ -30,6 +30,9 @@ class ResolutionMixin:
         if (gm is not None
                 and getattr(gm, "current_state", None) == "COMBAT"
                 and hasattr(gm, "distribute_combat_rewards")):
+            # Хук победы (Берсерк: |минус HP|→FP) — ДО раздачи наград (пик может изменить
+            # состояние игрока). NO-OP для обычных классов. Живой путь победы.
+            self.player.on_combat_won(self)
             gm.distribute_combat_rewards()
             return True
         return False

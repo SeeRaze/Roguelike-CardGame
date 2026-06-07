@@ -498,3 +498,50 @@ def test_труп_не_мешает_победе():
     cm._process_enemy_deaths()
     assert all(is_corpse(e) for e in cm.enemies)          # оба — трупы
     assert all(e.hp <= 0 for e in cm.enemies)             # victory-инвариант цел
+
+
+# ═══════════════════════════════════════════════════════════
+# Генерик-сеамы под Берсерка (on_combat_won + строгая расплата)
+# ═══════════════════════════════════════════════════════════
+
+def test_on_combat_won_дефолт_ноп():
+    """Базовый Player.on_combat_won ничего не делает (обычные классы инертны)."""
+    p = Warrior()
+    hp0, fp0 = p.hp, p.forge_points
+    cm = _make_cm(player=p)
+    p.on_combat_won(cm)
+    assert p.hp == hp0 and p.forge_points == fp0
+
+
+def test_check_victory_зовёт_on_combat_won():
+    """Живой путь победы: _check_victory дёргает on_combat_won ДО раздачи наград."""
+    called = []
+    p = Warrior()
+    p.on_combat_won = lambda cm: called.append(cm)
+    enemy = Cultist("Жертва", 1, 1)
+    gm = SimpleNamespace(current_state="COMBAT",
+                         distribute_combat_rewards=lambda: None,
+                         relics=[], stats={"monsters_killed": 0, "bosses_killed": 0})
+    cm = CombatManager(p, enemy, _simple_deck(), game_manager=gm)
+    enemy.hp = 0
+    assert cm._check_victory() is True
+    assert called == [cm]
+
+
+def test_строгая_расплата_прерывает_фазу(monkeypatch):
+    """end_turn_phase прерывается сразу после расплаты HP, если она убила игрока —
+    враги НЕ действуют (ход не инкрементится). Сеам под строгую смерть Берсерка."""
+    import managers.combat.defeat as defeat_mod
+    import managers.network_manager as nm
+    monkeypatch.setattr(defeat_mod.SaveManager, "record_run", lambda *a, **k: None)
+    monkeypatch.setattr(defeat_mod, "send_run_record", lambda *a, **k: None)
+    monkeypatch.setattr(nm, "_get_username", lambda *a, **k: "t")
+    p = Warrior()
+    p.hp_overdraft = True
+    p.on_hp_debt_settle = lambda cm: setattr(p, "hp", p._hp_floor())  # строгая смерть
+    cm = _make_cm(player=p, enemy=Cultist("Враг", 999, 999))
+    p.hp = -3                                  # закончил ход в минусе
+    turn0 = cm.turn_count
+    cm.end_turn_phase()
+    assert p.hp == 0                           # обнулён смертью (check_player_defeat)
+    assert cm.turn_count == turn0              # фаза врага/следующий ход НЕ наступили
