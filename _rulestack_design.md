@@ -1,9 +1,12 @@
-# RuleStack — дизайн-спека (v0.2, развилки закрыты, срез в работе)
+# RuleStack — дизайн-спека (v0.3, вертикальный срез ЗАВЕРШЁН)
 
-> Статус: В РАБОТЕ. Хребет + ВСЕ 4 развилки §9 утверждены юзером (Jun 7 2026, дефолты
-> приняты). Режем вертикальный срез §6. Память: `paradox-mode-and-rulestack`,
-> `class-concepts-ideas`, `collaborative-design-rule`, `current-session-tracker`. Связь:
-> `_balance_knobs.md`, `_upgrade_design.md`, `_project_map.md` (раздел «Порядок реакций»).
+> Статус: СРЕЗ ГОТОВ. Ядро + Ставки/Анте отгружены (5 коммитов: 0c09206·d6809ac·
+> ca5e729·b7d2d7c·0c1a97a, 649 тестов, baseline зелёный). Архитектура слома доказана
+> сквозняком ядро→врезка→контент→сим→живая игра. Развилки §9 закрыты. Следующее —
+> §10 (позиционка / долговая экономика / калибровка). Память:
+> `paradox-mode-and-rulestack`, `class-concepts-ideas`, `collaborative-design-rule`,
+> `current-session-tracker`. Связь: `_balance_knobs.md`, `_project_map.md` (раздел
+> «RuleStack — слой правок правил»).
 
 ---
 
