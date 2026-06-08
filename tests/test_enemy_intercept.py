@@ -49,22 +49,21 @@ def test_off_get_target_первый_живой():
 def test_on_враги_получили_ранги():
     es = _enemies(3)
     _cm(es, positioning=True)
-    # 3 врага → 2 фронт / 1 тыл (assign_enemy_ranks).
-    assert [e.rank for e in es] == [Rank.FRONT, Rank.FRONT, Rank.BACK]
+    # 3 врага → 1 фронт / 2 тыл (честная симметрия с партией, С51).
+    assert [e.rank for e in es] == [Rank.FRONT, Rank.BACK, Rank.BACK]
 
 
 def test_on_авто_цель_только_фронт():
     es = _enemies(3)
     cm = _cm(es, positioning=True)
-    assert cm.get_target_enemy() in (es[0], es[1])   # тыл es[2] недостижим
+    assert cm.get_target_enemy() is es[0]            # тыл es[1],es[2] недостижим
 
 
 def test_on_фронт_пал_открывается_тыл():
     es = _enemies(3)
     cm = _cm(es, positioning=True)
-    es[0].hp = 0
-    es[1].hp = 0
-    assert cm.get_target_enemy() is es[2]            # тыл открылся
+    es[0].hp = 0                                     # единственный фронт пал
+    assert cm.get_target_enemy() in (es[1], es[2])   # весь тыл открылся
 
 
 def test_on_явная_цель_в_тыл_снапается_на_фронт():
@@ -72,7 +71,7 @@ def test_on_явная_цель_в_тыл_снапается_на_фронт():
     cm = _cm(es, positioning=True)
     back_enemy = es[2]                                # прикрыт живым фронтом
     resolved = cm._resolve_attack_target(back_enemy)
-    assert resolved in (es[0], es[1])                # снап на фронт
+    assert resolved is es[0]                          # снап на единственный фронт
     assert resolved is not back_enemy
 
 
@@ -93,4 +92,4 @@ def test_on_удар_картой_не_проходит_в_тыл():
     cm.player.energy = 3
     cm.play_card_by_index(0, target=es[2])
     assert es[2].hp == back_hp_before                # тыл не задет
-    assert es[0].hp < 30 or es[1].hp < 30           # фронт принял урон
+    assert es[0].hp < 30                             # единственный фронт принял урон

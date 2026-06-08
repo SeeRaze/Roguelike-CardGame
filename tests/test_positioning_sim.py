@@ -109,7 +109,8 @@ def _bot_cm(positioning):
 
 def test_sim_враги_ранжируются_в_боте():
     cm, es = _bot_cm(positioning=True)
-    assert [e.rank for e in es] == [Rank.FRONT, Rank.FRONT, Rank.BACK]
+    # 1 фронт / 2 тыл — честная симметрия с партией (С51).
+    assert [e.rank for e in es] == [Rank.FRONT, Rank.BACK, Rank.BACK]
 
 
 def test_sim_бот_автоцель_во_фронт():

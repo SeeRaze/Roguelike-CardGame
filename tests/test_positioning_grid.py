@@ -187,16 +187,17 @@ def test_враги_двое_1фронт_1тыл():
     assert a.rank == Rank.FRONT and b.rank == Rank.BACK
 
 
-def test_враги_трое_2фронт_1тыл():
+def test_враги_трое_1фронт_2тыл():
+    # Честная симметрия с партией (С51): 1 фронт + остальные тыл, как у игрока.
     a, b, c = _c("a"), _c("b"), _c("c")
     assign_enemy_ranks([a, b, c])
-    assert [a.rank, b.rank, c.rank] == [Rank.FRONT, Rank.FRONT, Rank.BACK]
+    assert [a.rank, b.rank, c.rank] == [Rank.FRONT, Rank.BACK, Rank.BACK]
 
 
-def test_враги_четверо_2фронт_2тыл():
+def test_враги_четверо_1фронт_3тыл():
     es = [_c(f"e{i}") for i in range(4)]
     assign_enemy_ranks(es)
-    assert [e.rank for e in es] == [Rank.FRONT, Rank.FRONT, Rank.BACK, Rank.BACK]
+    assert [e.rank for e in es] == [Rank.FRONT, Rank.BACK, Rank.BACK, Rank.BACK]
 
 
 def test_враги_пустой_список_безопасно():
@@ -204,13 +205,12 @@ def test_враги_пустой_список_безопасно():
 
 
 def test_враги_перехват_фронт_прикрывает_тыл():
-    # После расстановки intercept_targets даёт только фронт, пока он жив.
+    # После расстановки intercept_targets даёт только фронт (1 враг), пока он жив.
     a, b, c = _c("a"), _c("b"), _c("c")
     assign_enemy_ranks([a, b, c])
-    assert set(intercept_targets([a, b, c])) == {a, b}   # тыл c прикрыт
+    assert intercept_targets([a, b, c]) == [a]           # тыл b,c прикрыт единств. фронтом
     a.hp = 0
-    b.hp = 0
-    assert intercept_targets([a, b, c]) == [c]           # фронт пал → тыл открыт
+    assert set(intercept_targets([a, b, c])) == {b, c}   # фронт пал → весь тыл открыт
 
 
 # ═══════════════════════════════════════════════════════════
@@ -280,12 +280,13 @@ def test_враги_линия_двое_колонка_по_центру():
     assert neighbors(a, [a, b]) == [b]    # соседи по вертикали (колонка)
 
 
-def test_враги_линия_трое_фронт_центр_лево():
+def test_враги_линия_трое_фронт_центр_тыл_центр_лево():
+    # 1 фронт (Ц) + 2 тыл (Ц,Л) по _LINE_FILL_ORDER в ранге тыла (С51: 1Ф/2Т).
     a, b, c = _c("a"), _c("b"), _c("c")
     assign_enemy_ranks([a, b, c])
     assert cell(a) == (Line.CENTER, Rank.FRONT)
-    assert cell(b) == (Line.LEFT, Rank.FRONT)
-    assert cell(c) == (Line.CENTER, Rank.BACK)
-    assert set(neighbors(a, [a, b, c])) == {b, c}   # центр-фронт смежен лево-фронт + центр-тыл
+    assert cell(b) == (Line.CENTER, Rank.BACK)
+    assert cell(c) == (Line.LEFT, Rank.BACK)
+    assert neighbors(a, [a, b, c]) == [b]   # центр-фронт смежен лишь центр-тыл (вертикаль)
 
 
