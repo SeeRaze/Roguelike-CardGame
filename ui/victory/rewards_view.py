@@ -29,6 +29,16 @@ def draw_rewards(vs, view, screen, fonts, mouse, panel_y=0):
     row_h   = 80
     start_y = panel_y + 130
 
+    # Пустой список наград — легитимный случай (напр. «Проклятая Корона» убирает золото,
+    # а реликвия не выпала / пул исчерпан). Без заглушки окно выглядело бы багнутым-пустым.
+    if not rewards:
+        empty_rect = pygame.Rect(panel_x, start_y, panel_w, row_h - 8)
+        pygame.draw.rect(screen, (25, 25, 30), empty_rect, border_radius=8)
+        pygame.draw.rect(screen, _GRAY, empty_rect, 1, border_radius=8)
+        msg = body_font.render("Наград нет — победа без трофеев.", True, _GRAY)
+        screen.blit(msg, (empty_rect.centerx - msg.get_width() // 2,
+                          empty_rect.centery - msg.get_height() // 2))
+
     for i, reward in enumerate(rewards):
         row_y    = start_y + i * row_h
         row_rect = pygame.Rect(panel_x, row_y, panel_w, row_h - 8)
@@ -75,16 +85,21 @@ def draw_rewards(vs, view, screen, fonts, mouse, panel_y=0):
                      btn_rect.centery - btn_label.get_height() // 2))
         vs._claim_rects.append((btn_rect, i))
 
-    # Кнопка "Получить все"
-    all_y = start_y + len(rewards) * row_h + 20
-    vs._claim_all_rect = pygame.Rect(W // 2 - 200, all_y, 400, 55)
-    hov_all = vs._claim_all_rect.collidepoint(mouse)
-    pygame.draw.rect(screen, _BTN_ALL_H if hov_all else _BTN_ALL,
-                     vs._claim_all_rect, border_radius=8)
-    pygame.draw.rect(screen, _GREEN, vs._claim_all_rect, 2, border_radius=8)
-    all_lbl = body_font.render("Получить все", True, _WHITE)
-    screen.blit(all_lbl, (vs._claim_all_rect.centerx - all_lbl.get_width() // 2,
-                          vs._claim_all_rect.centery - all_lbl.get_height() // 2))
+    # Кнопка "Получить все" — только когда есть что забирать (пустой список → скрыта).
+    # Раскладка кнопок отсчитывается минимум от одной строки (заглушка тоже занимает ряд).
+    rows_shown = max(len(rewards), 1)
+    all_y = start_y + rows_shown * row_h + 20
+    if rewards:
+        vs._claim_all_rect = pygame.Rect(W // 2 - 200, all_y, 400, 55)
+        hov_all = vs._claim_all_rect.collidepoint(mouse)
+        pygame.draw.rect(screen, _BTN_ALL_H if hov_all else _BTN_ALL,
+                         vs._claim_all_rect, border_radius=8)
+        pygame.draw.rect(screen, _GREEN, vs._claim_all_rect, 2, border_radius=8)
+        all_lbl = body_font.render("Получить все", True, _WHITE)
+        screen.blit(all_lbl, (vs._claim_all_rect.centerx - all_lbl.get_width() // 2,
+                              vs._claim_all_rect.centery - all_lbl.get_height() // 2))
+    else:
+        vs._claim_all_rect = None
 
     # Кнопка "Продолжить"
     cont_y = all_y + 80
