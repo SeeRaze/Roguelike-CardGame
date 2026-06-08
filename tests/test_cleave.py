@@ -125,6 +125,39 @@ def test_проекция_aoe_показывает_вторичные_цели()
     assert len([t for t in (e1, e2) if proj2.get(t, 0) > 0]) >= 1   # хотя бы один сосед
 
 
+def test_проекция_следует_за_выбранной_целью_в_тылу():
+    """Регресс-гард (С52 плейтест): клик во ВТОРОГО врага рисовал проекцию на первом.
+    Проекция обязана целить туда же, куда уйдёт урон = выбранная цель (_target_index),
+    прогнанная через _resolve_attack_target. Фронт пал → тыл достижим → клик в E2
+    показывает урон на E2, а НЕ на первом кандидате E1."""
+    from ui.combat.interface import CombatInterface
+    from core.cards import create_strike
+    p, enemies, cm = _make_cm(3, positioning=True)
+    e0, e1, e2 = enemies          # e0 фронт, e1/e2 тыл
+    e0.hp = 0                     # фронт пал → тыл открыт
+    cm._target_index = 2          # игрок выбрал второго в тылу (E2)
+    strike = create_strike()
+    cm.deck_manager.hand = [strike]
+    proj = CombatInterface._card_projection(cm, p, strike)
+    assert proj.get(e2, 0) > 0    # проекция на ВЫБРАННОЙ цели
+    assert e1 not in proj         # не на первом кандидате тыла
+
+
+def test_проекция_снап_на_фронт_как_урон():
+    """Перехват: клик в тыл при живом фронте → урон снапается на фронт. Проекция
+    обязана повторить снап (показать фронт), чтобы совпасть с реальным ударом."""
+    from ui.combat.interface import CombatInterface
+    from core.cards import create_strike
+    p, enemies, cm = _make_cm(3, positioning=True)
+    e0, e1, e2 = enemies          # e0 фронт жив, прикрывает тыл
+    cm._target_index = 2          # игрок ткнул в тыл (E2)
+    strike = create_strike()
+    cm.deck_manager.hand = [strike]
+    proj = CombatInterface._card_projection(cm, p, strike)
+    assert proj.get(e0, 0) > 0    # проекция снапнута на фронт (как и урон)
+    assert e2 not in proj         # прикрытый тыл — без проекции
+
+
 def test_проекция_без_позиционки_только_цель():
     """Без позиционки AoE-вторичных целей нет → проекция только на первичную цель
     (регресс-нейтрально)."""

@@ -73,12 +73,18 @@ class CombatInterface:
             return proj
         gm = combat.gm
 
+        # Цель проекции = ТА ЖЕ, что у реального розыгрыша: выбранная игроком цель
+        # (_target_index через get_current_target), прогнанная через _resolve_attack_target
+        # (снап перехвата на фронт). Раньше брали get_target_enemy() (авто-цель = первый
+        # кандидат), игнорируя выбор → клик во второго врага рисовал проекцию на первом.
+        selected = TargetingSystem.get_current_target(combat)
+        target = combat._resolve_attack_target(selected)
+
         dmg_base = sum(
             (e.upgrade_val if card.upgraded else e.base_val)
             for e in card.effects if isinstance(e, DamageEffect)
         )
         if dmg_base > 0:
-            target = combat.get_target_enemy()
             if target is not None:
                 proj[target] = EffectCalculator.preview(
                     player, target, dmg_base, combat_manager=combat,
@@ -87,7 +93,7 @@ class CombatInterface:
         # Позиционные AoE (сплеш/колонка/ряд): проекция на ВТОРИЧНЫЕ цели по геометрии
         # сетки (splash_ratio от базы), зеркало _PositionalAoEEffect.execute. Без этого
         # игрок не видел, что заденет колонку/соседей (нет проекции = «урона нет»).
-        primary = combat.get_target_enemy()
+        primary = target
         if primary is not None:
             for eff in card.effects:
                 if isinstance(eff, _PositionalAoEEffect):
