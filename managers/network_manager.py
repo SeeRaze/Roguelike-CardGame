@@ -2,7 +2,7 @@ import os
 import threading
 import requests
 
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTwddpcppYIajl_kFBE6Eog16zhhwWEfef6hE6NcIROK6VizjPxWufR9Nt2gMk2hsH/exec"
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEHCwtWOoLS4WSGvtSYxkFdfZ5x9biAYc_kYBNdADbHBmX_DqosyxDaNmv_vOhYoIp/exec"
 
 leaderboard_cache = []
 
