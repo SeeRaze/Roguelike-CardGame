@@ -1,5 +1,5 @@
 import pygame
-from managers.network_manager import fetch_top_scores
+from managers.network_manager import fetch_top_scores, refresh_leaderboard
 from managers import SaveManager
 from ui.hub.data import CLASS_INFO
 
@@ -18,9 +18,10 @@ def _class_label(raw: str) -> str:
 class LeaderboardView:
     @staticmethod
     def load_data():
-        """Пустой метод для совместимости архитектуры (данные теперь local-first
-        из SaveManager + сетевой кэш, грузятся на момент отрисовки)."""
-        pass
+        """Открытие доски: запускаем фоновое обновление кэша из таблицы (GET). Сами
+        данные рисуются local-first из SaveManager + сетевой кэш на момент отрисовки;
+        фоновый GET подтянет свежие сетевые строки к следующему кадру (офлайн-устойчиво)."""
+        refresh_leaderboard()
 
     @staticmethod
     def draw_screen(view):
