@@ -197,6 +197,48 @@ def forge_card_one_level(player, card, class_name: str = "", forced_tag=None) ->
     return True
 
 
+def forge_card_to_level(player, card, target_level: int, class_name: str = "") -> int:
+    """Сразу выковать карту до `target_level` БЕЗ траты FP (товар магазина, §10.5,
+    шаг 3 эконом-дуги). Применяет ОБА слоя ковки шаг-за-шагом (как накопленный
+    forge_card_one_level), чтобы линейные числа И майлстоун-теги совпали с тем, что
+    дала бы ручная прокачка: уровень 1 = card.upgrade(), ≥2 = +δ; майлстоуны 5/10/15
+    открывают слот (авто pick_tag по каналу), >15 кратные s — Гипер-заряд.
+
+    Паспорт пишется в player.deck_forge_state по uid карты (как у купленной карты в
+    колоде). Возвращает достигнутый уровень. НЕ ограничен forge_level_cap (товар уже
+    выкован продавцом; кап — про ЖИВУЮ ковку игроком за FP)."""
+    if target_level <= 0:
+        return forge_level(player, card)
+    uid = assign_forge_uid(player, card)
+    rec = player.deck_forge_state.get(uid) or {"level": 0, "slots": []}
+    player.deck_forge_state[uid] = rec
+    while rec["level"] < target_level:
+        new_level = rec["level"] + 1
+        if new_level == 1:
+            if hasattr(card, "upgrade"):
+                card.upgrade()
+        else:
+            apply_linear_level(card, LINEAR_BONUS_PER_LEVEL)
+        tier = milestone_tier(new_level)
+        if tier is not None:
+            from core.ForgeRegistry import pick_tag
+            channel = card_forge_channel(card)
+            rec["slots"].append({"tag_id": pick_tag(class_name, tier, channel),
+                                 "grade": 0})
+        elif is_overcharge_level(new_level):
+            overcharge_slot(rec)
+        rec["level"] = new_level
+    return rec["level"]
+
+
+def discard_forge_record(player, card) -> None:
+    """Снять паспорт ковки карты с игрока (товар магазина не куплен → не засоряем
+    deck_forge_state). Безопасно, если паспорта нет."""
+    uid = getattr(card, "_fuid", None)
+    if uid is not None and uid in getattr(player, "deck_forge_state", {}):
+        del player.deck_forge_state[uid]
+
+
 def next_cap_for_boss(floor: int):
     """Новый кап уровня карты, открываемый победой над боссом этажа `floor`
     (увязка шкал §3). None, если этаж — не босс-чекпойнт."""

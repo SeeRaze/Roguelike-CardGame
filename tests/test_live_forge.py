@@ -252,3 +252,59 @@ def test_trigger_guard_caps_and_resets():
     assert g.enter() is True                         # после выхода снова есть слот
     g.depth = 0
     assert g.enter() is True                         # сброс на новый розыгрыш
+
+
+# ─── Магазин: мгновенная ковка товара (шаг 3 эконом-дуги) ─────────────────────
+
+def test_forge_card_to_level_линейный_слой():
+    # Уровень 1 = ручной upgrade (имя +), уровни ≥2 = +δ к числам.
+    p = Warrior()
+    c = _atk(dmg=6)                       # base_val=6, upgrade_val=8
+    f.forge_card_to_level(p, c, 3)
+    assert f.forge_level(p, c) == 3
+    assert c.upgraded is True             # уровень 1 = upgrade()
+    eff = c.effects[0]
+    # δ=LINEAR_BONUS_PER_LEVEL за уровни 2 и 3 (×2 уровня)
+    assert eff.base_val == 6 + 2 * f.LINEAR_BONUS_PER_LEVEL
+
+
+def test_forge_card_to_level_открывает_майлстоун_теги():
+    # Уровень 5 → 1 слот (early), уровень 10 → 2 слота.
+    p = Warrior()
+    c = _atk()
+    f.forge_card_to_level(p, c, 10, class_name="Warrior")
+    rec = p.deck_forge_state[c._fuid]
+    assert rec["level"] == 10
+    assert len(rec["slots"]) == 2         # майлстоуны 5 и 10
+
+
+def test_forge_card_to_level_не_ограничен_капом():
+    # Товар выкован продавцом — кап игрока не мешает (кап про ЖИВУЮ ковку за FP).
+    p = Warrior()
+    p.forge_level_cap = 4
+    c = _atk()
+    lvl = f.forge_card_to_level(p, c, 15, class_name="Warrior")
+    assert lvl == 15
+
+
+def test_forge_card_to_level_ноль_инертно():
+    p = Warrior()
+    c = _atk()
+    assert f.forge_card_to_level(p, c, 0) == 0
+    assert getattr(c, "_fuid", None) is None or c._fuid not in p.deck_forge_state
+
+
+def test_discard_forge_record_снимает_паспорт():
+    # Некупленный товар не должен засорять deck_forge_state.
+    p = Warrior()
+    c = _atk()
+    f.forge_card_to_level(p, c, 5, class_name="Warrior")
+    assert c._fuid in p.deck_forge_state
+    f.discard_forge_record(p, c)
+    assert c._fuid not in p.deck_forge_state
+
+
+def test_discard_forge_record_безопасен_без_паспорта():
+    p = Warrior()
+    c = _atk()
+    f.discard_forge_record(p, c)          # не падает
