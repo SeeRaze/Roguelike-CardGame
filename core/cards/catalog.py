@@ -25,6 +25,7 @@ from core.cards import (
     create_lacerate, create_hemorrhage, create_open_wound,
     create_summon_wolf, create_summon_golem,
     create_retribution,
+    create_punishing_formation, create_shield_wall, create_warrior_stance,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
     create_bloodlust, create_serrated_edge,
@@ -56,7 +57,8 @@ GENERIC_FACTORIES = [
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────
 CLASS_FACTORIES = {
     "Summoner":  [create_summon_wolf, create_summon_golem],
-    "Warrior":   [create_retribution, create_steel_barricade, create_bastion],
+    "Warrior":   [create_punishing_formation, create_shield_wall, create_warrior_stance,
+                  create_retribution, create_steel_barricade, create_bastion],
     "Mage":      [create_boil, create_arcane_focus, create_elemental_surge],
     "Rogue":     [create_bloodlust, create_serrated_edge],
     "Druid":     [create_virulent_strain],

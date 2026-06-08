@@ -11,7 +11,7 @@
 #
 # Прежняя ось «защита=атака» (Возмездие = щит→урон, Барьер) сохранена как ДРАФТ-ПУЛ
 # класса (ниже) — достижима, но вне стартера. Числа = ЗАГЛУШКИ под капстоун-калибровку.
-from core.cards.base import Card, ShieldEffect, BarrierEffect
+from core.cards.base import Card, ShieldEffect, BarrierEffect, HealEffect
 from core.EffectCalculator import EffectCalculator
 from core.rarity import Rarity
 
@@ -136,6 +136,47 @@ class ShieldDamageEffect:
                     f" -> Возмездие: {base} урона всем врагам "
                     f"({len(targets)}) от щита {player.shield}."
                 )
+
+
+# ─── Фабрики сигнатурок Дисциплины (С56). Числа = ЗАГЛУШКИ под капстоун ─────────
+def create_punishing_formation():
+    """«Карающий строй» — сжигает ВСЮ Дисциплину → урон 6(9) + 2(3) за стак. Грань
+    «Дисц → бурст» (роль Возмездия). Учит «копи строй → слей в удар»; бьёт базой
+    вне Дисциплины → не рельсы. UNCOMMON."""
+    return Card(
+        name="Карающий строй",
+        cost=1,
+        card_type="attack",
+        description="Сжечь всю Дисциплину: урон 6(9) + 2(3) за сожжённый стак.",
+        effects=[DisciplineBurstDamageEffect(6, 9, 2, 3)],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_shield_wall():
+    """«Стена щитов» — сжигает ВСЮ Дисциплину → щит 5(8) + 1(2) за стак + хил 3(5).
+    Грань «Дисц → выживаемость» (ось класса). Оборонный payoff накопителя. UNCOMMON."""
+    return Card(
+        name="Стена щитов",
+        cost=1,
+        card_type="defense",
+        description="Сжечь всю Дисциплину: щит 5(8) + 1(2) за стак. Хил 3(5).",
+        effects=[DisciplineToShieldEffect(5, 8, 1, 2), HealEffect(3, 5)],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_warrior_stance():
+    """«Стойка» — щит 5(8) + сразу +2(3) Дисциплины. Грань-билдер: учит «оборона =
+    накопитель», ускоряет пассив. В драфт-пуле (не в стартере). COMMON."""
+    return Card(
+        name="Стойка",
+        cost=1,
+        card_type="skill",
+        description="Щит 5(8). +2(3) Дисциплины.",
+        effects=[ShieldEffect(5, 8), DisciplineGainEffect(2, 3)],
+        rarity=Rarity.COMMON,
+    )
 
 
 def create_retribution():

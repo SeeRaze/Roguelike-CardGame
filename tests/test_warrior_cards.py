@@ -5,6 +5,9 @@ from core.cards.base import Card
 from core.cards.warrior import (
     DisciplineBurstDamageEffect, DisciplineToShieldEffect, DisciplineGainEffect,
 )
+from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class, get_class_cards
+
+_SIGNATURES = {"Карающий строй", "Стена щитов", "Стойка"}
 
 
 def _warrior(make_creature, hp=90, max_hp=90):
@@ -95,3 +98,29 @@ def test_спендер_тратит_всю_дисциплину_второй_б
                   [DisciplineBurstDamageEffect(6, 9, 2, 3)])
     burst2.apply(player, enemy)
     assert player.discipline == 0
+
+
+# ═══════════════════════════════════════════════════════════
+# Регистрация: сигнатурки достижимы в пуле Воина (StS-инфра)
+# ═══════════════════════════════════════════════════════════
+
+def test_воин_сигнатурки_зарегистрированы():
+    names = {f().name for f in CLASS_FACTORIES["Warrior"]}
+    assert _SIGNATURES <= names                      # 3 новых + старая ось в пуле
+
+
+def test_воин_сигнатурки_в_пуле_класса():
+    pool_names = {f().name for f in get_pool_for_class("Warrior")}
+    assert _SIGNATURES <= pool_names
+
+
+def test_воин_сигнатурки_тегированы_классом():
+    for card in (f() for f in get_class_cards("Warrior")):
+        assert card.card_class == "Warrior"
+
+
+def test_воин_сигнатурки_не_в_generic():
+    from core.cards.catalog import GENERIC_FACTORIES
+    generic_names = {f().name for f in GENERIC_FACTORIES}
+    for n in _SIGNATURES:
+        assert n not in generic_names
