@@ -7,9 +7,9 @@ POSITIVE_EVENTS = [
             "Вода светится голубым светом."
         ),
         "options": [
-            {"label": "Выпить (+30 HP)",                         "effects": ["heal:30"]},
-            {"label": "Наполнить флягу (+15 HP, +водная карта)", "effects": ["heal:15", "gain_card:create_splash"]},
-            {"label": "Пройти мимо",                             "effects": ["skip"]},
+            {"label": "Выпить (+30% HP)",                         "effects": ["heal_pct:0.30"]},
+            {"label": "Наполнить флягу (+15% HP, +водная карта)", "effects": ["heal_pct:0.15", "gain_card:create_splash"]},
+            {"label": "Пройти мимо",                              "effects": ["skip"]},
         ],
     },
     {
@@ -20,9 +20,9 @@ POSITIVE_EVENTS = [
             "Среди вещей — монеты и старая колода карт."
         ),
         "options": [
-            {"label": "Взять золото (+40 монет)",  "effects": ["gain_gold:40"]},
-            {"label": "Взять карту (случайная)",   "effects": ["gain_random_card"]},
-            {"label": "Взять всё (-10 HP)",         "effects": ["gain_gold:20", "gain_random_card", "lose_hp:10"]},
+            {"label": "Взять золото (+монеты)",          "effects": ["gain_gold_floor:4"]},
+            {"label": "Взять карту (случайная)",          "effects": ["gain_random_card"]},
+            {"label": "Взять всё (+монеты, +карта, -10% HP)", "effects": ["gain_gold_floor:2", "gain_random_card", "lose_hp_pct:0.10"]},
         ],
     },
     {
@@ -33,9 +33,9 @@ POSITIVE_EVENTS = [
             "Одна из них светится — внутри боевые техники."
         ),
         "options": [
-            {"label": "Изучить технику (случайная карта)",      "effects": ["gain_random_card"]},
-            {"label": "Продать книгу (+35 золота)",              "effects": ["gain_gold:35"]},
-            {"label": "Взять обе (+карта, +20 золота, -15 HP)",  "effects": ["gain_random_card", "gain_gold:20", "lose_hp:15"]},
+            {"label": "Изучить технику (случайная карта)",       "effects": ["gain_random_card"]},
+            {"label": "Продать книгу (+монеты)",                  "effects": ["gain_gold_floor:4"]},
+            {"label": "Взять обе (+карта, +монеты, -15% HP)",     "effects": ["gain_random_card", "gain_gold_floor:2", "lose_hp_pct:0.15"]},
         ],
     },
 ]

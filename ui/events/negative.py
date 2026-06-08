@@ -7,9 +7,9 @@ NEGATIVE_EVENTS = [
             "Они требуют золото или кровь."
         ),
         "options": [
-            {"label": "Отдать золото (-40 монет)",       "effects": ["lose_gold:40"]},
-            {"label": "Сопротивляться (-25 HP)",          "effects": ["lose_hp:25"]},
-            {"label": "Бежать (-15 HP, -20 монет)",       "effects": ["lose_hp:15", "lose_gold:20"]},
+            {"label": "Отдать золото (-40% монет)",       "effects": ["lose_gold_pct:0.40"]},
+            {"label": "Сопротивляться (-25% HP)",          "effects": ["lose_hp_pct:0.25"]},
+            {"label": "Бежать (-15% HP, -20% монет)",      "effects": ["lose_hp_pct:0.15", "lose_gold_pct:0.20"]},
         ],
     },
     {
@@ -20,9 +20,9 @@ NEGATIVE_EVENTS = [
             "Стоит взять его — и вы чувствуете тёмную магию."
         ),
         "options": [
-            {"label": "Взять артефакт (-20 HP, +карта)", "effects": ["lose_hp:20", "gain_random_card"]},
-            {"label": "Уничтожить его (-10 HP)",          "effects": ["lose_hp:10"]},
-            {"label": "Оставить и уйти",                  "effects": ["skip"]},
+            {"label": "Взять артефакт (-20% HP, +карта)", "effects": ["lose_hp_pct:0.20", "gain_random_card"]},
+            {"label": "Уничтожить его (-10% HP)",          "effects": ["lose_hp_pct:0.10"]},
+            {"label": "Оставить и уйти",                   "effects": ["skip"]},
         ],
     },
     {
@@ -33,9 +33,9 @@ NEGATIVE_EVENTS = [
             "Споры оседают на коже — жжение нарастает."
         ),
         "options": [
-            {"label": "Перебежать быстро (-15 HP)",              "effects": ["lose_hp:15"]},
-            {"label": "Идти медленно, прикрывшись (-30 HP)",     "effects": ["lose_hp:30"]},
-            {"label": "Вернуться назад (-20 золота, обходной путь)", "effects": ["lose_gold:20"]},
+            {"label": "Перебежать быстро (-15% HP)",               "effects": ["lose_hp_pct:0.15"]},
+            {"label": "Идти медленно, прикрывшись (-30% HP)",      "effects": ["lose_hp_pct:0.30"]},
+            {"label": "Вернуться назад (-20% золота, обходной путь)", "effects": ["lose_gold_pct:0.20"]},
         ],
     },
 ]

@@ -84,3 +84,39 @@ def test_флэт_ключи_живы_для_back_compat():
     assert gm.player.hp == 70
     apply_effect("gain_gold:40", gm)
     assert gm.player_gold == 140
+
+
+def test_все_опции_событий_применяются_без_ошибок():
+    # Целостность данные↔эффекты: каждая опция каждого базового события должна
+    # примениться без исключений (ловит опечатки в ключах/битые %). HP не уходит
+    # ниже 1, золото не в минус.
+    from ui.events.event_data import _BASE_POOL
+    from ui.events.event_effects import apply_option
+    from core.players import Warrior
+
+    for event in _BASE_POOL:
+        for option in event["options"]:
+            gm = SimpleNamespace(
+                player=Warrior(), player_gold=200, current_floor=12,
+                event_result="", event_result_card=None,
+                relics=[], add_card=lambda c: None,
+            )
+            gm.player.hp = gm.player.max_hp
+            apply_option(option, gm)
+            assert gm.player.hp >= 1
+            assert gm.player_gold >= 0
+
+
+def test_данные_событий_перешли_на_проценты():
+    # Шаг 2b: HP/золото в данных НЕ должны использовать плоские flat-ключи
+    # (heal:/lose_hp:/gain_gold:/lose_gold:) — только %-варианты. gain_card/
+    # gain_relic/skip/gain_random_card остаются как есть.
+    from ui.events.event_data import _BASE_POOL
+    flat_hp_gold = {"heal", "lose_hp", "gain_gold", "lose_gold"}
+    for event in _BASE_POOL:
+        for option in event["options"]:
+            for eff in option["effects"]:
+                key = eff.split(":", 1)[0]
+                assert key not in flat_hp_gold, (
+                    f"{event['title']}: плоский ключ '{key}' должен быть %-вариантом")
+

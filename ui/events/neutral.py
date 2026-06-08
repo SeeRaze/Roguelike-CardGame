@@ -7,9 +7,10 @@ NEUTRAL_EVENTS = [
             "Камень покрыт рунами, от него исходит тепло."
         ),
         "options": [
-            {"label": "Принести жертву (-15 HP, +реликвия)", "effects": ["lose_hp:15", "gain_relic:LuckyClover"]},
-            {"label": "Помолиться (+20 HP)",                  "effects": ["heal:20"]},
-            {"label": "Пройти мимо",                          "effects": ["skip"]},
+            {"label": "Принести жертву (-15% HP, +реликвия)",   "effects": ["lose_hp_pct:0.15", "gain_relic:LuckyClover"]},
+            {"label": "Закалить дух (-10% HP, +12% макс. HP)",  "effects": ["lose_hp_pct:0.10", "temper_spirit:0.12"]},
+            {"label": "Помолиться (+20% HP)",                    "effects": ["heal_pct:0.20"]},
+            {"label": "Пройти мимо",                             "effects": ["skip"]},
         ],
     },
     {
@@ -20,9 +21,9 @@ NEUTRAL_EVENTS = [
             "«Твоя кровь или твоё золото — выбирай.»"
         ),
         "options": [
-            {"label": "Заплатить золотом (-30, +карта)",   "effects": ["lose_gold:30", "gain_random_card"]},
-            {"label": "Заплатить кровью (-20 HP, +карта)", "effects": ["lose_hp:20", "gain_random_card"]},
-            {"label": "Отказаться",                         "effects": ["skip"]},
+            {"label": "Заплатить золотом (-30% монет, +карта)", "effects": ["lose_gold_pct:0.30", "gain_random_card"]},
+            {"label": "Заплатить кровью (-20% HP, +карта)",     "effects": ["lose_hp_pct:0.20", "gain_random_card"]},
+            {"label": "Отказаться",                              "effects": ["skip"]},
         ],
     },
     {
@@ -33,9 +34,9 @@ NEUTRAL_EVENTS = [
             "Он предлагает силу в обмен на испытание."
         ),
         "options": [
-            {"label": "Принять испытание (-25 HP, +реликвия)", "effects": ["lose_hp:25", "gain_relic:ДревнееОгниво"]},
-            {"label": "Взять огненную карту",                   "effects": ["gain_card:create_fire_breath"]},
-            {"label": "Отступить",                              "effects": ["skip"]},
+            {"label": "Принять испытание (-25% HP, +реликвия)", "effects": ["lose_hp_pct:0.25", "gain_relic:ДревнееОгниво"]},
+            {"label": "Взять огненную карту",                    "effects": ["gain_card:create_fire_breath"]},
+            {"label": "Отступить",                               "effects": ["skip"]},
         ],
     },
     {
@@ -46,9 +47,9 @@ NEUTRAL_EVENTS = [
             "Он просит о помощи. Рядом — его сумка с монетами."
         ),
         "options": [
-            {"label": "Помочь (-10 HP, +50 золота)", "effects": ["lose_hp:10", "gain_gold:50"]},
-            {"label": "Ограбить (+30 золота)",        "effects": ["gain_gold:30"]},
-            {"label": "Пройти мимо",                  "effects": ["skip"]},
+            {"label": "Помочь (-10% HP, +монеты)", "effects": ["lose_hp_pct:0.10", "gain_gold_floor:5"]},
+            {"label": "Ограбить (+монеты)",         "effects": ["gain_gold_floor:3"]},
+            {"label": "Пройти мимо",                "effects": ["skip"]},
         ],
     },
 ]
