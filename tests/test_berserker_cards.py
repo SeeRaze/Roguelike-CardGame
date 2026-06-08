@@ -5,6 +5,7 @@ from core.cards.base import Card, DamageEffect
 from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
 )
+from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class, get_class_cards
 
 
 def _berserker(make_creature, hp=60, max_hp=60):
@@ -111,3 +112,36 @@ def test_жажда_крови_композиция_нырок_удар_банк
     assert enemy.hp == 0
     assert player.forge_points == 1
     assert player.hp == -2
+
+
+# ═══════════════════════════════════════════════════════════
+# Регистрация: карты достижимы в пуле своего класса (StS-инфра)
+# ═══════════════════════════════════════════════════════════
+
+def test_берсерк_карты_зарегистрированы():
+    names = {f().name for f in CLASS_FACTORIES["Berserker"]}
+    assert names == {"Кровавая ярость", "Безрассудный удар", "Жажда крови"}
+
+
+def test_берсерк_карты_в_пуле_класса():
+    pool_names = {f().name for f in get_pool_for_class("Berserker")}
+    assert {"Кровавая ярость", "Безрассудный удар", "Жажда крови"} <= pool_names
+
+
+def test_берсерк_карты_тегированы_классом():
+    # _tagged проставляет card_class централизованно → выдаются только своему классу.
+    for card in (f() for f in get_class_cards("Berserker")):
+        assert card.card_class == "Berserker"
+
+
+def test_берсерк_карты_не_в_generic():
+    from core.cards.catalog import GENERIC_FACTORIES
+    generic_names = {f().name for f in GENERIC_FACTORIES}
+    for n in ("Кровавая ярость", "Безрассудный удар", "Жажда крови"):
+        assert n not in generic_names
+
+
+def test_вирулентный_штамм_фикс_достижим_у_друида():
+    # Был осиротевшим: импортирован, но Druid отсутствовал в CLASS_FACTORIES.
+    pool_names = {f().name for f in get_pool_for_class("Druid")}
+    assert "Вирулентный штамм" in pool_names

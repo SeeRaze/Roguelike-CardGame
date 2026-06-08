@@ -6,10 +6,9 @@
 # собирает по ходу забега; пассив (hp_overdraft + Безумие) — сквозная нить.
 #
 # Числа — ЗАГЛУШКИ; калибровка тройки = отдельный капстоун на финальном контенте.
-#
-# ЗДЕСЬ только эффект-кирпичи (логика граней). Фабрики карт + регистрация в
-# CLASS_FACTORIES — следующим шагом (тогда же вернутся импорты Card/DamageEffect/Rarity).
+from core.cards.base import Card, DamageEffect
 from core.EffectCalculator import EffectCalculator
+from core.rarity import Rarity
 
 
 class DebtScalingDamageEffect:
@@ -93,3 +92,52 @@ class DebtToForgeOnKillEffect:
             combat_manager.add_log_message(
                 f" -> Добивание! {gained} HP-долга → +{gained} FP."
             )
+
+
+# ─── Фабрики сигнатурных карт ────────────────────────────────────────────────
+# Числа = ЗАГЛУШКИ под калибровку (подзадача 4 / капстоун). Каждая карта учит ОДНУ
+# грань движка, ни одна не закрывает билд сама ([[starter-deck-reveals-passive]]).
+
+def create_blood_rage():
+    """«Кровавая ярость» — урон растёт с глубиной HP-долга (+1/+2 за единицу долга).
+    Движок кат.4 в карте: грань «долг = урон» (роль Возмездия у Воина). Бьёт базой
+    вне долга → учит, не запирает. UNCOMMON."""
+    return Card(
+        name="Кровавая ярость",
+        cost=1,
+        card_type="attack",
+        description="Урон 6(8) + 1(2) за каждую единицу HP-долга.",
+        effects=[DebtScalingDamageEffect(6, 8, 1, 2)],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_reckless_blow():
+    """«Безрассудный удар» — дорогая мощная атака (cost 3). Нормально дорогая →
+    «корм» для Безумия: каст за 0 энергии ценой HP → нырок в долг → множитель.
+    Учит грань «Безумие = каст дорогого ценой HP». Обычный DamageEffect. COMMON."""
+    return Card(
+        name="Безрассудный удар",
+        cost=3,
+        card_type="attack",
+        description="Мощный удар: 18(24) урона.",
+        effects=[DamageEffect(18, 24)],
+        rarity=Rarity.COMMON,
+    )
+
+
+def create_blood_thirst():
+    """«Жажда крови» — заплати HP (нырок в долг) → бей; при ДОБИВАНИИ часть долга
+    мгновенно в Forge Power (и гасит долг). Грань «долг → FP», gated на убийство
+    (награда за агрессию, не турель). Порядок кирпичей: самоурон → удар (кормится
+    свежим долгом) → банк FP. UNCOMMON."""
+    return Card(
+        name="Жажда крови",
+        cost=1,
+        card_type="attack",
+        description="Платите 4(3) HP, наносите 8(11) урона. При добивании: "
+                    "половина HP-долга → Forge Power.",
+        effects=[SelfHarmEffect(4, 3), DamageEffect(8, 11),
+                 DebtToForgeOnKillEffect(0.5, 0.5)],
+        rarity=Rarity.UNCOMMON,
+    )
