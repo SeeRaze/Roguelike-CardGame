@@ -2,8 +2,8 @@ from core.players.base import Player
 from core.players.abilities import MageAbility
 from core.EffectCalculator import EffectCalculator
 from core.cards import (
-    create_strike, create_defend, create_ignite, create_splash, create_boil,
-    create_arcane_focus,
+    create_strike, create_defend, create_ignite, create_splash,
+    create_overclock, create_resonant_discharge,
 )
 
 # НЕСТАБИЛЬНОСТЬ (ступень «Гни») — цена в % от MAX HP (масштаб-инвариантна: актуальна
@@ -30,13 +30,17 @@ def instability_cost(max_hp: int, mastery: int) -> int:
 
 
 def get_mage_deck():
+    # Де-рельсенный стартер (С56): Закипание убрано (ПАР пред-собран = рельсы); Поджог+
+    # Всплеск раздельно → ПАР игрок СОБИРАЕТ сам → комбо растит Мастерство (пассив). 2
+    # сигнатурки-учителя: Разгон (гамбл HP→Мастерство) + Резонансный разряд (выжать
+    # глубину). Закипание/Стихийный всплеск/Тайное сосредоточение — в драфт-пуле (catalog).
     return [
         create_strike(), create_strike(),
         create_defend(), create_defend(), create_defend(),
-        create_ignite(),
-        create_splash(),
-        create_boil(),            # классовая: энейблер ПАР (Мокрый+Горение разом)
-        create_arcane_focus(),    # классовая: движок кат.4 (мастерство стихий)
+        create_ignite(),                # Горение (половина ПАР)
+        create_splash(),                # Мокрый (половина ПАР) — собери сам
+        create_overclock(),             # Разгон: гамбл HP → Мастерство
+        create_resonant_discharge(),    # Резонансный разряд: урон от глубины Мастерства
     ]
 
 

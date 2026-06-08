@@ -12,7 +12,8 @@ import random
 from core.cards import (
     create_iron_wall, create_bastion,
     create_punishing_formation, create_warrior_stance,
-    create_boil, create_arcane_focus, create_elemental_surge, create_ignite,
+    create_arcane_focus, create_ignite,
+    create_overclock, create_resonant_discharge,
     create_splash, create_toxic_cloud, create_poison_stab, create_lacerate,
     create_open_wound, create_hemorrhage, create_battle_cry,
     create_bloodlust, create_serrated_edge,
@@ -31,7 +32,9 @@ from core.cards.warrior import (
 )
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
-from core.cards.mage import MasteryEffect
+from core.cards.mage import (
+    MasteryEffect, OverclockEffect, MasteryScalingDamageEffect,
+)
 from core.cards.rogue import FrenzyEffect
 from core.cards.druid import VirulenceEffect
 from core.cards.berserker import (
@@ -68,8 +71,10 @@ CLASS_CORES = {
         [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро, ПроклятаяКорона],
     ),
     "Mage": (
-        [create_boil, create_ignite, create_splash, create_arcane_focus,
-         create_elemental_surge],
+        # Движок Мастерства: гамбл Разгоном + комбо (Поджог/Всплеск) растят Мастерство →
+        # перегруз ×1.5 → Резонансный разряд выжимает глубину. HP-churn (хил от комбо).
+        [create_overclock, create_resonant_discharge, create_arcane_focus,
+         create_ignite, create_splash],
         [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень, ПроклятаяКорона],
     ),
     "Druid": (
@@ -115,8 +120,10 @@ def _card_themes(card) -> set:
             t.add("synergy")
         elif isinstance(e, (BleedEffect, FrenzyEffect)):
             t.add("bleed")
-        elif isinstance(e, MasteryEffect):
-            t.add("mastery")
+        elif isinstance(e, (MasteryEffect, OverclockEffect)):
+            t.add("mastery")                    # копит Мастерство (Разгон — гамблом)
+        elif isinstance(e, MasteryScalingDamageEffect):
+            t.update(("attack", "mastery"))     # атака, масштаб от Мастерства (Маг)
         elif isinstance(e, BarrierEffect):
             t.add("shield")
         elif isinstance(e, (EchoEffect, EchoPayoffEffect)):
@@ -173,6 +180,10 @@ def _card_score(card) -> float:
             value += 5                          # ретриггер-множитель (кат.4)
         elif isinstance(e, MasteryEffect):
             value += e.base_val * 3             # +урон ВСЕХ атак до конца боя
+        elif isinstance(e, OverclockEffect):
+            value += e.gain * 3                 # +Мастерство разом (ценой %HP — не штрафуем)
+        elif isinstance(e, MasteryScalingDamageEffect):
+            value += e.base_val + e.per_mastery * 5  # база + оценка глубины Мастерства
         elif isinstance(e, BarrierEffect):
             value += e.base_val * 2.5           # несгораемый щит (компаунд)
         elif isinstance(e, FrenzyEffect):

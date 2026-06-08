@@ -111,3 +111,59 @@ def test_маг_сигнатурки_не_в_generic():
     generic_names = {f().name for f in GENERIC_FACTORIES}
     for n in _SIGNATURES:
         assert n not in generic_names
+
+
+# ═══════════════════════════════════════════════════════════
+# MagePolicy — пилотирование (ПАР первично, Разгон = дотолчок при безопасном HP)
+# ═══════════════════════════════════════════════════════════
+
+class _StubCombat:
+    def __init__(self, player, enemy):
+        self.player = player
+        self.enemy = enemy
+        self.enemies = [enemy]
+
+    def get_target_enemy(self):
+        return self.enemy if self.enemy.hp > 0 else None
+
+
+def _overclock():
+    return Card("Разгон", 1, "skill", "", [OverclockEffect(0.10, 3, 4)])
+
+
+def _splash():
+    from core.cards.base import DamageEffect, StatusEffect
+    return Card("Всплеск", 1, "attack", "", [DamageEffect(2, 4), StatusEffect("wet", 3, 3)])
+
+
+def test_политика_собирает_пар_прежде_разгона(make_creature):
+    # ПАР даёт Мастерство бесплатно (комбо) → не платим HP Разгоном, пока есть стихия.
+    from managers.balance.policy import MagePolicy
+    player = _mage(make_creature)                     # HP полон
+    enemy = make_creature("Враг", 50, 50)             # без стихий
+    pick = MagePolicy()._class_pick([_overclock(), _splash()], enemy and _StubCombat(player, enemy))
+    assert pick.name == "Всплеск"                     # собираем ПАР, Разгон придержан
+
+
+def test_политика_не_гэмблит_при_низком_hp(make_creature):
+    # Разгон (−HP) НЕ льётся при низком HP — не суицид.
+    from managers.balance.policy import MagePolicy
+    from core.cards.base import DamageEffect
+    player = _mage(make_creature, hp=10, max_hp=70)   # HP < половины
+    enemy = make_creature("Враг", 50, 50)
+    enemy.set_status("wet", 3)
+    enemy.set_status("ignited", 3)                    # ПАР уже готов → Разгон не нужен
+    strike = Card("Удар", 1, "attack", "", [DamageEffect(6, 9)])
+    pick = MagePolicy()._class_pick([_overclock(), strike], _StubCombat(player, enemy))
+    assert pick is not None
+    assert "Разгон" not in pick.name                  # гамбл при дефиците HP запрещён
+
+
+def test_политика_гэмблит_разгоном_при_избытке_hp(make_creature):
+    # ПАР в этот ход не собрать (нет стихийных карт), HP в избытке, Мастерство ниже
+    # порога → Разгон дотолкивает к перегрузу ×1.5.
+    from managers.balance.policy import MagePolicy
+    player = _mage(make_creature)                     # HP полон
+    enemy = make_creature("Враг", 50, 50)
+    pick = MagePolicy()._class_pick([_overclock()], _StubCombat(player, enemy))
+    assert pick.name == "Разгон"

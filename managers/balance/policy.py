@@ -22,6 +22,7 @@ from core.cards.warrior import (
     DisciplineGainEffect,
 )
 from core.cards.berserker import SelfHarmEffect
+from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
 
 # --- Пороги «компетентности» (НЕ игровой баланс, а качество игры бота) ---
 # Жать реактивную способность, когда набралось осмысленно много стаков/щита.
@@ -31,6 +32,7 @@ _WARRIOR_DISCIPLINE_MIN = 4   # спендер Дисциплины окупае
 _ROGUE_BLEED_MIN        = 8   # «Вскрытие»: удвоить кровотечение (ценой -1 энергии)
 _DRUID_POISON_MIN       = 10  # «Токсичный взрыв»: снять весь яд разом
 _MAGE_ELEMENTAL_MIN     = 4   # «Стихийный барьер»: щит = стихийные стаки * 3
+_MAGE_OVERCLOCK_HP_FRAC = 0.5 # «Разгон»: гэмблить HP→Мастерство только при HP ≥ доли max
 # Берсерк «Безумие» = ставка дисперсии: дамп руки за 0 энергии ценой HP (нырок в
 # минус → множитель урона), НО конец хода в минусе без победы = строгая смерть.
 # Компетентный пилот ныряет ТОЛЬКО когда оба условия сошлись: (1) полный буфер HP,
@@ -258,34 +260,51 @@ class DruidPolicy(BotPolicy):
 
 
 class MagePolicy(BotPolicy):
-    """«Стихийный барьер» — при достаточной сумме стихийных стаков.
-    pick_card: сетап комбо энейблером → атаки для детонации → фолбэк."""
+    """Ядро Мага (С56) — «Гни»: Мастерство-перегруз + HP-гамбл. ПАР больше НЕ пред-собран
+    (де-рельс): бот СОБИРАЕТ его из раздельных стихий (Всплеск=Мокрый + Поджог=Горение →
+    при второй стихии steam ×2 + комбо → +Мастерство/хил/добор). «Разгон» гэмблит HP →
+    Мастерство, чтобы перешагнуть порог ×1.5 — но ТОЛЬКО при безопасном HP (не суицид),
+    и лишь пока Мастерство < цели (не транжирить HP впустую). «Резонансный разряд»
+    выжимает накопленную глубину. Пилотирование делает замер HP-churn движка честным."""
 
     def _class_pick(self, playable, combat):
+        from core.EffectCalculator import EffectCalculator
+        player = combat.player
         enemy = combat.enemy
-        has_both = (getattr(enemy, "wet", 0) > 0
-                    and getattr(enemy, "ignited", 0) > 0)
-        # Энейблер: карта, вешающая И wet, И ignited (сетап ПАР)
-        enablers = []
-        attacks = []
-        for c in playable:
-            status_types = {
-                e.status_type
-                for e in c.effects
-                if isinstance(e, StatusEffect)
-            }
-            if "wet" in status_types and "ignited" in status_types:
-                enablers.append(c)
-            if any(isinstance(e, DamageEffect) for e in c.effects):
-                attacks.append(c)
-        # Если комбо ещё не готово — сетап энейблером
-        if not has_both and enablers:
-            return enablers[0]
-        # Комбо готово — атаки для детонации (×2), но НЕ энейблер
-        others = [c for c in playable if c not in enablers]
-        detonators = [c for c in attacks if c not in enablers]
-        if detonators:
-            return random.choice(detonators)
+        wet = getattr(enemy, "wet", 0) > 0
+        ignited = getattr(enemy, "ignited", 0) > 0
+
+        overclocks = [c for c in playable if _has_effect(c, OverclockEffect)]
+        discharges = [c for c in playable if _has_effect(c, MasteryScalingDamageEffect)]
+        wet_cards = [c for c in playable if "wet" in _status_types(c)]
+        fire_cards = [c for c in playable if "ignited" in _status_types(c)]
+        attacks = [c for c in playable if _has_effect(c, DamageEffect)]
+
+        # 1) Собираем ПАР: нет стихии — вешаем недостающую. Комбо растит Мастерство
+        #    БЕСПЛАТНО (+хил/добор) — приоритетнее платного Разгона (не платим HP за то,
+        #    что комбо даёт даром). Карта-атака стихии даёт ещё и steam ×2 при второй.
+        if not wet and wet_cards:
+            return wet_cards[0]
+        if not ignited and fire_cards:
+            return fire_cards[0]
+        # 2) ПАР готов — Резонансный разряд (payoff глубины) ИЛИ любая атака детонирует.
+        if wet and ignited:
+            if discharges:
+                return discharges[0]
+            detonators = [c for c in attacks
+                          if c not in wet_cards and c not in fire_cards]
+            if detonators:
+                return random.choice(detonators)
+        # 3) Разгон — ДОТОЛЧОК к порогу перегруза ×1.5, когда ПАР в этот ход не собрать:
+        #    Мастерство ещё ниже порога И HP в избытке (не суицид). Гамбл HP→Мастерство.
+        threshold = EffectCalculator.MASTERY_INSTABILITY_THRESHOLD
+        if (overclocks and player.mastery < threshold
+                and player.hp >= player.max_hp * _MAGE_OVERCLOCK_HP_FRAC):
+            return overclocks[0]
+        # 4) Иначе выжимаем накопленное разрядом, затем фолбэк (без Разгона при низком HP).
+        if discharges:
+            return discharges[0]
+        others = [c for c in playable if c not in overclocks]
         return random.choice(others) if others else random.choice(playable)
 
     def on_turn_end(self, combat) -> None:
