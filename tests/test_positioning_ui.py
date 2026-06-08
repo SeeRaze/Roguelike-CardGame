@@ -117,7 +117,59 @@ def test_панели_врагов_с_рангами_рисуются():
     for e in es:
         e.set_intent("attack", 5)
     from core.positioning import assign_enemy_ranks
-    assign_enemy_ranks(es)                       # 2 фронт / 1 тыл + линии
+    assign_enemy_ranks(es)                       # 1 фронт / 2 тыл + линии
     panels.draw_enemy_panels(view, screen, es, Summoner())   # не падает
     assert len(view.enemy_panel_rects) == 3      # rect на каждого врага (таргет-маппинг цел)
+
+
+def test_враги_с_рангами_два_ряда_фронт_выше_тыла():
+    from core.enemies.cultist import Cultist
+    from core.positioning import assign_enemy_ranks
+    screen = pygame.Surface((1920, 1080))
+    view = _view()
+    es = [Cultist(f"К{i}", 30, 30) for i in range(3)]
+    for e in es:
+        e.set_intent("attack", 5)
+    assign_enemy_ranks(es)                       # es[0]=фронт, es[1..2]=тыл
+    panels.draw_enemy_panels(view, screen, es, Summoner())
+    front_y = view.enemy_panel_rects[0].y        # фронт
+    back_ys = [view.enemy_panel_rects[i].y for i in (1, 2)]  # тыл
+    # Два ряда: фронт-ряд выше тыл-ряда.
+    assert all(front_y < by for by in back_ys)
+    # Тыловые враги в одном ряду (одинаковый y).
+    assert back_ys[0] == back_ys[1]
+
+
+def test_враги_index_alignment_таргетинг_цел():
+    """ИНВАРИАНТ: enemy_panel_rects[i] принадлежит enemies[i] даже когда враг в
+    тылу и рисуется в порядке рангов (по нему работает клик-таргетинг)."""
+    from core.enemies.cultist import Cultist
+    from core.positioning import assign_enemy_ranks
+    screen = pygame.Surface((1920, 1080))
+    view = _view()
+    es = [Cultist(f"К{i}", 30, 30) for i in range(3)]
+    for e in es:
+        e.set_intent("attack", 5)
+    assign_enemy_ranks(es)
+    panels.draw_enemy_panels(view, screen, es, Summoner())
+    # Все ячейки заполнены rect'ами (ни одного None — таргетинг по индексу не падает).
+    assert all(r is not None for r in view.enemy_panel_rects)
+    assert len(view.enemy_panel_rects) == 3
+    # es[0] — единственный фронт → его rect в верхнем ряду, тыловые ниже.
+    assert view.enemy_panel_rects[0].y < view.enemy_panel_rects[2].y
+
+
+def test_один_враг_босс_полноразмерная_панель():
+    from core.enemies.cultist import Cultist
+    from core.positioning import assign_enemy_ranks
+    from ui.combat.layout import _PANEL_W
+    screen = pygame.Surface((1920, 1080))
+    view = _view()
+    boss = Cultist("Босс", 200, 200)
+    boss.set_intent("attack", 20)
+    assign_enemy_ranks([boss])                   # 1 враг → фронт, но один ряд
+    panels.draw_enemy_panels(view, screen, [boss], Summoner())
+    assert len(view.enemy_panel_rects) == 1
+    # n==1 остаётся большой полноразмерной панелью (нулевой регресс для боссов).
+    assert view.enemy_panel_rects[0].width == _PANEL_W
 

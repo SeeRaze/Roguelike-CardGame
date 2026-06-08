@@ -129,10 +129,95 @@ def draw_player_panel(view, screen, player, intent_dmg):
         view.ability_rect = None
 
 
+def _draw_enemy_panel_body(view, screen, enemy, panel_rect, player, projection,
+                           all_badges, *, compact):
+    """Отрисовка ОДНОЙ вражеской панели в заданном panel_rect. Координаты текста
+    относительны panel_rect → helper переиспользуется и одно-, и двухрядной
+    раскладкой. `compact` — мелкий шрифт имени (узкие панели на 3+ врагов).
+    Бейджи статусов дописываются в all_badges (для ховера)."""
+    px, py = panel_rect.x, panel_rect.y
+    panel_w, panel_h = panel_rect.w, panel_rect.h
+    inner_pad = max(10, int(panel_w * 0.04))
+
+    pygame.draw.rect(screen, _PANEL_BG, panel_rect, border_radius=12)
+    pygame.draw.rect(screen, _PANEL_BORDER, panel_rect, 2, border_radius=12)
+
+    x, y = px + inner_pad, py + 16
+
+    # --- Мёртвый враг: затемнённая панель ---
+    if enemy.hp <= 0:
+        dim = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        dim.fill((0, 0, 0, 120))
+        screen.blit(dim, (px, py))
+        dead_text = view.card_desc_font.render("ПОВЕРЖЕН", True, _GRAY)
+        screen.blit(dead_text, (px + (panel_w - dead_text.get_width()) // 2,
+                                py + panel_h // 2 - 12))
+        return
+
+    # --- Имя ---
+    name_font = view.card_desc_font if compact else view.main_font
+    enemy_label = enemy.name.split("(")[0].strip() if compact else f"ВРАГ: {enemy.name}"
+    # Усечение по ширине: при нескольких длинных именах текст выезжал за рамку.
+    # Резервируем место справа под бейдж ранга (~84px) + внутренний отступ.
+    name_max_w = panel_w - inner_pad * 2 - 84
+    enemy_label = _fit_text(name_font, enemy_label, name_max_w)
+    screen.blit(name_font.render(enemy_label, True, _WHITE), (x, y))
+
+    # Позиционка (§11): бейдж ранга врага (ФРОНТ/ТЫЛ·линия) в правом-верхнем углу —
+    # читаемость перехвата (жив фронт → тыл недостижим). None → нет (позиционка off).
+    _draw_rank_chip(screen, view.card_desc_font, getattr(enemy, "rank", None),
+                    px + panel_w - 78, py + 8, getattr(enemy, "line", None))
+
+    # --- HP-бар (ширина под панель) ---
+    bar_w = panel_w - inner_pad * 2
+    y += 36
+    CombatHUD.draw_hp_bar(
+        screen, x, y, bar_w, 22,
+        enemy.hp, enemy.max_hp, enemy.shield,
+        incoming_dmg=projection.get(enemy, 0),
+    )
+    y += 26
+    hp_font = view.card_desc_font
+    shld_str = f" +{enemy.shield}щ" if enemy.shield > 0 else ""
+    hp_text = f"HP:{enemy.hp}/{enemy.max_hp}{shld_str}"
+    screen.blit(hp_font.render(hp_text, True, _RED), (x, y))
+
+    # --- Намерение ---
+    y += 34
+    line_end = x + bar_w
+    pygame.draw.line(screen, _PANEL_BORDER, (x, y - 4), (line_end, y - 4), 1)
+    if enemy.intent_type == "attack":
+        dmg_color = CombatHUD.get_intent_damage_color(
+            enemy.intent_value, player.shield)
+        intent_text = f"Атака {enemy.intent_value}"
+        screen.blit(hp_font.render(intent_text, True, dmg_color), (x, y))
+    elif enemy.intent_type == "defend":
+        screen.blit(hp_font.render(f"Защита {enemy.intent_value}", True, _BLUE), (x, y))
+    elif enemy.intent_type == "debuff":
+        screen.blit(hp_font.render(f"Слабость {enemy.intent_value}", True, _INTENT_OTHER), (x, y))
+    else:
+        screen.blit(hp_font.render("—", True, _GRAY), (x, y))
+
+    # --- Статусы ---
+    y += 30
+    pygame.draw.line(screen, _PANEL_BORDER, (x, y), (line_end, y), 1)
+    y += 8
+    badges = CombatHUD.draw_status_badges(
+        screen, view.card_desc_font, enemy, x, y
+    )
+    for rect, key, val in badges:
+        all_badges.append((rect, key, val, enemy))
+
+
 def draw_enemy_panels(view, screen, enemies, player, projection=None):
-    """Отрисовка панелей врагов. 1 враг — полноразмерная, 2–3 — компактные.
-    `projection` — {враг: полный_урон наведённой карты} для визуальной проекции
-    на HP-баре (цель для одиночных атак, все враги для AoE)."""
+    """Отрисовка панелей врагов. 1 враг (или позиционка off) — один ряд, как раньше.
+    2+ врага с рангами — ДВА ряда (фронт сверху, тыл снизу) × линии Л→Ц→П, зеркало
+    раскладки партии (draw_ally_panels). `projection` — {враг: полный_урон наведённой
+    карты} для визуальной проекции на HP-баре (цель для одиночных, все враги для AoE).
+
+    ИНВАРИАНТ: enemy_panel_rects[i] соответствует enemies[i] — по индексу работает
+    клик-таргетинг (targeting.py) и рамка цели (interface.py). Поэтому rect пишем в
+    ячейку по ИСХОДНОМУ индексу врага, хотя рисуем в порядке рангов."""
     projection = projection or {}
     n = len(enemies)
     if n == 0:
@@ -140,102 +225,60 @@ def draw_enemy_panels(view, screen, enemies, player, projection=None):
         view.enemy_badge_rects = []
         return
 
-    # Размеры панелей в зависимости от количества врагов
-    if n == 1:
-        panel_w = _PANEL_W                         # 560 — как раньше
-        gap = 0
-    elif n == 2:
-        panel_w = 270
-        gap = 20
-    else:  # n == 3
-        panel_w = 180
-        gap = 10
-
-    panel_h = 380
-    # Внутренний отступ пропорционален ширине панели
-    inner_pad = max(10, int(panel_w * 0.04))
-
-    view.enemy_panel_rects = []
     all_badges = []  # список (rect, key, val, enemy) для ховера
+    view.enemy_panel_rects = [None] * n
 
-    for i, enemy in enumerate(enemies):
-        px = _E_PX + i * (panel_w + gap)
-        py = _PANEL_TOP
-        panel_rect = pygame.Rect(px, py, panel_w, panel_h)
-        view.enemy_panel_rects.append(panel_rect)
+    # Раскладка по рядам: 2+ врага с рангами → фронт/тыл; иначе → один ряд (как раньше,
+    # нулевой регресс для боссов n=1 и при выключенной позиционке).
+    positioned = n >= 2 and any(getattr(e, "rank", None) is not None for e in enemies)
+    _line_order = {Line.LEFT: 0, Line.CENTER: 1, Line.RIGHT: 2}
 
-        pygame.draw.rect(screen, _PANEL_BG, panel_rect, border_radius=12)
-        border_color = _PANEL_BORDER
-        pygame.draw.rect(screen, border_color, panel_rect, 2, border_radius=12)
+    if positioned:
+        # Два ряда индексов: внутри ряда сортируем по линии Л→Ц→П (как у партии).
+        idxs = list(range(n))
+        front = sorted([i for i in idxs if getattr(enemies[i], "rank", None) == Rank.FRONT],
+                       key=lambda i: _line_order.get(getattr(enemies[i], "line", None), 1))
+        back  = sorted([i for i in idxs if getattr(enemies[i], "rank", None) != Rank.FRONT],
+                       key=lambda i: _line_order.get(getattr(enemies[i], "line", None), 1))
+        rows = [front, back]
 
-        x, y = px + inner_pad, py + 16
-
-        # --- Мёртвый враг: затемнённая панель ---
-        if enemy.hp <= 0:
-            dim = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-            dim.fill((0, 0, 0, 120))
-            screen.blit(dim, (px, py))
-            dead_text = view.card_desc_font.render("ПОВЕРЖЕН", True, _GRAY)
-            screen.blit(dead_text, (px + (panel_w - dead_text.get_width()) // 2,
-                                    py + panel_h // 2 - 12))
-            continue
-
-        # --- Имя ---
-        name_font = view.main_font if n <= 2 else view.card_desc_font
-        enemy_label = f"ВРАГ: {enemy.name}" if n <= 2 else enemy.name.split("(")[0].strip()
-        # Усечение по ширине: при нескольких длинных именах текст выезжал за рамку.
-        # Резервируем место справа под бейдж ранга (~84px) + внутренний отступ.
-        name_max_w = panel_w - inner_pad * 2 - 84
-        enemy_label = _fit_text(name_font, enemy_label, name_max_w)
-        screen.blit(name_font.render(enemy_label, True, _WHITE), (x, y))
-
-        # Позиционка (§11): бейдж ранга врага (ФРОНТ/ТЫЛ·линия) в правом-верхнем углу —
-        # читаемость перехвата (жив фронт → тыл недостижим). None → нет (позиционка off).
-        _draw_rank_chip(screen, view.card_desc_font, getattr(enemy, "rank", None),
-                        px + panel_w - 78, py + 8, getattr(enemy, "line", None))
-
-        # --- HP-бар (ширина под панель) ---
-        bar_w = panel_w - inner_pad * 2
-        y += 36
-        CombatHUD.draw_hp_bar(
-            screen, x, y, bar_w, 22,
-            enemy.hp, enemy.max_hp, enemy.shield,
-            incoming_dmg=projection.get(enemy, 0),
-        )
-        y += 26
-        hp_font = view.card_desc_font
-        shld_str = f" +{enemy.shield}щ" if enemy.shield > 0 else ""
-        hp_text = f"HP:{enemy.hp}/{enemy.max_hp}{shld_str}"
-        screen.blit(hp_font.render(hp_text, True, _RED), (x, y))
-
-        # --- Намерение ---
-        y += 34
-        line_end = x + bar_w
-        pygame.draw.line(screen, _PANEL_BORDER, (x, y - 4), (line_end, y - 4), 1)
-        intent = enemy.intent
-        if isinstance(intent, type(pygame.Rect)):  # fallback — intent всегда есть
-            pass
-        if enemy.intent_type == "attack":
-            dmg_color = CombatHUD.get_intent_damage_color(
-                enemy.intent_value, player.shield)
-            intent_text = f"Атака {enemy.intent_value}"
-            screen.blit(hp_font.render(intent_text, True, dmg_color), (x, y))
-        elif enemy.intent_type == "defend":
-            screen.blit(hp_font.render(f"Защита {enemy.intent_value}", True, _BLUE), (x, y))
-        elif enemy.intent_type == "debuff":
-            screen.blit(hp_font.render(f"Слабость {enemy.intent_value}", True, _INTENT_OTHER), (x, y))
+        # Ширина/зазор — по самому населённому ряду (узкие панели влезают в _PANEL_W).
+        row_max = max(len(front), len(back))
+        if row_max <= 1:
+            panel_w, gap = 270, 20
+        elif row_max == 2:
+            panel_w, gap = 270, 20
         else:
-            screen.blit(hp_font.render("—", True, _GRAY), (x, y))
+            panel_w, gap = 180, 10
+        panel_h, row_gap = 175, 20
+        compact = panel_w < 270 or any(len(r) >= 3 for r in rows)
 
-        # --- Статусы ---
-        y += 30
-        pygame.draw.line(screen, _PANEL_BORDER, (x, y), (line_end, y), 1)
-        y += 8
-        badges = CombatHUD.draw_status_badges(
-            screen, view.card_desc_font, enemy, x, y
-        )
-        for rect, key, val in badges:
-            all_badges.append((rect, key, val, enemy))
+        for row_idx, row in enumerate(rows):
+            py = _PANEL_TOP + row_idx * (panel_h + row_gap)
+            for col_idx, ei in enumerate(row):
+                px = _E_PX + col_idx * (panel_w + gap)
+                panel_rect = pygame.Rect(px, py, panel_w, panel_h)
+                view.enemy_panel_rects[ei] = panel_rect
+                _draw_enemy_panel_body(view, screen, enemies[ei], panel_rect,
+                                       player, projection, all_badges,
+                                       compact=compact)
+    else:
+        # Один ряд (n==1 босс — полноразмерная 560; позиционка off — адаптивно).
+        if n == 1:
+            panel_w, gap = _PANEL_W, 0
+        elif n == 2:
+            panel_w, gap = 270, 20
+        else:
+            panel_w, gap = 180, 10
+        panel_h = 380
+        compact = n >= 3
+        for i, enemy in enumerate(enemies):
+            px = _E_PX + i * (panel_w + gap)
+            panel_rect = pygame.Rect(px, _PANEL_TOP, panel_w, panel_h)
+            view.enemy_panel_rects[i] = panel_rect
+            _draw_enemy_panel_body(view, screen, enemy, panel_rect,
+                                   player, projection, all_badges,
+                                   compact=compact)
 
     view.enemy_badge_rects = all_badges
 
@@ -322,8 +365,9 @@ def draw_ally_panels(view, screen, allies):
 
 def draw_combat_log(view, screen, combat):
     # Позиция: под панелями врагов (если есть enemy_panel_rects) или фиксированно
-    if hasattr(view, 'enemy_panel_rects') and view.enemy_panel_rects:
-        log_top = max(r.bottom for r in view.enemy_panel_rects) + 12
+    rects = [r for r in getattr(view, 'enemy_panel_rects', []) if r is not None]
+    if rects:
+        log_top = max(r.bottom for r in rects) + 12
     else:
         log_top = _PANEL_TOP + 400
     log = pygame.Rect(_E_PX, log_top, _PANEL_W, 260)
