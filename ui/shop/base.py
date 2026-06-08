@@ -6,8 +6,10 @@ import random
 import pygame
 from ui.shop.data import (
     _BG_COLOR, SHOP_CARD_SLOTS, ROB_SUCCESS_CHANCE,
-    get_card_price, get_relic_price, get_key_price, pick_cards, pick_relic,
+    get_forged_card_price, get_relic_price, get_key_price,
+    pick_cards, pick_relic,
 )
+from core import forge as forge_mod
 from ui.shop import main_view, remove_view
 
 
@@ -36,9 +38,19 @@ class Shop:
     @staticmethod
     def generate_showcase(gm):
         class_name      = type(gm.player).__name__
-        Shop.items      = pick_cards(SHOP_CARD_SLOTS, class_name)
+        Shop.items      = pick_cards(SHOP_CARD_SLOTS, class_name,
+                                     player=gm.player, floor=gm.current_floor)
         Shop.relic_item = pick_relic(gm)
         Shop.showcase_generated = True
+
+    @staticmethod
+    def _discard_unbought_forged(gm):
+        """Снять паспорта ковки с НЕпроданных товаров (None = уже куплена, паспорт
+        перешёл в колоду через add_card). Чтобы выкованные, но не купленные карты
+        не засоряли player.deck_forge_state."""
+        for card in Shop.items:
+            if card is not None:
+                forge_mod.discard_forge_record(gm.player, card)
 
     @staticmethod
     def draw_screen(view):
@@ -71,13 +83,14 @@ class Shop:
     def _handle_main(view, mouse_pos):
         gm = view.gm
 
-        # --- Покупка карты ---
-        card_price = get_card_price(gm.current_floor)
+        # --- Покупка карты (цена учитывает уровень ковки товара) ---
         for rect, idx in getattr(view, 'shop_card_rects', []):
             if Shop.items[idx] and rect.collidepoint(mouse_pos):
-                if gm.player_gold >= card_price:
-                    gm.player_gold -= card_price
-                    gm.add_card(Shop.items[idx])
+                price = get_forged_card_price(Shop.items[idx], gm.player,
+                                              gm.current_floor)
+                if gm.player_gold >= price:
+                    gm.player_gold -= price
+                    gm.add_card(Shop.items[idx])   # _fuid уже стоит → паспорт цел
                     Shop.items[idx] = None
                 else:
                     print("[!] Не хватает золота на карту!")
@@ -140,6 +153,7 @@ class Shop:
     @staticmethod
     def _leave(view):
         """Покинуть магазин — закрыть витрину и перейти на следующий этаж."""
+        Shop._discard_unbought_forged(view.gm)
         Shop.reset()
         view.gm.current_floor += 1
         view.gm.setup_next_floor()
@@ -159,6 +173,7 @@ class Shop:
             Shop._leave(view)
         else:
             print("[ОГРАБЛЕНИЕ] Провал! Торговец зовёт элитного стража.")
+            Shop._discard_unbought_forged(gm)
             Shop.reset()
             gm.current_state = "COMBAT"
             gm.spawn_procedural_enemy(is_elite=True)

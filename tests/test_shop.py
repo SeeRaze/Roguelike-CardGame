@@ -152,3 +152,65 @@ def test_ограбление_провал_зовёт_элитный_бой(shop
     assert gm.current_floor == floor0        # этаж не двигается (продвинет победа)
     assert gm.current_state == "COMBAT"
     assert gm.active_combat is not None      # элитный бой запущен
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Прокачанные карты в магазине (С57, шаг 3 эконом-дуги)
+# ═══════════════════════════════════════════════════════════════════
+def test_pick_cards_до_первого_босса_не_куёт():
+    # floor<=20 → reward_level 0 → товары обычные, паспортов нет.
+    random.seed(3)
+    gm = GameManager()
+    cards = data.pick_cards(5, "Warrior", player=gm.player, floor=10)
+    assert all(data.forge_mod.forge_level(gm.player, c) == 0 for c in cards)
+
+
+def test_pick_cards_в_лейте_куёт_часть_слотов():
+    # floor>40 → reward_level 10 → при шансе хотя бы один слот выкован за прогон сидов.
+    gm = GameManager()
+    any_forged = False
+    for seed in range(20):
+        random.seed(seed)
+        gm.player.deck_forge_state.clear()
+        cards = data.pick_cards(5, "Warrior", player=gm.player, floor=50)
+        if any(data.forge_mod.forge_level(gm.player, c) == 10 for c in cards):
+            any_forged = True
+            break
+    assert any_forged, "ни один слот не выковался за 20 сидов (шанс сломан?)"
+
+
+def test_цена_выкованной_выше_базовой():
+    gm = GameManager()
+    from core import forge as f
+    card = data.pick_cards(1, "Warrior")[0]
+    base = data.get_forged_card_price(card, gm.player, 50)
+    f.forge_card_to_level(gm.player, card, 10, "Warrior")
+    forged = data.get_forged_card_price(card, gm.player, 50)
+    assert forged == base + 10 * data.SHOP_FORGE_PRICE_PER_LEVEL
+
+
+def test_покупка_выкованной_сохраняет_паспорт(shop_setup):
+    gm, view = shop_setup
+    from core import forge as f
+    # Выковываем первый товар вручную (floor фикстуры=5 → showcase не кует)
+    card = Shop.items[0]
+    f.forge_card_to_level(gm.player, card, 10, "Warrior")
+    uid = card._fuid
+    gm.player_gold = 9999
+    Shop._handle_main(view, view.shop_card_rects[0][0].center)
+    assert Shop.items[0] is None
+    assert uid in gm.player.deck_forge_state            # паспорт перешёл в колоду
+    assert card in gm.current_deck
+
+
+def test_выход_снимает_паспорта_некупленных(shop_setup):
+    gm, view = shop_setup
+    from core import forge as f
+    forged = [c for c in Shop.items]
+    uids = []
+    for c in forged:
+        f.forge_card_to_level(gm.player, c, 5, "Warrior")
+        uids.append(c._fuid)
+    assert all(u in gm.player.deck_forge_state for u in uids)
+    Shop._discard_unbought_forged(gm)
+    assert all(u not in gm.player.deck_forge_state for u in uids)

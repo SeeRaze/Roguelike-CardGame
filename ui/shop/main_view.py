@@ -8,7 +8,7 @@ from ui.combat.hud import CombatHUD
 from ui.shop.data import (
     _PANEL_COLOR, _BTN_COLOR, _BTN_HOVER_COLOR, _BTN_BORDER, _TITLE_COLOR,
     _GOLD_COLOR, _RED_COLOR, _GRAY_COLOR, _SOLD_COLOR, _TEXT_COLOR,
-    ROB_SUCCESS_CHANCE, get_card_price, get_relic_price, get_key_price,
+    ROB_SUCCESS_CHANCE, get_forged_card_price, get_relic_price, get_key_price,
 )
 
 # Цвет Закалки (ось выживаемости / HP) — тёплый зелёный, как HP-бар.
@@ -42,7 +42,6 @@ def _draw_cards(shop, view, screen, fonts, mouse_pos):
     total_w = card_w * n + gap * (n - 1)
     start_x = W // 2 - total_w // 2
     cards_y = 210
-    card_price = get_card_price(view.gm.current_floor)
 
     hovered = None
     view.shop_card_rects = []
@@ -55,8 +54,9 @@ def _draw_cards(shop, view, screen, fonts, mouse_pos):
             if is_hov:
                 hovered = (item, rect)
             draw_y = cards_y - 15 if is_hov else cards_y
-            view.draw_card_by_data(item, x, draw_y)
-            p = price_font.render(f"{card_price} з.", True, _GOLD_COLOR)
+            view.draw_card_by_data(item, x, draw_y, player=view.gm.player)
+            price = get_forged_card_price(item, view.gm.player, view.gm.current_floor)
+            p = price_font.render(f"{price} з.", True, _GOLD_COLOR)
             screen.blit(p, (x + card_w // 2 - p.get_width() // 2, draw_y + card_h + 8))
         else:
             _draw_sold_slot(screen, rect, fonts["text"])
