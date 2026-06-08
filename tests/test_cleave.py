@@ -99,3 +99,36 @@ def test_column_rank_без_позиционки_одиночная_цель():
 def test_карты_прокол_размах_несут_свои_кирпичи():
     assert any(isinstance(e, ColumnStrikeEffect) for e in create_piercing_thrust().effects)
     assert any(isinstance(e, RankStrikeEffect) for e in create_wide_swing().effects)
+
+
+def test_проекция_aoe_показывает_вторичные_цели():
+    """Регресс-гард (С51 плейтест): проекция урона на HP-барах должна включать
+    вторичные цели позиционного AoE (колонка/сплеш), а не только первичную —
+    иначе игрок не видит, что заденет, и думает «урона нет»."""
+    from ui.combat.interface import CombatInterface
+    p, enemies, cm = _make_cm(3, positioning=True)
+    e0, e1, e2 = enemies   # e0 фронт-центр, e1 фронт-лево, e2 тыл-центр
+    # «Прокол» (колонка): цель e0 + вся колонка центра (e2 в тылу центра).
+    pierce = create_piercing_thrust()
+    cm.deck_manager.hand = [pierce]
+    proj = CombatInterface._card_projection(cm, p, pierce)
+    assert e0 in proj and proj[e0] > 0          # первичная цель
+    assert e2 in proj and proj[e2] > 0          # колонка пробивает в тыл
+    # «Рассекающий» (сплеш по соседям): цель e0 + соседи (e1 по линии, e2 по рангу).
+    splash = create_cleaving_strike()
+    cm.deck_manager.hand = [splash]
+    proj2 = CombatInterface._card_projection(cm, p, splash)
+    assert e0 in proj2 and proj2[e0] > 0
+    assert len([t for t in (e1, e2) if proj2.get(t, 0) > 0]) >= 1   # хотя бы один сосед
+
+
+def test_проекция_без_позиционки_только_цель():
+    """Без позиционки AoE-вторичных целей нет → проекция только на первичную цель
+    (регресс-нейтрально)."""
+    from ui.combat.interface import CombatInterface
+    p, enemies, cm = _make_cm(3, positioning=False)
+    splash = create_cleaving_strike()
+    cm.deck_manager.hand = [splash]
+    proj = CombatInterface._card_projection(cm, p, splash)
+    # ровно одна цель в проекции (вторичных нет без сетки)
+    assert sum(1 for v in proj.values() if v > 0) == 1

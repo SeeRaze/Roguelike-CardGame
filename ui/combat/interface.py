@@ -67,6 +67,7 @@ class CombatInterface:
         (с комбо/ковкой) = что реально снимется, через единый EffectCalculator."""
         from core.cards.base import DamageEffect
         from core.cards.warrior import ShieldDamageEffect
+        from core.cards.cleave import _PositionalAoEEffect
         proj = {}
         if card is None:
             return proj
@@ -82,6 +83,24 @@ class CombatInterface:
                 proj[target] = EffectCalculator.preview(
                     player, target, dmg_base, combat_manager=combat,
                     game_manager=gm, card=card)["full"]
+
+        # Позиционные AoE (сплеш/колонка/ряд): проекция на ВТОРИЧНЫЕ цели по геометрии
+        # сетки (splash_ratio от базы), зеркало _PositionalAoEEffect.execute. Без этого
+        # игрок не видел, что заденет колонку/соседей (нет проекции = «урона нет»).
+        primary = combat.get_target_enemy()
+        if primary is not None:
+            for eff in card.effects:
+                if isinstance(eff, _PositionalAoEEffect):
+                    base = eff.upgrade_val if card.upgraded else eff.base_val
+                    sec_dmg = int(base * eff.splash_ratio)
+                    if sec_dmg <= 0:
+                        continue
+                    for tgt in eff._secondary_targets(primary, combat):
+                        if tgt.hp > 0:
+                            d = EffectCalculator.preview(
+                                player, tgt, sec_dmg, combat_manager=combat,
+                                game_manager=gm, card=card)["full"]
+                            proj[tgt] = proj.get(tgt, 0) + d
 
         for eff in card.effects:
             if isinstance(eff, ShieldDamageEffect):
