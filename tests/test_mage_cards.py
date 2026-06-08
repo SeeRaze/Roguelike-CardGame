@@ -4,6 +4,9 @@
 # Мастерства НЕ срабатывает, ассерты урона чистые; двойной учёт — только в живом бою).
 from core.cards.base import Card
 from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
+from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class, get_class_cards
+
+_SIGNATURES = {"Разгон", "Резонансный разряд"}
 
 
 def _mage(make_creature, hp=70, max_hp=70):
@@ -82,3 +85,29 @@ def test_разгон_затем_разряд(make_creature):
          [MasteryScalingDamageEffect(6, 9, 2, 3)]).apply(player, enemy)
     assert enemy.hp == 99 - (6 + 2 * 3)               # урон с накопленным Мастерством 3
     assert player.mastery == 3                        # Разряд Мастерство не сжёг
+
+
+# ═══════════════════════════════════════════════════════════
+# Регистрация: сигнатурки достижимы в пуле Мага (StS-инфра)
+# ═══════════════════════════════════════════════════════════
+
+def test_маг_сигнатурки_зарегистрированы():
+    names = {f().name for f in CLASS_FACTORIES["Mage"]}
+    assert _SIGNATURES <= names                       # 2 новых + старая ось в пуле
+
+
+def test_маг_сигнатурки_в_пуле_класса():
+    pool_names = {f().name for f in get_pool_for_class("Mage")}
+    assert _SIGNATURES <= pool_names
+
+
+def test_маг_сигнатурки_тегированы_классом():
+    for card in (f() for f in get_class_cards("Mage")):
+        assert card.card_class == "Mage"
+
+
+def test_маг_сигнатурки_не_в_generic():
+    from core.cards.catalog import GENERIC_FACTORIES
+    generic_names = {f().name for f in GENERIC_FACTORIES}
+    for n in _SIGNATURES:
+        assert n not in generic_names

@@ -23,7 +23,10 @@ from core.cards.warrior import (
     create_retribution, create_steel_barricade, create_bastion,
     create_punishing_formation, create_shield_wall, create_warrior_stance,
 )
-from core.cards.mage import create_boil, create_arcane_focus, create_elemental_surge
+from core.cards.mage import (
+    create_boil, create_arcane_focus, create_elemental_surge,
+    create_overclock, create_resonant_discharge,
+)
 from core.cards.echo import create_echo_resonance, create_echo_strike, create_echo_cascade
 from core.cards.rogue import create_bloodlust, create_serrated_edge
 from core.cards.druid import create_virulent_strain, VirulenceEffect
