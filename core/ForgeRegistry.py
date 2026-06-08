@@ -174,6 +174,64 @@ def pick_tag(class_name: str, tier: str, channel: str = "damage") -> str:
     return CLASS_TAGS.get(class_name, _GENERIC_TAGS)[tier]
 
 
+# ─── ДРАФТ ТЕГА: 1-из-3, вариант B3 (живая игра) ─────────────────────────────
+# Юзер С54: на майлстоуне игрок ВЫБИРАЕТ тег из 3 (а не авто pick_tag). Пул —
+# КРОСС-класс/условие в рамках КАНАЛА карты (мёртвые-по-каналу теги не лезут).
+# B3: «чужие» условные теги (резонанс другого класса) НЕ вырезаются, а идут с
+# НИЗКИМ весом — обманка возможна как осознанный риск рулетки, но и джекпот
+# кросс-билда тоже (доктрина replayability-doctrine: рандом обязан кусаться).
+# СИМ/baseline НЕ зовут draft_tag_choices (идут через pick_tag) → эталон не сдвинут.
+DRAFT_WEIGHT_SELF      = 5    # тег-резонанс СВОЕГО класса — самый частый
+DRAFT_WEIGHT_UNIVERSAL = 3    # универсальный тег (klass=None) — всегда уместен
+DRAFT_WEIGHT_FOREIGN   = 1    # резонанс ЧУЖОГО класса — редкий риск/джекпот
+
+
+def _draft_weight(spec, class_name: str) -> int:
+    """Вес тега в драфте (B3): свой класс > универсальный > чужой класс."""
+    klass = spec.get("klass")
+    if klass == class_name:
+        return DRAFT_WEIGHT_SELF
+    if klass is None:
+        return DRAFT_WEIGHT_UNIVERSAL
+    return DRAFT_WEIGHT_FOREIGN
+
+
+def _weighted_sample(items, weights, k, rng):
+    """k уникальных элементов взвешенной выборкой БЕЗ повторов (чистая, тестируемая
+    с seeded rng). Меньше k кандидатов → вернёт сколько есть."""
+    pool = list(zip(items, weights))
+    chosen = []
+    for _ in range(min(k, len(pool))):
+        total = sum(w for _, w in pool)
+        r = rng.uniform(0, total)
+        acc = 0.0
+        for i, (it, w) in enumerate(pool):
+            acc += w
+            if r <= acc:
+                chosen.append(it)
+                pool.pop(i)
+                break
+    return chosen
+
+
+def draft_tag_choices(class_name: str, tier: str, channel: str = "damage",
+                      k: int = 3, rng=None) -> list:
+    """Сгенерировать `k` тегов-кандидатов для драфта майлстоуна (B3). Кандидаты —
+    теги данного ТИРА и КАНАЛА (живые на карте), кросс-класс; веса по _draft_weight
+    (свой/универсальный/чужой). Без повторов. Если тегов канала < k — вернёт сколько
+    есть (бедные каналы shield/heal — сигнал долить контент, не баг)."""
+    if rng is None:
+        import random
+        rng = random
+    pool = [(tag_id, spec) for tag_id, spec in TAGS.items()
+            if spec["tier"] == tier and spec.get("channel", "damage") == channel]
+    if not pool:
+        return []
+    items   = [tag_id for tag_id, _ in pool]
+    weights = [_draft_weight(spec, class_name) for _, spec in pool]
+    return _weighted_sample(items, weights, k, rng)
+
+
 def _slot_value(spec, snapshot, grade):
     """Вклад одного слота с учётом Гипер-заряда (§4-bis). Возвращает ('add'|'mult',
     значение). grade масштабирует СИЛУ: add → добавка ×step^grade; mult → излишек

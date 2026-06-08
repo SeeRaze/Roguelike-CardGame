@@ -120,6 +120,55 @@ def test_pick_tag_generic_fallback():
     assert pick_tag("Нечто", "legendary") == _GENERIC_TAGS["legendary"]
 
 
+# ─── Драфт тега 1-из-3 (B3, живая игра) ───────────────────────────────────────
+
+def test_draft_возвращает_3_уникальных_тега_канала_тира():
+    import random
+    from core.ForgeRegistry import draft_tag_choices, TAGS
+    rng = random.Random(42)
+    choices = draft_tag_choices("Warrior", "early", "damage", k=3, rng=rng)
+    assert len(choices) == 3
+    assert len(set(choices)) == 3                      # без повторов
+    for tag_id in choices:                             # все — early/damage
+        assert TAGS[tag_id]["tier"] == "early"
+        assert TAGS[tag_id]["channel"] == "damage"
+
+
+def test_draft_не_лезут_теги_чужого_канала():
+    # damage-карта → НИ shield/heal тегов в драфте (фильтр пустышек по каналу).
+    import random
+    from core.ForgeRegistry import draft_tag_choices, TAGS
+    for seed in range(20):
+        choices = draft_tag_choices("Mage", "early", "damage", k=3,
+                                     rng=random.Random(seed))
+        assert all(TAGS[t]["channel"] == "damage" for t in choices)
+
+
+def test_draft_свой_тег_чаще_чужого_B3():
+    # Подкрут B3: класс-резонансный тег выпадает ЧАЩЕ чужого (но чужой возможен).
+    import random
+    from core.ForgeRegistry import draft_tag_choices
+    rng = random.Random(7)
+    self_hits = foreign_seen = 0
+    for _ in range(400):
+        choices = draft_tag_choices("Warrior", "early", "damage", k=3, rng=rng)
+        if "shielded" in choices:          # резонанс Воина
+            self_hits += 1
+        if "poisoned" in choices:          # резонанс Друида (чужой)
+            foreign_seen += 1
+    assert self_hits > foreign_seen        # свой чаще
+    assert foreign_seen > 0                # но чужой всё равно кусается (не вырезан)
+
+
+def test_draft_бедный_канал_возвращает_сколько_есть():
+    # early-heal в пуле только один тег (mending) → драфт не падает, вернёт 1.
+    import random
+    from core.ForgeRegistry import draft_tag_choices
+    choices = draft_tag_choices("Warrior", "early", "heal", k=3,
+                                rng=random.Random(0))
+    assert choices == ["mending"]
+
+
 # ─── Резолв паспорта и временных копий (§10.4) ────────────────────────────────
 
 class _P:

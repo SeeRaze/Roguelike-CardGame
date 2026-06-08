@@ -135,12 +135,24 @@ def can_forge(player, card) -> bool:
     return level < player.forge_level_cap and player.forge_points >= level_cost(level)
 
 
-def forge_card_one_level(player, card, class_name: str = "") -> bool:
+def next_forge_milestone_tier(player, card):
+    """Тир тега, который ОТКРОЕТ следующая ковка карты (если +1 уровень = майлстоун
+    5/10/15). None, если следующий уровень не майлстоун (линейный слой / Гипер-заряд)
+    или карта уже на капе. Канал для драфта берётся отдельно (card_forge_channel).
+    Используется живым UI (костёр), чтобы перед ковкой решить: показать драфт 1-из-3?"""
+    level = forge_level(player, card)
+    if level >= player.forge_level_cap:
+        return None
+    return milestone_tier(level + 1)
+
+
+def forge_card_one_level(player, card, class_name: str = "", forced_tag=None) -> bool:
     """ЖИВАЯ ковка карты на +1 уровень за FP (костёр, 39.5). Возвращает True при
     успехе. Миграция линейного слоя: уровень 1 = бережно ручной «+» карты
     (card.upgrade), уровни ≥2 = +δ (apply_linear_level). На майлстоуне (5/10/15)
-    открывает слот с АВТО-лучшим тегом (pick_tag по каналу карты; экран драфта
-    1-из-3 — позже); уровень >15, кратный s, — Гипер-заряд существующего тега.
+    открывает слот: `forced_tag` (выбор игрока в драфте 1-из-3, B3) ИЛИ, если не
+    задан, АВТО-лучший pick_tag по каналу карты (sim/baseline); уровень >15,
+    кратный s, — Гипер-заряд существующего тега.
 
     NB: sim использует свой forge_between_acts (δ-only, без ручного «+») —
     расхождение линейного слоя принято (_upgrade_design.md §2)."""
@@ -170,9 +182,12 @@ def forge_card_one_level(player, card, class_name: str = "") -> bool:
     # Слой потолка: майлстоун → слот+тег; >15 кратный s → Гипер-заряд.
     tier = milestone_tier(new_level)
     if tier is not None:
-        from core.ForgeRegistry import pick_tag
         channel = card_forge_channel(card)
-        tag_id  = pick_tag(class_name, tier, channel)
+        if forced_tag is not None:
+            tag_id = forced_tag                 # выбор игрока в драфте (B3)
+        else:
+            from core.ForgeRegistry import pick_tag
+            tag_id = pick_tag(class_name, tier, channel)   # авто (sim/baseline)
         rec["slots"].append({"tag_id": tag_id, "grade": 0})
     elif is_overcharge_level(new_level):
         overcharge_slot(rec)

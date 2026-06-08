@@ -109,6 +109,34 @@ def test_forge_milestone_opens_slot_with_class_tag():
     assert [s["tag_id"] for s in rec["slots"]] == ["shielded"]
 
 
+def test_forge_forced_tag_overrides_pick(monkeypatch):
+    # Драфт B3: forced_tag вешает ВЫБРАННЫЙ игроком тег вместо авто pick_tag.
+    p = _P(cap=5)
+    c = _atk()
+    f.assign_forge_uid(p, c)
+    # 4 уровня без майлстоуна, затем 5-й с принудительным «чужим» тегом.
+    for _ in range(4):
+        f.forge_card_one_level(p, c, "Warrior")
+    assert f.forge_card_one_level(p, c, "Warrior", forced_tag="poisoned") is True
+    rec = p.deck_forge_state[c._fuid]
+    assert [s["tag_id"] for s in rec["slots"]] == ["poisoned"]  # не shielded
+
+
+def test_next_forge_milestone_tier():
+    # Хелпер UI: следующий уровень-майлстоун → его тир, иначе None.
+    p = _P(cap=15)
+    c = _atk()
+    f.assign_forge_uid(p, c)
+    p.deck_forge_state[c._fuid] = {"level": 4, "slots": []}
+    assert f.next_forge_milestone_tier(p, c) == "early"      # 4→5 майлстоун
+    p.deck_forge_state[c._fuid]["level"] = 5
+    assert f.next_forge_milestone_tier(p, c) is None         # 5→6 не майлстоун
+    p.deck_forge_state[c._fuid]["level"] = 14
+    assert f.next_forge_milestone_tier(p, c) == "legendary"  # 14→15 легендарка
+    p.deck_forge_state[c._fuid]["level"] = 15                # упёрлись в кап 15
+    assert f.next_forge_milestone_tier(p, c) is None
+
+
 def test_forge_legendary_then_overcharge():
     p = _P(cap=25)
     c = _atk()
