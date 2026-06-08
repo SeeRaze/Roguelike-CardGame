@@ -1,9 +1,14 @@
 from core.players.base import Player
 from core.players.abilities import MageAbility
+from core.EffectCalculator import EffectCalculator
 from core.cards import (
     create_strike, create_defend, create_ignite, create_splash, create_boil,
     create_arcane_focus,
 )
+
+# Глитч-цена Нестабильности (ступень «Гни»): HP сквозь щит в начале хода при
+# перегрузе Мастерства. Стартовое число — калибровка тройки отдельным шагом.
+INSTABILITY_HP_COST = 3
 
 
 def get_mage_deck():
@@ -27,6 +32,19 @@ class Mage(Player):
             starter_deck_factory=get_mage_deck,
         )
         self.active_ability = MageAbility()
+
+    def on_turn_start_passive(self, combat_manager) -> None:
+        """НЕСТАБИЛЬНОСТЬ (ступень «Гни»): при перегрузе Мастерства (≥ порога) «интерфейс
+        искрит» — Маг теряет немного HP сквозь щит в начале хода. Это цена за усиленный
+        бонус Мастерства (EffectCalculator шаг 2c). Сеет Контекстное Окно Демиурга
+        (полнее контекст → мощнее, но глитчит). NO-OP ниже порога."""
+        if self.mastery >= EffectCalculator.MASTERY_INSTABILITY_THRESHOLD:
+            lost = self.lose_hp(INSTABILITY_HP_COST)
+            if lost > 0 and combat_manager:
+                combat_manager.add_log_message(
+                    f" [МАГ] Нестабильность: интерфейс искрит, -{lost} HP "
+                    f"(Мастерство {self.mastery})."
+                )
 
     def on_card_played_passive(self, card, combat_manager) -> None:
         if not combat_manager:

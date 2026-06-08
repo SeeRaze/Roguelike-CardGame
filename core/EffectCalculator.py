@@ -6,6 +6,12 @@ class EffectCalculator:
     # Множитель урона по цели с Расколом, ПОКА у неё есть щит (см. шаг 4b).
     SHATTER_MULT = 3.0
 
+    # НЕСТАБИЛЬНОСТЬ Мага (ступень «Гни»): при Мастерстве ≥ порога «контекст
+    # переполняется» — флат-бонус Мастерства усиливается ×MULT (перегруз мощи).
+    # Цена перегруза — глитч-урон в начале хода (Mage.on_turn_start_passive).
+    MASTERY_INSTABILITY_THRESHOLD = 5
+    MASTERY_INSTABILITY_MULT = 1.5
+
     @staticmethod
     def calculate_damage(attacker, target, base_damage,
                          game_manager=None, combat_manager=None,
@@ -58,14 +64,23 @@ class EffectCalculator:
             base_damage += attacker.strength
             _rec("Сила", "+", attacker.strength)
 
-        # 2c. МАСТЕРСТВО СТИХИЙ (Маг): +N к урону за каждое комбо в этом бою
+        # 2c. МАСТЕРСТВО СТИХИЙ (Маг): +N к урону за каждое комбо в этом бою.
+        # НЕСТАБИЛЬНОСТЬ (ступень «Гни»): на пороге (mastery≥THRESHOLD) контекст
+        # «переполняется» — бонус усиливается ×MULT (перегруз). Цена — глитч-урон в
+        # начале хода (Mage.on_turn_start_passive). Чистый множитель → считается и в превью.
         if is_player_attack:
             mastery = getattr(attacker, 'mastery', 0)
             if mastery > 0:
-                base_damage += mastery
-                _rec("Мастерство", "+", mastery)
+                bonus = mastery
+                unstable = mastery >= EffectCalculator.MASTERY_INSTABILITY_THRESHOLD
+                if unstable:
+                    bonus = int(mastery * EffectCalculator.MASTERY_INSTABILITY_MULT)
+                base_damage += bonus
+                _rec("Мастерство", "+", bonus)
                 if not dry_run:
-                    print(f" [МАСТЕРСТВО] +{mastery} к урону (стихийный резонанс).")
+                    tail = " [НЕСТАБИЛЬНОСТЬ: перегруз]" if unstable else ""
+                    print(f" [МАСТЕРСТВО] +{bonus} к урону "
+                          f"(стихийный резонанс).{tail}")
 
         # 2d. ДИСЦИПЛИНА (Воин «Соблюдай») — +N к урону за каждый стак. Накопитель
         # яруса 1 (стабильная ступень лестницы): растёт, когда Воин держит строй
