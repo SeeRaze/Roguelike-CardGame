@@ -158,6 +158,12 @@ class InputHandler:
     def process_scroll(view, event_button):
         direction = -1 if event_button == 4 else 1
 
+        # Открытая панель артефактов перехватывает прокрутку (модальна на всех экранах).
+        from ui.combat.relic_panel import RelicPanel
+        if RelicPanel.is_open(view):
+            RelicPanel.scroll(direction)
+            return
+
         state = view.gm.current_state
 
         if state == "CARD_LIBRARY":

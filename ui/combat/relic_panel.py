@@ -17,6 +17,8 @@ class RelicPanel:
     """Модальная панель со всеми реликвиями игрока. Работает на всех экранах."""
     _open    = False
     _gm_token = None
+    _scroll   = 0          # вертикальное смещение прокрутки (пиксели), 0 = верх
+    _max_scroll = 0        # предел прокрутки (считается при отрисовке)
 
     @classmethod
     def is_open(cls, view) -> bool:
@@ -27,10 +29,16 @@ class RelicPanel:
     def open(cls, view):
         cls._open    = True
         cls._gm_token = id(getattr(view, 'gm', None))
+        cls._scroll  = 0          # каждое открытие — с верха списка
 
     @classmethod
     def close(cls):
         cls._open = False
+
+    @classmethod
+    def scroll(cls, direction):
+        """Прокрутка колесом (direction: -1 вверх / +1 вниз). Клампится к [0, max]."""
+        cls._scroll = max(0, min(cls._max_scroll, cls._scroll + direction * 60))
 
     @classmethod
     def draw(cls, view, screen):
@@ -42,7 +50,10 @@ class RelicPanel:
         screen.blit(overlay, (0, 0))
 
         rows     = max(1, (len(relics) + _COLS - 1) // _COLS)
-        panel_h  = _TITLE_H + rows * _ROW_H + _PAD
+        content_h = rows * _ROW_H
+        # Панель не выше экрана: высоту контента кэпим, остаток — под прокрутку.
+        max_panel_h = sh - 40
+        panel_h  = min(_TITLE_H + content_h + _PAD, max_panel_h)
         panel_x  = (sw - _PANEL_W) // 2
         panel_y  = max(20, (sh - panel_h) // 2)
         panel    = pygame.Rect(panel_x, panel_y, _PANEL_W, panel_h)
@@ -53,6 +64,16 @@ class RelicPanel:
 
         title = view.main_font.render(f"АРТЕФАКТЫ ({len(relics)})", True, (255, 220, 60))
         screen.blit(title, (panel_x + _PAD, panel_y + 14))
+
+        # Видимая высота области контента (под заголовком) + предел прокрутки.
+        view_h = panel_h - _TITLE_H - _PAD
+        cls._max_scroll = max(0, content_h - view_h)
+        cls._scroll = max(0, min(cls._max_scroll, cls._scroll))
+
+        # Подсказка о прокрутке, если список не влезает целиком.
+        if cls._max_scroll > 0:
+            hint = view.card_desc_font.render("колесо — прокрутка", True, (140, 140, 170))
+            screen.blit(hint, (panel.right - 50 - hint.get_width() - 16, panel_y + 20))
 
         # Кнопка закрытия
         close_rect = pygame.Rect(panel.right - 50, panel_y + 12, 36, 32)
@@ -69,11 +90,19 @@ class RelicPanel:
         mouse   = pygame.mouse.get_pos()
         view.relic_panel_cell_rects = []
 
+        # Клип содержимого областью прокрутки: ряды за краями панели не вылезают
+        # на заголовок/рамку. Прокрутка сдвигает ряды вверх на _scroll.
+        clip = pygame.Rect(panel_x + 2, cont_y, _PANEL_W - 4, panel_y + panel_h - cont_y - 2)
+        screen.set_clip(clip)
+
         for i, relic in enumerate(relics):
             col = i % _COLS
             row = i // _COLS
             cx  = panel_x + _PAD + col * (col_w + _GAP)
-            cy  = cont_y + row * _ROW_H
+            cy  = cont_y + row * _ROW_H - cls._scroll
+            # Пропускаем ряды полностью вне видимой области (не кликабельны, не рисуются).
+            if cy + _ROW_H < clip.top or cy > clip.bottom:
+                continue
             cell = pygame.Rect(cx, cy, col_w, _ROW_H - 8)
             view.relic_panel_cell_rects.append((cell, relic))
 
@@ -97,6 +126,8 @@ class RelicPanel:
             for li, line in enumerate(relic.description.split("\n")[:2]):
                 screen.blit(view.card_desc_font.render(line, True, (200, 200, 200)),
                             (nx, cy + 30 + li * 18))
+
+        screen.set_clip(None)
 
     @classmethod
     def handle_click(cls, view, mouse_pos) -> bool:
