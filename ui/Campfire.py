@@ -195,7 +195,8 @@ class Campfire:
             view.btn_forge_done_rect = None
             # Ритуал/жертва — кнопка «Назад»: выйти без удаления (игрок мог зайти
             # просто посмотреть колоду; не наказываем за любопытство).
-            view.btn_campfire_back_rect = pygame.Rect(60, 42, 210, 56)
+            # Справа — симметрично «← ГОТОВО» Кузницы, чтобы не налезать на HUD ресурсов.
+            view.btn_campfire_back_rect = pygame.Rect(W - 40 - 226, 42, 210, 56)
             back_hov = view.btn_campfire_back_rect.collidepoint(mouse_pos)
             Campfire._draw_button(screen, small_font, view.btn_campfire_back_rect,
                                   "← НАЗАД", back_hov, True)

@@ -22,7 +22,8 @@ def draw_remove(shop, view, screen, fonts):
     screen.blit(hint, (W // 2 - hint.get_width() // 2, 110))
 
     # Кнопка «Назад» — выйти без удаления (игрок мог зайти просто посмотреть колоду).
-    back_rect = pygame.Rect(60, 42, 200, 52)
+    # Справа, чтобы не налезать на HUD ресурсов (как «← ГОТОВО» в ковке карт).
+    back_rect = pygame.Rect(W - 40 - 200, 42, 200, 52)
     back_hov  = back_rect.collidepoint(mouse_pos)
     pygame.draw.rect(screen, (60, 50, 30) if back_hov else (40, 34, 22),
                      back_rect, border_radius=10)
