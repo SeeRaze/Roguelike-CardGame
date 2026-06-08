@@ -28,6 +28,35 @@ class Заплатка(Relic):
             )
 
 
+class СердцеВеликана(Relic):
+    """Увеличивает максимальный HP на +25 при получении (UNCOMMON-зеркало Заплатки).
+
+    Дешёвый РАННИЙ источник max HP, НЕ гейтнутый боссом (HP-ось,
+    economy-axis-trinity): Заплатка +5 COMMON задаёт паттерн, это — крупнее."""
+
+    GAIN = 25
+
+    def __init__(self):
+        super().__init__(
+            "Сердце Великана",
+            f"Максимальный запас здоровья увеличивается на +{self.GAIN}.",
+            Rarity.UNCOMMON,
+        )
+        self._applied = False
+
+    def on_combat_start(self, combat_manager):
+        if not self._applied:
+            combat_manager.player.max_hp += self.GAIN
+            combat_manager.player.hp = min(
+                combat_manager.player.hp + self.GAIN,
+                combat_manager.player.max_hp
+            )
+            self._applied = True
+            combat_manager.add_log_message(
+                f"[Реликвия] '{self.name}': Макс. HP +{self.GAIN}!"
+            )
+
+
 class ПанцирьДикобраза(Relic):
     """В начале боя игрок получает Шипы 3 (отражает урон атакующему)."""
 

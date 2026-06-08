@@ -179,3 +179,54 @@ def test_сердце_бездны_компаунд_за_боссов():
         r.on_boss_defeated(p)
     # 3 раза по +15% от текущего → строго больше линейного 3×15%
     assert p.max_hp > start * 1.45
+
+
+# ─── HP-ось (шаг 2c): новые источники max HP ─────────────────────────────
+
+
+def test_сердце_великана_флэт_max_hp_однократно():
+    """UNCOMMON: +25 макс. HP при первом бою, второй бой НЕ дублирует."""
+    from types import SimpleNamespace
+    from core.relics import СердцеВеликана
+    p = Druid()
+    p.hp = p.max_hp
+    base = p.max_hp
+    cm = SimpleNamespace(player=p, add_log_message=lambda m: None)
+    r = СердцеВеликана()
+    r.on_combat_start(cm)
+    assert p.max_hp == base + 25
+    assert p.hp == base + 25            # хил на дельту
+    r.on_combat_start(cm)               # второй бой
+    assert p.max_hp == base + 25        # без повтора (_applied)
+
+
+def test_сердце_великана_в_пуле_uncommon():
+    from core.relics import СердцеВеликана, RELIC_POOL
+    from core.rarity import Rarity
+    assert СердцеВеликана in RELIC_POOL[Rarity.UNCOMMON]
+
+
+def test_камень_вечной_жизни_растит_каждый_бой():
+    """EPIC: +1% макс. HP в конце КАЖДОГО боя (on_combat_end), с хилом."""
+    from core.relics import КаменьВечнойЖизни
+    p = Druid()
+    p.hp = p.max_hp
+    base = p.max_hp
+    r = КаменьВечнойЖизни()
+    r.on_combat_end(p)
+    gain = max(1, round(base * КаменьВечнойЖизни.GROWTH_PCT))
+    assert p.max_hp == base + gain
+    assert p.hp == base + gain
+
+
+def test_камень_вечной_жизни_компаунд_частотой():
+    """Много боёв компаундят (частота > редкие боссы). 50 боёв заметно растят."""
+    from core.relics import КаменьВечнойЖизни, RELIC_POOL
+    from core.rarity import Rarity
+    p = Druid()
+    start = p.max_hp
+    r = КаменьВечнойЖизни()
+    for _ in range(50):
+        r.on_combat_end(p)
+    assert p.max_hp > start * 1.3       # 1.01^50 ≈ ×1.64 (с округлением вверх)
+    assert КаменьВечнойЖизни in RELIC_POOL[Rarity.EPIC]
