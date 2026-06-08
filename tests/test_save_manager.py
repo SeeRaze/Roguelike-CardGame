@@ -162,3 +162,27 @@ def test_leaderboard_dedup_and_cap():
         SM._apply_run(meta, _run(name="dup", floor=5, kills=5, dmg=5))
     rows = SM.leaderboard_rows(meta)
     assert len(rows) == 1                          # идентичные схлопнуты в одну
+
+
+def test_leaderboard_dedup_local_and_network_echo():
+    # Регресс: один забег приходит локально (с классом) И из сети (эхо Google POST
+    # БЕЗ класса). Раньше класс входил в ключ дедупа → две строки на один забег.
+    # Теперь дедуп игнорирует класс, а известный класс подтягивается в строку.
+    meta = SM._default_meta()
+    SM._apply_run(meta, _run(name="me", cls="Warrior", floor=8, kills=12, dmg=40))
+    net_echo = [{"username": "me", "class": "—", "max_floor": 8,
+                 "kills": 12, "max_damage": 40}]
+    rows = SM.leaderboard_rows(meta, network_rows=net_echo)
+    assert len(rows) == 1                           # НЕ дублируется
+    assert rows[0]["class"] == "Warrior"            # класс не потерян из-за сети
+
+
+def test_leaderboard_network_class_fills_when_local_unknown():
+    # Обратный порядок: локальный забег без класса, сеть знает класс → подтянуть.
+    meta = SM._default_meta()
+    SM._apply_run(meta, _run(name="me", cls="—", floor=8, kills=12, dmg=40))
+    net = [{"username": "me", "class": "Mage", "max_floor": 8,
+            "kills": 12, "max_damage": 40}]
+    rows = SM.leaderboard_rows(meta, network_rows=net)
+    assert len(rows) == 1
+    assert rows[0]["class"] == "Mage"

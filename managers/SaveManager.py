@@ -170,12 +170,20 @@ def leaderboard_rows(meta: dict, network_rows=None) -> list:
             "kills":      int(r.get("kills", 0)),
             "max_damage": int(r.get("max_damage", 0)),
         })
-    seen, deduped = set(), []
+    seen, deduped = {}, []
     for r in rows:
-        key = (r["username"], r["class"], r["max_floor"], r["kills"], r["max_damage"])
+        # Дедуп БЕЗ класса: один и тот же забег приходит и локально (с классом),
+        # и из сети (эхо Google POST БЕЗ класса) → разные значения class давали
+        # бы дубль. Ключ — что объективно одинаково у одного забега.
+        key = (r["username"], r["max_floor"], r["kills"], r["max_damage"])
         if key in seen:
+            # Уже видели этот забег — подтянем класс, если текущая копия его знает,
+            # а сохранённая нет («—»). Так локальный класс не теряется из-за сети.
+            kept = seen[key]
+            if kept["class"] == "—" and r["class"] != "—":
+                kept["class"] = r["class"]
             continue
-        seen.add(key)
+        seen[key] = r
         deduped.append(r)
     deduped.sort(
         key=lambda r: (r["max_floor"], r["kills"], r["max_damage"]), reverse=True)
