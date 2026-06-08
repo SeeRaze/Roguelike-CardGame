@@ -3,12 +3,16 @@
 # кнопки «Сжечь карту» (утилизация) / «Покинуть».
 import pygame
 from core.rarity import RARITY_COLORS
+from core import forge as forge_mod
 from ui.combat.hud import CombatHUD
 from ui.shop.data import (
     _PANEL_COLOR, _BTN_COLOR, _BTN_HOVER_COLOR, _BTN_BORDER, _TITLE_COLOR,
     _GOLD_COLOR, _RED_COLOR, _GRAY_COLOR, _SOLD_COLOR, _TEXT_COLOR,
     ROB_SUCCESS_CHANCE, get_card_price, get_relic_price, get_key_price,
 )
+
+# Цвет Закалки (ось выживаемости / HP) — тёплый зелёный, как HP-бар.
+_TEMPER_COLOR = (120, 220, 120)
 
 
 def _draw_sold_slot(screen, rect, text_font):
@@ -122,6 +126,32 @@ def _draw_key_slot(shop, view, screen, fonts, mouse_pos):
     screen.blit(cnt, (rect.centerx - cnt.get_width() // 2, rect.y + 72))
 
 
+def _draw_temper_button(shop, view, screen, fonts, mouse_pos):
+    """Закалка (С57: сток ЗОЛОТА в Max HP — ось выживаемости, economy-axis-trinity).
+    Переехала с костра в магазин: золото покупает ЭКСПОНЕНТУ выживаемости (+%max_hp
+    компаунд + полный хил). Гаснет, если не хватает золота."""
+    W = screen.get_width()
+    cost = forge_mod.TEMPER_GOLD_COST
+    pct  = int(forge_mod.TEMPER_HP_PCT * 100)
+    affordable = view.gm.player_gold >= cost
+    rect = pygame.Rect(W // 2 - 320, 705, 640, 64)
+    view.btn_shop_temper_rect = rect
+    shop.is_temper_hovered = affordable and rect.collidepoint(mouse_pos)
+
+    if not affordable:
+        bg, border, txtc = (30, 40, 30), (70, 90, 70), (120, 140, 120)
+    elif shop.is_temper_hovered:
+        bg, border, txtc = (40, 75, 40), _TEMPER_COLOR, (255, 255, 255)
+    else:
+        bg, border, txtc = (26, 50, 26), _TEMPER_COLOR, _TEMPER_COLOR
+    pygame.draw.rect(screen, bg, rect, border_radius=12)
+    pygame.draw.rect(screen, border, rect, 2, border_radius=12)
+    lbl = fonts["btn"].render(
+        f"ЗАКАЛКА  (+{pct}% макс.HP + лечение, {cost} з.)", True, txtc)
+    screen.blit(lbl, (rect.centerx - lbl.get_width() // 2,
+                      rect.centery - lbl.get_height() // 2))
+
+
 def draw_main(shop, view, screen, fonts):
     W = screen.get_width()
     mouse_pos = pygame.mouse.get_pos()
@@ -142,8 +172,11 @@ def draw_main(shop, view, screen, fonts):
     _draw_key_slot(shop, view, screen, fonts, mouse_pos)
     _draw_rob_button(shop, view, screen, fonts, mouse_pos)
 
+    # Кнопка «Закалка» (ось выживаемости: золото → +%max HP + хил)
+    _draw_temper_button(shop, view, screen, fonts, mouse_pos)
+
     # Кнопка «Сжечь карту» (утилизация)
-    view.btn_shop_remove_rect = pygame.Rect(W // 2 - 320, 705, 640, 64)
+    view.btn_shop_remove_rect = pygame.Rect(W // 2 - 320, 781, 640, 64)
     shop.is_remove_hovered = view.btn_shop_remove_rect.collidepoint(mouse_pos)
     rcol = (80, 35, 25) if shop.is_remove_hovered else (50, 20, 15)
     pygame.draw.rect(screen, rcol, view.btn_shop_remove_rect, border_radius=12)
@@ -154,7 +187,7 @@ def draw_main(shop, view, screen, fonts):
                        view.btn_shop_remove_rect.centery - rlbl.get_height() // 2))
 
     # Кнопка «Покинуть»
-    view.btn_shop_leave_rect = pygame.Rect(W // 2 - 320, 781, 640, 64)
+    view.btn_shop_leave_rect = pygame.Rect(W // 2 - 320, 857, 640, 64)
     shop.is_leave_hovered = view.btn_shop_leave_rect.collidepoint(mouse_pos)
     _draw_button(screen, fonts["btn"], view.btn_shop_leave_rect,
                  "ПОКИНУТЬ МАГАЗИН", shop.is_leave_hovered, _BTN_BORDER)

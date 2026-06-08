@@ -10,7 +10,6 @@ class Campfire:
     sub_state          = "MAIN"
     is_rest_hovered    = False
     is_forge_hovered   = False
-    is_temper_hovered  = False
     is_sharpen_hovered = False
     is_ritual_hovered  = False
 
@@ -42,7 +41,6 @@ class Campfire:
         Campfire.sub_state          = "MAIN"
         Campfire.is_rest_hovered    = False
         Campfire.is_forge_hovered   = False
-        Campfire.is_temper_hovered  = False
         Campfire.is_sharpen_hovered = False
         Campfire.is_ritual_hovered  = False
         Campfire._clear_draft()
@@ -119,24 +117,20 @@ class Campfire:
         player = view.gm.player
         fp     = player.forge_points
 
-        # 5 опций: Отдых / Кузница / Закалка / Заточка / Ритуал. Стоки FP (Кузница/
-        # Закалка/Заточка) не продвигают этаж — продвижение за Отдыхом/Ритуалом.
+        # 4 опции: Отдых / Кузница / Заточка / Ритуал. Костёр = чистый FP-узел
+        # (С57: Закалка переехала на ось ЗОЛОТА → в магазин, economy-axis-trinity).
+        # Стоки FP (Кузница/Заточка) не продвигают этаж — продвижение за Отдыхом/Ритуалом.
         x = W // 2 - 300
-        view.btn_rest_rect    = pygame.Rect(x, 235, 600, 64)
-        view.btn_forge_rect   = pygame.Rect(x, 321, 600, 64)
-        view.btn_temper_rect  = pygame.Rect(x, 407, 600, 64)
-        view.btn_sharpen_rect = pygame.Rect(x, 493, 600, 64)
-        view.btn_ritual_rect  = pygame.Rect(x, 579, 600, 64)
+        view.btn_rest_rect    = pygame.Rect(x, 250, 600, 64)
+        view.btn_forge_rect   = pygame.Rect(x, 346, 600, 64)
+        view.btn_sharpen_rect = pygame.Rect(x, 442, 600, 64)
+        view.btn_ritual_rect  = pygame.Rect(x, 538, 600, 64)
         ritual_ok    = Campfire._ritual_available(view)
-        temper_cost  = forge_mod.TEMPER_GOLD_COST
         sharpen_cost = forge_mod.SHARPEN_FP_COST
-        temper_ok    = view.gm.player_gold >= temper_cost
         sharpen_ok   = fp >= sharpen_cost
 
         Campfire.is_rest_hovered    = view.btn_rest_rect.collidepoint(mouse_pos)
         Campfire.is_forge_hovered   = view.btn_forge_rect.collidepoint(mouse_pos)
-        Campfire.is_temper_hovered  = (temper_ok
-                                       and view.btn_temper_rect.collidepoint(mouse_pos))
         Campfire.is_sharpen_hovered = (sharpen_ok
                                        and view.btn_sharpen_rect.collidepoint(mouse_pos))
         Campfire.is_ritual_hovered  = (ritual_ok
@@ -148,10 +142,6 @@ class Campfire:
         Campfire._draw_button(screen, btn_font, view.btn_forge_rect,
                               f"КУЗНИЦА  (Ковка за FP: {fp})",
                               Campfire.is_forge_hovered, True)
-        temper_pct = int(forge_mod.TEMPER_HP_PCT * 100)
-        Campfire._draw_button(screen, btn_font, view.btn_temper_rect,
-                              f"ЗАКАЛКА  (+{temper_pct}% макс.HP + лечение, {temper_cost} зол.)",
-                              Campfire.is_temper_hovered, temper_ok)
         sharpen_pct = int(forge_mod.SHARPEN_ATK_PCT * 100)
         Campfire._draw_button(screen, btn_font, view.btn_sharpen_rect,
                               f"ЗАТОЧКА  (+{sharpen_pct}% урон ×{player.atk_mult:.2f}, {sharpen_cost} FP)",
@@ -320,15 +310,8 @@ class Campfire:
             view.scroll_y = 0
             Campfire.sub_state = "FORGE"
 
-        # Закалка (золото) / Заточка (FP) — мгновенные стоки, НЕ продвигают этаж.
-        # С57: Закалка переехала на ЗОЛОТО (ось выживаемости). Кнопка переедет в
-        # магазин в 1c — пока работает и на костре (списание золота тут).
-        elif hasattr(view, 'btn_temper_rect') and view.btn_temper_rect.collidepoint(mouse_pos):
-            gm = view.gm
-            ok, spent = forge_mod.temper(gm.player, gm.player_gold)
-            if ok:
-                gm.player_gold -= spent
-
+        # Заточка (FP) — мгновенный сток, НЕ продвигает этаж. Закалка (С57) ушла
+        # в магазин на ось ЗОЛОТА (economy-axis-trinity) — костёр = чистый FP-узел.
         elif hasattr(view, 'btn_sharpen_rect') and view.btn_sharpen_rect.collidepoint(mouse_pos):
             forge_mod.sharpen(view.gm.player)
 

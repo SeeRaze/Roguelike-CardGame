@@ -71,22 +71,23 @@ while is_running:
   тега 1-из-3** (под-экран DRAFT, B3: `ForgeRegistry.draft_tag_choices`, кросс-класс
   с весом свой>универс>чужой, тир цветом), вне UI/сим — авто `pick_tag`;
   Гипер-заряд >15 — `core/forge.forge_card_one_level(...,forced_tag=)`; мульти-ковка
-  за визит, «← ГОТОВО»), **Закалка** (С57: **ЗОЛОТО**→+20% max_hp+лечение, ось
-  выживаемости — `economy-axis-trinity`; кнопка переедет в магазин, шаг 1c),
-  **Заточка** (FP→×урон), **Ритуал крови** (удалить карту за −10 HP сквозь щит,
-  `Creature.lose_hp`; кнопка гаснет при HP≤цены / ≤1 карты). Продвижение по этажу —
-  за Отдыхом/Ритуалом (`setup_next_floor`); стоки (Кузница/Заточка=FP, Закалка=золото)
-  — параллельны, этаж не двигают.
+  за визит, «← ГОТОВО»), **Заточка** (FP→×урон), **Ритуал крови** (удалить карту за
+  −10 HP сквозь щит, `Creature.lose_hp`; кнопка гаснет при HP≤цены / ≤1 карты).
+  С57: костёр = **чистый FP-узел** (4 кнопки) — Закалка ушла в магазин на ось ЗОЛОТА
+  (`economy-axis-trinity`). Продвижение по этажу — за Отдыхом/Ритуалом
+  (`setup_next_floor`); стоки FP (Кузница/Заточка) — параллельны, этаж не двигают.
 - **Урон сквозь щит**: `Creature.lose_hp(amount)` — прямо в HP минуя `shield`, без
   боевых хуков. Идиом: `berserker.py`, `DetonationRegistry`, яд. Реюз для будущего
   (Проклятый сундук, карты «Истязания»).
 - **Магазин** (`ui/shop/`): витрина = 5 карт (`data.pick_cards`) + слот реликвии
   (`data.pick_relic`→`RewardManager.pick_shop_relic`, фильтр имеющихся, цена по
   редкости+этаж `get_relic_price`) + покупка ключа (`get_key_price` 30, беск. запас)
+  + **Закалка** (С57: `core.forge.temper`, ЗОЛОТО→+%max_hp+хил — ось выживаемости,
+  `economy-axis-trinity`; `_draw_temper_button`, цена `TEMPER_GOLD_COST`)
   + утилизация (`get_removal_price` = `(15+floor·2)+removal·25`, ×2 от «Проклятой
   Короны») + выход. Состояние-машина MAIN/REMOVE. `main_view.draw_main` → хелперы
-  `_draw_cards`/`_draw_relic_slot`/`_draw_key_slot`/`_draw_rob_button`. Выход —
-  общий `Shop._leave` (reset + след. этаж).
+  `_draw_cards`/`_draw_relic_slot`/`_draw_key_slot`/`_draw_rob_button`/`_draw_temper_button`.
+  Выход — общий `Shop._leave` (reset + след. этаж).
 - **Ограбление** (`Shop._rob`, кнопка под слотом реликвии): риск-механика — шанс
   `ROB_SUCCESS_CHANCE`(0.30) забрать реликвию бесплатно и сбежать; провал →
   `current_state="COMBAT"` + `spawn_procedural_enemy(is_elite=True)` (элитный страж,

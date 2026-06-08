@@ -20,6 +20,7 @@ class Shop:
     is_remove_hovered  = False
     is_leave_hovered   = False
     is_key_hovered     = False
+    is_temper_hovered  = False
 
     @staticmethod
     def reset():
@@ -30,6 +31,7 @@ class Shop:
         Shop.is_remove_hovered  = False
         Shop.is_leave_hovered   = False
         Shop.is_key_hovered     = False
+        Shop.is_temper_hovered  = False
 
     @staticmethod
     def generate_showcase(gm):
@@ -101,6 +103,17 @@ class Shop:
                 gm.player_keys += 1
             else:
                 print("[!] Не хватает золота на ключ!")
+            return
+
+        # --- Закалка (сток ЗОЛОТА в Max HP — ось выживаемости, С57) ---
+        if hasattr(view, 'btn_shop_temper_rect') and view.btn_shop_temper_rect \
+                and view.btn_shop_temper_rect.collidepoint(mouse_pos):
+            from core import forge as forge_mod
+            ok, spent = forge_mod.temper(gm.player, gm.player_gold)
+            if ok:
+                gm.player_gold -= spent
+            else:
+                print("[!] Не хватает золота на Закалку!")
             return
 
         # --- Ограбление (украсть реликвию; доступно только при ней) ---
