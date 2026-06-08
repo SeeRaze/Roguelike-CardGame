@@ -251,6 +251,56 @@ class MagePolicy(BotPolicy):
             ab.activate(combat)
 
 
+class ChemistPolicy(BotPolicy):
+    """«Варишь карты, не играешь»: каждый ход тратит набранный Реагент на слияние
+    пар карт руки в Глитч-карты. Каждый фьюжн растит Нестабильность (+урон Глитчам) —
+    движок кат.4 внутрибоевой. Пилот: сливает пары, ОБЕ несущие урон (концентрирует
+    DamageEffect-ы под бонус Нестабильности), затем играет Глитчи в приоритете."""
+
+    def on_turn_begin(self, combat) -> None:
+        from core.fusion import can_fuse, FUSION_REAGENT_COST
+        player = combat.player
+        # Сливаем, пока есть Реагент и хотя бы 2 сливаемые карты в руке.
+        while getattr(player, "reagent", 0) >= FUSION_REAGENT_COST:
+            hand = combat.deck_manager.hand
+            if len(hand) < 2:
+                break
+            pair = self._pick_fusion_pair(hand, can_fuse)
+            if pair is None:
+                break
+            i, j = pair
+            if not combat.fuse_hand_cards(i, j):
+                break
+
+    @staticmethod
+    def _pick_fusion_pair(hand, can_fuse):
+        """Выбрать пару индексов для слияния. Приоритет — две карты с DamageEffect
+        (Глитч бьёт сильнее и ловит бонус Нестабильности на каждый удар); иначе любая
+        валидная пара под капом эффектов. None — если сливать нечего."""
+        attack_idxs = [
+            i for i, c in enumerate(hand) if _has_effect(c, DamageEffect)
+        ]
+        # 1) две атакующие
+        for a in range(len(attack_idxs)):
+            for b in range(a + 1, len(attack_idxs)):
+                ia, ib = attack_idxs[a], attack_idxs[b]
+                if can_fuse(hand[ia], hand[ib]):
+                    return (ia, ib)
+        # 2) любая валидная пара
+        for a in range(len(hand)):
+            for b in range(a + 1, len(hand)):
+                if can_fuse(hand[a], hand[b]):
+                    return (a, b)
+        return None
+
+    def _class_pick(self, playable, combat):
+        """Глитчи (слитые карты) — в приоритет: несут бонус Нестабильности."""
+        glitches = [c for c in playable if getattr(c, "is_fused", False)]
+        if glitches:
+            return random.choice(glitches)
+        return random.choice(playable)
+
+
 # Реестр: имя класса игрока -> политика. Фолбэк — базовая (random, без способности).
 CLASS_POLICIES = {
     "Summoner":  SummonerPolicy(),
@@ -259,6 +309,7 @@ CLASS_POLICIES = {
     "Rogue":     RoguePolicy(),
     "Druid":     DruidPolicy(),
     "Mage":      MagePolicy(),
+    "Chemist":   ChemistPolicy(),
 }
 
 
