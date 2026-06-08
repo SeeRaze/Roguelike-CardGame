@@ -14,16 +14,17 @@ from core.cards.mage import MasteryEffect
 from core.cards.rogue import FrenzyEffect
 from core.cards.druid import VirulenceEffect
 from core.cards.berserker import DebtScalingDamageEffect
+from core.cards.warrior import DisciplineBurstDamageEffect, DisciplineToShieldEffect
 
 
 def classify_card(card) -> str:
     """Определяет класс карты по составу эффектов. Возвращает ключ из data._C."""
     effects = card.effects
-    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect)) for e in effects)
+    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
     has_bleed    = any(isinstance(e, (BleedEffect, FrenzyEffect)) for e in effects)
     has_poison   = any(isinstance(e, (PoisonEffect, VirulenceEffect)) for e in effects)
-    has_shield   = any(isinstance(e, ShieldEffect) for e in effects)
+    has_shield   = any(isinstance(e, (ShieldEffect, DisciplineToShieldEffect)) for e in effects)
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
     has_regen    = any(isinstance(e, RegenEffect) for e in effects)
     has_buff     = any(isinstance(e, BuffEffect) for e in effects)
