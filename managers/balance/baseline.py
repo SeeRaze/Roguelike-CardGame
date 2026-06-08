@@ -52,8 +52,8 @@ BASELINE = {
     "Warrior":   {"wall": 32,   "ceiling": 51},
     "Rogue":     {"wall": 15,   "ceiling": 19},
     "Mage":      {"wall": 30,   "ceiling": 56},
-    "Druid":     {"wall": 19.5, "ceiling": 28},
-    "Berserker": {"wall": 7,    "ceiling": 17.5},
+    "Druid":     {"wall": 20,   "ceiling": 28.5},
+    "Berserker": {"wall": 7,    "ceiling": 18.5},
     "Summoner":  {"wall": 63,   "ceiling": 67},
     "Chemist":   {"wall": 20.5, "ceiling": 18.5},
 }
@@ -72,7 +72,7 @@ FORGE_REACH_FLOOR = 50
 BASELINE_FORGE = {
     "Warrior":   95,
     "Mage":      100,
-    "Berserker": 32,
+    "Berserker": 28,
 }
 # Тревожит ТОЛЬКО просадка (движок ковки сломался); рост доходимости всегда легитимен.
 # Допуск широкий: доля по N=40 шумна (каждый забег — бинарный 0/1 «долетел/нет»).

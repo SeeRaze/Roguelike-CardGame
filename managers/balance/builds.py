@@ -30,6 +30,9 @@ from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import MasteryEffect
 from core.cards.rogue import FrenzyEffect
 from core.cards.druid import VirulenceEffect
+from core.cards.berserker import (
+    DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
+)
 from core.relics import (
     ПроклятаяКорона, ЭнергоЯдро, ТочильныйКамень, ЖелезнаяВоля, ШипастаяБроня,
     ДревнееОгниво, ФлаконСЖелчью, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
@@ -112,6 +115,10 @@ def _card_themes(card) -> set:
             t.add("shield")
         elif isinstance(e, (EchoEffect, EchoPayoffEffect)):
             t.add("echo")
+        elif isinstance(e, DebtScalingDamageEffect):
+            t.update(("attack", "debt"))        # атака, масштаб от HP-долга
+        elif isinstance(e, (SelfHarmEffect, DebtToForgeOnKillEffect)):
+            t.add("debt")                       # движок «кровь в мощь» (Берсерк)
     return t
 
 
@@ -160,6 +167,11 @@ def _card_score(card) -> float:
             value += e.base_val * 2             # усиливает все будущие bleed
         elif isinstance(e, VirulenceEffect):
             value += e.base_val * 2             # усиливает все будущие наложения яда
+        elif isinstance(e, DebtScalingDamageEffect):
+            value += e.base_val + e.per_depth * 5  # база + оценка глубины долга (~серед.)
+        elif isinstance(e, DebtToForgeOnKillEffect):
+            value += 3                          # пик долг→FP при добивании (ceiling-движок)
+        # SelfHarmEffect — цена (нырок), не пенализируем: урон карты ценится отдельно.
     return value / max(1, card.cost)            # отдача за единицу энергии
 
 

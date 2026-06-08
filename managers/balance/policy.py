@@ -18,6 +18,7 @@ from core.cards.base import (
 from core.cards.air import FlowEffect
 from core.cards.summon import SummonEffect
 from core.cards.warrior import ShieldDamageEffect
+from core.cards.berserker import SelfHarmEffect
 
 # --- Пороги «компетентности» (НЕ игровой баланс, а качество игры бота) ---
 # Жать реактивную способность, когда набралось осмысленно много стаков/щита.
@@ -34,6 +35,7 @@ _MAGE_ELEMENTAL_MIN     = 4   # «Стихийный барьер»: щит = с
 # пушкой-ловушкой); умный газ раскручивает движок |HP|→FP (см. память glasscannon).
 _BERSERK_HP_FRACTION    = 0.9 # нырять только с почти полным буфером HP
 _BERSERK_KILLABLE_RATIO = 0.6 # ...и только когда залп врагов добиваем (≤ доля max_hp)
+_BERSERK_FINISHER_HP    = 8   # «Жажда крови»: цель добиваема (≤ урона карты) → самоурон окупается
 
 # Стихийные статусы для подсчёта (как в MageAbility).
 _ELEMENTAL_STATUSES = ("ignited", "wet", "poison")
@@ -162,6 +164,25 @@ class BerserkerPolicy(BotPolicy):
         enemy_hp = sum(e.hp for e in combat.enemies if e.hp > 0)
         if 0 < enemy_hp <= player.max_hp * _BERSERK_KILLABLE_RATIO:
             ab.activate(combat)              # Безумие: карты за 0 энергии ценой HP
+
+    def _class_pick(self, playable, combat):
+        """Самоурон («Жажда крови») приберегаем: сначала играем безопасные карты, а
+        кровавую — лишь когда нырок ОПРАВДАН (Безумие / полный буфер HP / добивание).
+        Если осталась только опасная — ЗАВЕРШАЕМ ход (None), а не суицидим. Так замер
+        видит движок |HP|→FP, а не дилюцию слепого самоурона (см. shock-dilution)."""
+        risky = [c for c in playable if _has_effect(c, SelfHarmEffect)]
+        safe = [c for c in playable if c not in risky]
+        if safe:
+            return random.choice(safe)
+        # В руке только самоурон: ныряем лишь когда оправдано, иначе заканчиваем ход.
+        player = combat.player
+        target = combat.get_target_enemy()
+        safe_to_dive = (
+            getattr(player, "madness_active", False)
+            or player.hp >= player.max_hp * _BERSERK_HP_FRACTION
+            or (target is not None and 0 < target.hp <= _BERSERK_FINISHER_HP)
+        )
+        return risky[0] if safe_to_dive else None
 
 
 class WarriorPolicy(BotPolicy):

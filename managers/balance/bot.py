@@ -59,6 +59,8 @@ class BotCombatManager(CombatManager):
                 if not playable:
                     break
                 card = policy.pick_card(playable, self)
+                if card is None:
+                    break        # политика осознанно завершила ход (напр. нырок опасен)
                 idx  = hand.index(card)
                 self.play_card_by_index(idx)
                 if all(e.hp <= 0 for e in self.enemies):

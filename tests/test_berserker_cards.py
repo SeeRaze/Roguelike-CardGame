@@ -145,3 +145,51 @@ def test_вирулентный_штамм_фикс_достижим_у_друи
     # Был осиротевшим: импортирован, но Druid отсутствовал в CLASS_FACTORIES.
     pool_names = {f().name for f in get_pool_for_class("Druid")}
     assert "Вирулентный штамм" in pool_names
+
+
+# ═══════════════════════════════════════════════════════════
+# BerserkerPolicy — пилотирование самоурона (честность замера)
+# ═══════════════════════════════════════════════════════════
+
+class _StubCombat:
+    """Минимальный контекст для _class_pick: игрок + одна цель."""
+    def __init__(self, player, enemy):
+        self.player = player
+        self.enemies = [enemy]
+        self._enemy = enemy
+
+    def get_target_enemy(self):
+        return self._enemy if self._enemy.hp > 0 else None
+
+
+def _bloodthirst():
+    return Card("Жажда крови", 1, "attack", "",
+                [SelfHarmEffect(4, 3), DamageEffect(8, 11)])
+
+
+def test_политика_приберегает_самоурон_играет_безопасную(make_creature):
+    from managers.balance.policy import BerserkerPolicy
+    player = _berserker(make_creature)             # hp=60 (healthy)
+    combat = _StubCombat(player, make_creature("Враг", 50, 50))
+    safe = Card("Удар", 1, "attack", "", [DamageEffect(6, 8)])
+    pick = BerserkerPolicy()._class_pick([safe, _bloodthirst()], combat)
+    assert pick is safe                            # безопасную вперёд, нырок приберегаем
+
+
+def test_политика_завершает_ход_если_нырок_опасен(make_creature):
+    from managers.balance.policy import BerserkerPolicy
+    player = _berserker(make_creature, hp=5)       # низкий HP (не healthy)
+    player.madness_active = False
+    combat = _StubCombat(player, make_creature("Враг", 50, 50))  # цель не добиваема
+    pick = BerserkerPolicy()._class_pick([_bloodthirst()], combat)
+    assert pick is None                            # суицид-нырок → завершаем ход
+
+
+def test_политика_ныряет_при_добивании(make_creature):
+    from managers.balance.policy import BerserkerPolicy
+    player = _berserker(make_creature, hp=5)
+    player.madness_active = False
+    combat = _StubCombat(player, make_creature("Враг", 6, 50))   # добиваем (≤8)
+    risky = _bloodthirst()
+    pick = BerserkerPolicy()._class_pick([risky], combat)
+    assert pick is risky                           # добивание оправдывает нырок
