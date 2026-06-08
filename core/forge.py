@@ -49,10 +49,13 @@ MILESTONE_TIER = {5: "early", 10: "early", 15: "legendary"}
 # Уровни >15, кратные s (20/25/…), не открывают слот, а гипер-заряжают тег (§4-bis).
 OVERCHARGE_FROM_LEVEL = 15
 
-# ─── ЗАКАЛКА (Отдых) — сток FP в Max HP (_upgrade_design.md §3) ────────────────
+# ─── ЗАКАЛКА (Магазин) — сток ЗОЛОТА в Max HP ([[economy-axis-trinity]]) ───────
+# С57: Закалка переведена с FP на ЗОЛОТО — развести валюты по осям (золото =
+# выживаемость, FP = чистый оффенс). Цена в золоте — ЗАГЛУШКА, калибруется свипом
+# против притока золота (см. _balance_knobs «Прокачка», шаг 1d дуги economy-arc-plan).
 TEMPER_HP_PCT          = 0.20       # +20% к текущему max_hp за одну Закалку (КАЛИБР. 39.3)
-TEMPER_FP_COST         = 10         # цена Закалки в FP (КАЛИБР. 39.3)
-TEMPER_PROACTIVE_RATIO = 0.6        # порог «гонки кривых» бота (КАЛИБР. 39.3)
+TEMPER_GOLD_COST       = 60         # цена Закалки в ЗОЛОТЕ (ЗАГЛУШКА — свип 1d)
+TEMPER_PROACTIVE_RATIO = 0.6        # порог «гонки кривых» бота (решение о Закалке)
 INCOMING_FIGHT_TURNS   = 5          # длина боя для перевода урона-за-ход в давление
 
 # ─── ЗАТОЧКА (Sharpen) — DPS-аналог Закалки, сток FP в множитель урона (С39.4) ─
@@ -272,18 +275,21 @@ def overcharge_slot(rec: dict) -> None:
     target["grade"] = target.get("grade", 0) + 1
 
 
-# ─── ЗАКАЛКА / ЗАТОЧКА (стоки FP; мутируют игрока) ────────────────────────────
-def temper(player) -> bool:
-    """Закалка (§3): тратит TEMPER_FP_COST FP, навсегда +TEMPER_HP_PCT к ТЕКУЩЕМУ
-    max_hp (компаунд-%) + флэт-катализатор артефактов + полное исцеление. Возвращает
-    True, если хватило FP. Предполагает, что ковочное состояние игрока уже создано."""
-    if player.forge_points < TEMPER_FP_COST:
-        return False
-    player.forge_points -= TEMPER_FP_COST
+# ─── ЗАКАЛКА / ЗАТОЧКА (стоки ресурсов; мутируют игрока) ──────────────────────
+def temper(player, gold_available: int):
+    """Закалка (С57): сток ЗОЛОТА в Max HP. Навсегда +TEMPER_HP_PCT к ТЕКУЩЕМУ
+    max_hp (компаунд-%) + флэт-катализатор артефактов + полное исцеление.
+
+    ЧИСТАЯ функция (инвариант core/forge.py — без зависимости от gm): принимает
+    доступное золото, возвращает (ok, gold_spent). Списание золота с кошелька
+    (gm.player_gold в живой игре / симе) — на вызывающем слое. Зеркало sharpen.
+    Предполагает, что max_hp/hp у игрока уже инициализированы."""
+    if gold_available < TEMPER_GOLD_COST:
+        return False, 0
     gain = int(player.max_hp * TEMPER_HP_PCT) + ARTIFACT_MAX_HP_ADD
     player.max_hp += gain
     player.hp = player.max_hp        # полное исцеление
-    return True
+    return True, TEMPER_GOLD_COST
 
 
 def sharpen(player) -> bool:

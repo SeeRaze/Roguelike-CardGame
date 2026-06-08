@@ -15,6 +15,7 @@ from core.cards.catalog   import get_pool_for_class
 from managers.EnemySpawner import build_enemy_group
 from managers.MapGenerator import FLOORS_PER_ACT
 from managers.balance.bot  import BotCombatManager
+from managers.balance.forge import deck_prefers_sharpen
 
 # Доля HP, восстанавливаемая на костре (предбоссовый этаж).
 _CAMPFIRE_HEAL = 0.30
@@ -227,12 +228,17 @@ def run_single_run(player_class, max_floor: int = 100, *,
 
         # Костёр на предбоссовом этаже: частичное лечение + экономика акта.
         if local_step == FLOORS_PER_ACT - 1:
-            # Сток выживаемости на костре (§3, С39.4): если урон следующего акта
-            # угрожает, бот ЖЕРТВУЕТ FP — ТЕМА-ГЕЙТ по колоде выбирает движок:
-            # офенс-колода точит урон (Заточка), оборонная копит Max HP (Закалка).
-            # Решение ДО ковки — потраченные FP не уйдут в карты.
-            if forge is not None:
-                forge.invest_if_threatened(player, floor, deck, class_name)
+            # Сток выживаемости (С39.4→С57): если урон следующего акта угрожает,
+            # бот ЖЕРТВУЕТ ресурс — ТЕМА-ГЕЙТ по колоде выбирает движок И ось:
+            # офенс-колода точит урон (Заточка, FP, costёр) / оборонная копит Max HP
+            # (Закалка, ЗОЛОТО, магазин — С57 развела валюты по осям). Маршрутизация
+            # здесь (не в политике) — нужны обе: forge для FP, economy для золота.
+            # Решение ДО ковки/прореживания — потраченный ресурс не уйдёт в карты.
+            if deck_prefers_sharpen(deck):
+                if forge is not None:
+                    forge.sharpen_if_threatened(player, floor)
+            elif economy is not None:
+                economy.temper_if_threatened(gm, player, floor)
             heal = int(player.max_hp * _CAMPFIRE_HEAL)
             player.hp = min(player.max_hp, player.hp + heal)
             # Раз в акт: потратить накопленное золото на прореживание колоды.

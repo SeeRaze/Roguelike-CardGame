@@ -117,28 +117,35 @@ def test_sharpen_if_threatened_skips_when_safe():
     assert p.forge_points == SHARPEN_FP_COST * 3
 
 
-# ─── invest_if_threatened: маршрутизация по тема-гейту ─────────────────────────
+# ─── Маршрутизация стока выживаемости по тема-гейту (С57: разнесена по осям) ───
+# Заточка (офенс, FP, ForgePolicy) vs Закалка (оборона, ЗОЛОТО, EconomyPolicy).
+# Маршрутизация живёт в runner (нужны обе политики); тут проверяем обе ветки.
 
-def test_invest_routes_offense_to_sharpen():
+def test_offense_deck_routes_to_sharpen():
     p = _FakePlayer(max_hp=50)                     # порог угрозы сработает на эт.19
     pol = ForgePolicy()
     pol.on_combat_won(p, floor=1)
     p.forge_points = 100
     base_hp = p.max_hp
-    pol.invest_if_threatened(p, floor=19, deck=[_atk(), _atk()], class_name="Rogue")
+    assert deck_prefers_sharpen([_atk(), _atk()]) is True
+    pol.sharpen_if_threatened(p, floor=19)
     assert getattr(p, "atk_mult", 1.0) > 1.0      # точил урон
     assert p.max_hp == base_hp                     # Max HP не трогал
 
 
-def test_invest_routes_defense_to_temper():
+def test_defense_deck_routes_to_temper():
+    from managers.balance.economy import EconomyPolicy
+
+    class _GM:
+        player_gold = 100000
+
     p = _FakePlayer(max_hp=50)                     # порог угрозы сработает на эт.19
-    pol = ForgePolicy()
-    pol.on_combat_won(p, floor=1)
-    p.forge_points = 100
-    pol.invest_if_threatened(p, floor=19, deck=[_shield(), _shield(), _heal()],
-                             class_name="Warrior")
-    assert p.max_hp > 50                           # закалял Max HP
-    assert getattr(p, "atk_mult", 1.0) == 1.0      # урон не точил
+    gm = _GM()
+    assert deck_prefers_sharpen([_shield(), _shield(), _heal()]) is False
+    EconomyPolicy().temper_if_threatened(gm, p, floor=19)
+    assert p.max_hp > 50                           # закаляла Max HP
+    assert getattr(p, "atk_mult", 1.0) == 1.0      # урон не точила
+    assert gm.player_gold < 100000                 # списала золото
 
 
 # ─── Сквозная врезка в EffectCalculator (шаг 8) ───────────────────────────────

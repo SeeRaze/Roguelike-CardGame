@@ -98,7 +98,7 @@ def run_sweep(class_names, n, seed0=1):
                             # Ручки читаются модулями в рантайме → мутируем globals.
                             core_forge.TEMPER_PROACTIVE_RATIO = ratio
                             core_forge.TEMPER_HP_PCT          = pct
-                            core_forge.TEMPER_FP_COST         = cost
+                            core_forge.TEMPER_GOLD_COST       = cost
                             core_forge.ARTIFACT_FP_MULT       = afp
                             events_mod.EVENT_REWARD_MULT     = reward
                             for name in class_names:

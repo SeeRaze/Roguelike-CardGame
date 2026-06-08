@@ -15,6 +15,9 @@
 import random
 
 from managers.balance.builds import _card_score, _card_themes, _deck_themes
+from managers.balance.forge import incoming_next_act, _ensure_state
+from core import forge as _cf
+from core.forge import temper as _core_temper
 
 # ─── ТРИЕДИНСТВО ЭКОНОМИКИ: PLACEHOLDER-ЗАГЛУШКА АРТЕФАКТОВ (С39.3) ────────────
 # Третья заглушка триединства (рядом с forge.ARTIFACT_FP_MULT / _MAX_HP_ADD):
@@ -53,6 +56,35 @@ class EconomyPolicy:
     def on_combat_won(self, gm, floor: int, is_elite: bool = False) -> None:
         """Начислить золото за выжитый бой (зеркало распределения наград)."""
         gm.player_gold += gold_reward(floor, is_elite, _has_crown(gm))
+
+    # ── ЗАКАЛКА (Магазин) — сток ЗОЛОТА в Max HP (С57) ──────────────────────────
+    @staticmethod
+    def temper(gm, player) -> bool:
+        """Закалка: сток ЗОЛОТА (gm.player_gold) в Max HP (core.forge.temper —
+        чистая функция, списание золота тут). Ленивая инициализация sim-игрока.
+        ⚠️ С57: Закалка переехала с FP/костра на ЗОЛОТО/магазин ([[economy-axis-trinity]])."""
+        _ensure_state(player)
+        ok, spent = _core_temper(player, gm.player_gold)
+        if ok:
+            gm.player_gold -= spent
+        return ok
+
+    def temper_if_threatened(self, gm, player, floor: int) -> bool:
+        """Решение бота о Закалке («гонка кривых»): пока входящий урон следующего
+        акта ≥ TEMPER_PROACTIVE_RATIO·max_hp И хватает золота, закаляться (компаунд
+        Max HP). Самоограничивается (Закалка растит max_hp → угроза падает ниже
+        порога). Ручки читаются из core в рантайме (свип крутит core.forge).
+
+        Зеркало ForgePolicy.sharpen_if_threatened для оборонной оси на золоте."""
+        _ensure_state(player)
+        threat = incoming_next_act(floor)
+        tempered = False
+        while (threat >= _cf.TEMPER_PROACTIVE_RATIO * player.max_hp
+               and gm.player_gold >= _cf.TEMPER_GOLD_COST):
+            if not self.temper(gm, player):
+                break
+            tempered = True
+        return tempered
 
     def between_acts(self, gm, deck: list, class_name: str) -> None:
         """Раз в акт: пока по карману и колода не оголена — удалять слабейшую

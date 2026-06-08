@@ -158,6 +158,78 @@ def test_has_crown_детект():
 
 
 # ═══════════════════════════════════════════════════════════
+# Закалка на ЗОЛОТЕ (С57): чистая core.temper + EconomyPolicy.temper
+# ═══════════════════════════════════════════════════════════
+
+class _FakeForgePlayer:
+    """Игрок для Закалки: EconomyPolicy лениво проставит ковочные поля сам."""
+    def __init__(self, max_hp=100):
+        self.max_hp = max_hp
+        self.hp = max_hp
+
+
+def test_core_temper_чистая_функция_золото():
+    from core.forge import temper, TEMPER_GOLD_COST, TEMPER_HP_PCT
+    p = _FakeForgePlayer(max_hp=100)
+    # Хватает золота → +20% max HP + полный хил, вернуть потраченное.
+    ok, spent = temper(p, gold_available=TEMPER_GOLD_COST)
+    assert ok is True
+    assert spent == TEMPER_GOLD_COST
+    assert p.max_hp == 100 + int(100 * TEMPER_HP_PCT)
+    assert p.hp == p.max_hp
+    # core.temper НЕ списывает золото сам (чистая) — только сигналит сколько.
+
+
+def test_core_temper_не_хватает_золота_noop():
+    from core.forge import temper, TEMPER_GOLD_COST
+    p = _FakeForgePlayer(max_hp=100)
+    ok, spent = temper(p, gold_available=TEMPER_GOLD_COST - 1)
+    assert ok is False
+    assert spent == 0
+    assert p.max_hp == 100                          # не тронут
+
+
+def test_economy_temper_списывает_золото_с_gm():
+    from core.forge import TEMPER_GOLD_COST, TEMPER_HP_PCT
+    gm = _FakeGM(gold=TEMPER_GOLD_COST + 5)
+    p = _FakeForgePlayer(max_hp=80)
+    assert EconomyPolicy.temper(gm, p) is True
+    assert gm.player_gold == 5                       # списано ровно TEMPER_GOLD_COST
+    assert p.max_hp == 80 + int(80 * TEMPER_HP_PCT)
+
+
+def test_economy_temper_без_золота_noop():
+    from core.forge import TEMPER_GOLD_COST
+    gm = _FakeGM(gold=TEMPER_GOLD_COST - 1)
+    p = _FakeForgePlayer(max_hp=80)
+    assert EconomyPolicy.temper(gm, p) is False
+    assert gm.player_gold == TEMPER_GOLD_COST - 1
+    assert p.max_hp == 80
+
+
+def test_economy_temper_if_threatened_калит_под_угрозой():
+    # Малый max_hp → угроза следующего акта превышает порог → калит, пока есть
+    # золото (но max_hp растёт → угроза падает: самоограничение). max_hp=50:
+    # прирост ненулевой (int(50*0.2)=10) И порог срабатывает на эт.19.
+    from core.forge import TEMPER_GOLD_COST
+    gm = _FakeGM(gold=TEMPER_GOLD_COST * 3 + 5)
+    p = _FakeForgePlayer(max_hp=50)
+    did = EconomyPolicy().temper_if_threatened(gm, p, floor=19)
+    assert did is True
+    assert gm.player_gold < TEMPER_GOLD_COST * 3 + 5   # потратила золото
+    assert p.max_hp > 50                                 # выросла живучесть
+
+
+def test_economy_temper_if_threatened_safe_noop():
+    # Огромный max_hp → угроза ниже порога → не калит (золото цело).
+    from core.forge import TEMPER_GOLD_COST
+    gm = _FakeGM(gold=TEMPER_GOLD_COST * 3)
+    p = _FakeForgePlayer(max_hp=10_000_000)
+    assert EconomyPolicy().temper_if_threatened(gm, p, floor=1) is False
+    assert gm.player_gold == TEMPER_GOLD_COST * 3
+
+
+# ═══════════════════════════════════════════════════════════
 # Интеграция в runner: регресс-нейтральность + работа экономики
 # ═══════════════════════════════════════════════════════════
 

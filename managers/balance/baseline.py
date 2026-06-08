@@ -29,6 +29,7 @@ import sys
 
 from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner, Chemist
 from managers.balance.builds import get_ceiling_build
+from managers.balance.economy import EconomyPolicy
 from managers.balance.forge import ForgePolicy
 from managers.balance.runner import run_single_run
 
@@ -107,14 +108,19 @@ def measure_class(player_class) -> dict:
 def measure_forge_reach(player_class) -> int:
     """Доля (%) forge-ON ceiling-забегов класса, доживших до FORGE_REACH_FLOOR.
     Видимость движка ковки — forge-off метрики его не показывают (особенно у Берсерка).
-    Детерминирована при BASELINE_SEED. None death_floor = дошёл до конца (≥ порога)."""
+    Детерминирована при BASELINE_SEED. None death_floor = дошёл до конца (≥ порога).
+
+    С57: даём ПОЛНЫЙ движок (forge + economy) — Закалка переехала на ЗОЛОТО в
+    EconomyPolicy ([[economy-axis-trinity]]), без economy метрика слепа к оборонной
+    оси (Воин). Эмпирически до эт.50 Закалка маргинальна (её компаунд живёт в акте 3),
+    поэтому числа не сдвинулись — но метрика теперь видит обе оси корректно."""
     name = player_class.__name__
     draft, extra, relics = get_ceiling_build(name)
     random.seed(BASELINE_SEED)
     with open(os.devnull, "w") as dn, contextlib.redirect_stdout(dn):
         results = [
             run_single_run(player_class, 100, draft=draft, extra_cards=extra,
-                           relics=relics, forge=ForgePolicy())
+                           relics=relics, forge=ForgePolicy(), economy=EconomyPolicy())
             for _ in range(BASELINE_N)
         ]
     reached = sum(

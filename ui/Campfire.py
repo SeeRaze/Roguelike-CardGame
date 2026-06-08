@@ -128,9 +128,9 @@ class Campfire:
         view.btn_sharpen_rect = pygame.Rect(x, 493, 600, 64)
         view.btn_ritual_rect  = pygame.Rect(x, 579, 600, 64)
         ritual_ok    = Campfire._ritual_available(view)
-        temper_cost  = forge_mod.TEMPER_FP_COST
+        temper_cost  = forge_mod.TEMPER_GOLD_COST
         sharpen_cost = forge_mod.SHARPEN_FP_COST
-        temper_ok    = fp >= temper_cost
+        temper_ok    = view.gm.player_gold >= temper_cost
         sharpen_ok   = fp >= sharpen_cost
 
         Campfire.is_rest_hovered    = view.btn_rest_rect.collidepoint(mouse_pos)
@@ -150,7 +150,7 @@ class Campfire:
                               Campfire.is_forge_hovered, True)
         temper_pct = int(forge_mod.TEMPER_HP_PCT * 100)
         Campfire._draw_button(screen, btn_font, view.btn_temper_rect,
-                              f"ЗАКАЛКА  (+{temper_pct}% макс.HP + лечение, {temper_cost} FP)",
+                              f"ЗАКАЛКА  (+{temper_pct}% макс.HP + лечение, {temper_cost} зол.)",
                               Campfire.is_temper_hovered, temper_ok)
         sharpen_pct = int(forge_mod.SHARPEN_ATK_PCT * 100)
         Campfire._draw_button(screen, btn_font, view.btn_sharpen_rect,
@@ -320,10 +320,14 @@ class Campfire:
             view.scroll_y = 0
             Campfire.sub_state = "FORGE"
 
-        # Закалка/Заточка — мгновенные стоки FP, НЕ продвигают этаж (как ковка):
-        # можно потратить банк FP по нескольким каналам за один визит.
+        # Закалка (золото) / Заточка (FP) — мгновенные стоки, НЕ продвигают этаж.
+        # С57: Закалка переехала на ЗОЛОТО (ось выживаемости). Кнопка переедет в
+        # магазин в 1c — пока работает и на костре (списание золота тут).
         elif hasattr(view, 'btn_temper_rect') and view.btn_temper_rect.collidepoint(mouse_pos):
-            forge_mod.temper(view.gm.player)
+            gm = view.gm
+            ok, spent = forge_mod.temper(gm.player, gm.player_gold)
+            if ok:
+                gm.player_gold -= spent
 
         elif hasattr(view, 'btn_sharpen_rect') and view.btn_sharpen_rect.collidepoint(mouse_pos):
             forge_mod.sharpen(view.gm.player)

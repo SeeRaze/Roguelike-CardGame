@@ -24,11 +24,11 @@ from core.forge import (
     TriggerGuard, apply_linear_level, fp_per_combat, combat_fp_gain,
     level_cost, invested_fp, card_forge_channel, card_is_defensive,
     reward_level_for_floor, next_cap_for_boss, milestone_tier, is_overcharge_level,
-    overcharge_slot, temper as _core_temper, sharpen as _core_sharpen,
+    overcharge_slot, sharpen as _core_sharpen,
     FORGE_POINTS_PER_ACT, FORGE_POINTS_PER_BOSS, LINEAR_BONUS_PER_LEVEL,
     LEVEL_COST_BASE, LEVEL_COST_STEP, INITIAL_LEVEL_CAP, BOSS_LEVEL_CAPS,
     MILESTONES, MILESTONE_STEP, MILESTONE_TIER, OVERCHARGE_FROM_LEVEL,
-    TEMPER_HP_PCT, TEMPER_FP_COST, TEMPER_PROACTIVE_RATIO, INCOMING_FIGHT_TURNS,
+    TEMPER_HP_PCT, TEMPER_GOLD_COST, TEMPER_PROACTIVE_RATIO, INCOMING_FIGHT_TURNS,
     SHARPEN_FP_COST, SHARPEN_ATK_PCT, ARTIFACT_FP_MULT, ARTIFACT_MAX_HP_ADD,
     MAX_TRIGGER_DEPTH,
 )
@@ -39,7 +39,8 @@ _card_is_defensive = card_is_defensive
 # Публичный API модуля: бот-политика + ре-экспорт чистого слоя из core (источник
 # правды). Перечисление гасит F401 на ре-экспортах и документирует поверхность.
 __all__ = [
-    "ForgePolicy", "deck_prefers_sharpen", "_ensure_state", "_card_is_defensive",
+    "ForgePolicy", "deck_prefers_sharpen", "incoming_next_act", "_ensure_state",
+    "_card_is_defensive",
     "TriggerGuard", "apply_linear_level", "fp_per_combat", "combat_fp_gain",
     "level_cost", "invested_fp", "card_forge_channel", "card_is_defensive",
     "reward_level_for_floor", "next_cap_for_boss", "milestone_tier",
@@ -47,10 +48,32 @@ __all__ = [
     "FORGE_POINTS_PER_ACT", "FORGE_POINTS_PER_BOSS", "LINEAR_BONUS_PER_LEVEL",
     "LEVEL_COST_BASE", "LEVEL_COST_STEP", "INITIAL_LEVEL_CAP", "BOSS_LEVEL_CAPS",
     "MILESTONES", "MILESTONE_STEP", "MILESTONE_TIER", "OVERCHARGE_FROM_LEVEL",
-    "TEMPER_HP_PCT", "TEMPER_FP_COST", "TEMPER_PROACTIVE_RATIO",
+    "TEMPER_HP_PCT", "TEMPER_GOLD_COST", "TEMPER_PROACTIVE_RATIO",
     "INCOMING_FIGHT_TURNS", "SHARPEN_FP_COST", "SHARPEN_ATK_PCT",
     "ARTIFACT_FP_MULT", "ARTIFACT_MAX_HP_ADD", "MAX_TRIGGER_DEPTH",
 ]
+
+
+def incoming_next_act(floor: int) -> int:
+    """Оценка входящего урона за ход в СЛЕДУЮЩЕМ акте (для решений на костре/в
+    магазине о стоке выживаемости). Грубое зеркало EnemySpawner: пиковый этаж
+    следующего акта × формула урона, с поправкой на группы. «Угроза ваншота».
+
+    Модульная функция (С57): переиспользуется ForgePolicy (Заточка) и
+    EconomyPolicy (Закалка на золоте) — общий порог «гонки кривых» без
+    перекрёстной зависимости политик."""
+    from managers.EnemySpawner import (
+        DMG_BASE, DMG_GROWTH, GROUP_3_FROM, GROUP_DMG_MULT,
+    )
+    next_act_peak = ((floor // FLOORS_PER_ACT) + 1) * FLOORS_PER_ACT
+    per_enemy = DMG_BASE * (DMG_GROWTH ** next_act_peak)
+    # На поздних этажах враги ходят группами по 3 — суммарный залп за ход.
+    if next_act_peak >= GROUP_3_FROM:
+        per_turn = per_enemy * GROUP_DMG_MULT[3] * 3
+    else:
+        per_turn = per_enemy
+    # Урон-за-ход → давление боя (накопленный урон за репрезентативный клир).
+    return int(per_turn * INCOMING_FIGHT_TURNS)
 
 
 def deck_prefers_sharpen(deck) -> bool:
@@ -142,47 +165,6 @@ class ForgePolicy:
                 progressed = True
                 break       # переоценить с вершины (концентрация на лучшей)
 
-    # ── ЗАКАЛКА (Отдых) ────────────────────────────────────────────────────────
-    @staticmethod
-    def temper(player) -> bool:
-        """Закалка на костре: сток FP в Max HP (core.forge.temper). Обёртка
-        обеспечивает ленивую инициализацию sim-игрока перед расчётом."""
-        _ensure_state(player)
-        return _core_temper(player)
-
-    @staticmethod
-    def incoming_next_act(floor: int) -> int:
-        """Оценка входящего урона за ход в СЛЕДУЮЩЕМ акте (для решения о Закалке).
-        Грубое зеркало EnemySpawner: пиковый этаж следующего акта × формула урона,
-        с поправкой на группы. Используется ботом как «угроза ваншота»."""
-        from managers.EnemySpawner import (
-            DMG_BASE, DMG_GROWTH, GROUP_3_FROM, GROUP_DMG_MULT,
-        )
-        next_act_peak = ((floor // FLOORS_PER_ACT) + 1) * FLOORS_PER_ACT
-        per_enemy = DMG_BASE * (DMG_GROWTH ** next_act_peak)
-        # На поздних этажах враги ходят группами по 3 — суммарный залп за ход.
-        if next_act_peak >= GROUP_3_FROM:
-            per_turn = per_enemy * GROUP_DMG_MULT[3] * 3
-        else:
-            per_turn = per_enemy
-        # Урон-за-ход → давление боя (накопленный урон за репрезентативный клир).
-        return int(per_turn * INCOMING_FIGHT_TURNS)
-
-    def temper_if_threatened(self, player, floor: int) -> bool:
-        """Решение бота на костре («гонка кривых», С39.3): пока входящий урон
-        следующего акта ≥ TEMPER_PROACTIVE_RATIO·max_hp, жертвовать FP на Закалку.
-        Может закалиться несколько раз, пока хватает FP и порог держится. Ручки
-        читаются из core в рантайме (свип крутит core.forge)."""
-        _ensure_state(player)
-        threat = self.incoming_next_act(floor)
-        tempered = False
-        while (threat >= _cf.TEMPER_PROACTIVE_RATIO * player.max_hp
-               and player.forge_points >= _cf.TEMPER_FP_COST):
-            if not self.temper(player):
-                break
-            tempered = True
-        return tempered
-
     # ── ЗАТОЧКА (Sharpen) — DPS-сток FP в множитель урона (С39.4) ───────────────
     @staticmethod
     def sharpen(player) -> bool:
@@ -191,12 +173,15 @@ class ForgePolicy:
         return _core_sharpen(player)
 
     def sharpen_if_threatened(self, player, floor: int) -> bool:
-        """Заточка-аналог temper_if_threatened: пока угроза следующего акта держит
-        порог, лить FP в множитель урона. atk_mult НЕ меняет max_hp/угрозу →
-        дренит весь доступный FP за костёр (в отличие от самоограничивающейся
-        Закалки) — именно это даёт компаунд-флип DPS-трио (свип 39.4)."""
+        """Проактивная Заточка (С39.4): пока угроза следующего акта держит порог,
+        лить FP в множитель урона. atk_mult НЕ меняет max_hp/угрозу → дренит весь
+        доступный FP за костёр — именно это даёт компаунд-флип DPS-трио (свип 39.4).
+
+        ⚠️ С57: Закалка (оборонный аналог) переехала на ЗОЛОТО → EconomyPolicy.
+        ТЕМА-ГЕЙТ маршрутизации (офенс→Заточка / оборона→Закалка) поднят в runner,
+        где доступны обе политики (forge для FP, economy для золота)."""
         _ensure_state(player)
-        threat = self.incoming_next_act(floor)
+        threat = incoming_next_act(floor)
         did = False
         while (threat >= _cf.TEMPER_PROACTIVE_RATIO * player.max_hp
                and player.forge_points >= _cf.SHARPEN_FP_COST):
@@ -204,15 +189,6 @@ class ForgePolicy:
                 break
             did = True
         return did
-
-    def invest_if_threatened(self, player, floor: int, deck: list,
-                             class_name: str = "") -> bool:
-        """ЕДИНЫЙ костёр-сток выживаемости (С39.4): ТЕМА-ГЕЙТ по колоде выбирает
-        движок. Офенс-колода точит урон (Заточка), оборонная копит Max HP
-        (Закалка). Зеркало будущего выбора игрока на костре (39.5)."""
-        if deck_prefers_sharpen(deck):
-            return self.sharpen_if_threatened(player, floor)
-        return self.temper_if_threatened(player, floor)
 
     # Тонкие делегаторы к core (совместимость с тестами sim-API).
     @staticmethod
