@@ -1,18 +1,21 @@
 from core.players.base import Player
 from core.players.abilities import WarriorAbility
 from core.cards import (
-    create_strike, create_defend, create_heavy_blade, create_retribution,
-    create_steel_barricade,
+    create_strike, create_defend, create_heavy_blade,
+    create_punishing_formation, create_shield_wall,
 )
 
 
 def get_warrior_deck():
+    # Де-рельсенный стартер (С56): 2 спендера Дисциплины-учителя, БЕЗ в-стартере
+    # генератора стаков (кроме пассива «держи строй») → не замкнутый луп. Возмездие/
+    # Стальной заслон/Стойка (старая ось + билдер) — в драфт-пуле класса (catalog).
     return [
         create_strike(), create_strike(), create_strike(), create_strike(),
         create_defend(), create_defend(), create_defend(), create_defend(),
         create_heavy_blade(),
-        create_retribution(),       # классовая: щит → урон (защита = атака)
-        create_steel_barricade(),   # классовая: движок кат.4 (несгораемый щит)
+        create_punishing_formation(),   # Дисц → бурст (роль Возмездия)
+        create_shield_wall(),           # Дисц → щит-стена (ось выживаемости)
     ]
 
 
