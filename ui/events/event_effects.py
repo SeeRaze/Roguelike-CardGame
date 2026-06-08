@@ -97,6 +97,40 @@ def apply_effect(effect_str: str, gm) -> None:
         gm.player_gold = max(gm.player_gold - amount, 0)
         gm.event_result = f"-{amount} золота"
 
+    # ─── %-ВАРИАНТЫ (HP-ось, шаг 2 эконом-дуги) ──────────────────────────────
+    # HP-эффекты = % от MAX HP (масштаб-инвариантны: значимы и на эт.5, и на эт.90,
+    # где max HP вырос). Золото держим АДДИТИВНЫМ (economy-axis-trinity): потери —
+    # % от кошелька (честно при любом богатстве), прибыль — масштаб по этажу.
+    elif key == "heal_pct":
+        amount = max(1, int(gm.player.max_hp * float(value)))
+        gm.player.hp = min(gm.player.hp + amount, gm.player.max_hp)
+        gm.event_result = f"+{amount} HP"
+
+    elif key == "lose_hp_pct":
+        amount = max(1, int(gm.player.max_hp * float(value)))
+        gm.player.hp = max(gm.player.hp - amount, 1)
+        gm.event_result = f"-{amount} HP"
+
+    elif key == "lose_gold_pct":
+        amount = int(gm.player_gold * float(value))
+        gm.player_gold = max(gm.player_gold - amount, 0)
+        gm.event_result = f"-{amount} золота"
+
+    elif key == "gain_gold_floor":
+        # Прибыль золота, масштабируемая этажом (зеркало gold_reward = …+floor·K):
+        # держит золото плоско-читаемым, без экспоненты на валюте.
+        amount = int(float(value) * gm.current_floor)
+        gm.player_gold += amount
+        gm.event_result = f"+{amount} золота"
+
+    elif key == "temper_spirit":
+        # «Закалить дух»: +% к МАКС. HP навсегда (зеркало Сердца Бездны), с хилом
+        # на дельту. Живой источник роста HP-оси через события.
+        gain = max(1, int(gm.player.max_hp * float(value)))
+        gm.player.max_hp += gain
+        gm.player.hp = min(gm.player.hp + gain, gm.player.max_hp)
+        gm.event_result = f"+{gain} к макс. HP"
+
     elif key == "gain_card":
         factory = _get_card_factory(value)
         card = factory()
