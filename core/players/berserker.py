@@ -4,16 +4,22 @@ from core.players.abilities.berserker import MADNESS_HP_PER_COST
 from core.cards import (
     create_strike, create_heavy_blade,
     create_flex, create_battle_cry,
+    create_blood_rage, create_blood_thirst,
 )
 
 
 def get_berserker_deck():
+    # Стартер РАСКРЫВАЕТ пассив, не запирает билд ([[starter-deck-reveals-passive]]):
+    # 2 сигнатурки-«учителя» граней долга (Кровавая ярость = долг→урон, Жажда крови =
+    # долг→FP) + generic-основа = открытый холст. 3-я сигнатурка (Безрассудный удар) —
+    # в драфт-пул, не в стартер. Замкнутого комбо-лупа нет.
     return [
         create_strike(), create_strike(), create_strike(),
-        create_strike(), create_strike(),
         create_heavy_blade(), create_heavy_blade(),
         create_flex(),
         create_battle_cry(),
+        create_blood_rage(),
+        create_blood_thirst(),
     ]
 
 
