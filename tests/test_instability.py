@@ -4,7 +4,7 @@
 
 from core.EffectCalculator import EffectCalculator
 from core.players import Mage
-from core.players.mage import INSTABILITY_HP_COST
+from core.players.mage import instability_cost, INSTABILITY_BASE_PCT
 from core.enemies import Cultist
 
 
@@ -53,7 +53,7 @@ def test_перегруз_растёт_с_мастерством():
     assert dmg == 10 + int(10 * _MULT)                # 15 при mult=1.5
 
 
-# ─── глитч-цена ──────────────────────────────────────────────────────────────────────
+# ─── глитч-цена (С56: % от max HP, эскалирует с глубиной Мастерства) ───────────────────
 
 def test_перегруз_искрит_теряет_hp_в_начале_хода():
     cm = FakeCombat()
@@ -61,7 +61,8 @@ def test_перегруз_искрит_теряет_hp_в_начале_хода(
     p.mastery = _THR
     hp0 = p.hp
     p.on_turn_start_passive(cm)
-    assert p.hp == hp0 - INSTABILITY_HP_COST
+    assert p.hp == hp0 - instability_cost(p.max_hp, _THR)   # base% на пороге
+    assert instability_cost(p.max_hp, _THR) > 0             # цена реальна
 
 
 def test_ниже_порога_не_искрит():
@@ -71,6 +72,24 @@ def test_ниже_порога_не_искрит():
     hp0 = p.hp
     p.on_turn_start_passive(cm)
     assert p.hp == hp0                                # цены нет
+    assert instability_cost(p.max_hp, _THR - 1) == 0
+
+
+def test_цена_эскалирует_с_глубиной_мастерства():
+    cm = FakeCombat()
+    p = cm.player
+    shallow = instability_cost(p.max_hp, _THR)        # на пороге
+    deep = instability_cost(p.max_hp, _THR + 10)      # глубже гнём
+    assert deep > shallow                             # чем дальше — тем больнее
+
+
+def test_цена_масштабируется_с_max_hp():
+    # %-механика: на «прокачанном» max HP цена в АБСОЛЮТЕ больше (инвариантна в %).
+    small = instability_cost(70, _THR)
+    big = instability_cost(700, _THR)
+    assert small == int(70 * INSTABILITY_BASE_PCT)    # ровно base% на пороге
+    assert big == int(700 * INSTABILITY_BASE_PCT)     # тот же % от большего max HP
+    assert big > small                                # абсолют растёт с max HP
 
 
 def test_глитч_идёт_сквозь_щит():
@@ -81,4 +100,4 @@ def test_глитч_идёт_сквозь_щит():
     hp0 = p.hp
     p.on_turn_start_passive(cm)
     assert p.shield == 50                             # щит не тронут
-    assert p.hp == hp0 - INSTABILITY_HP_COST          # урон прямо в HP
+    assert p.hp == hp0 - instability_cost(p.max_hp, _THR)   # урон прямо в HP

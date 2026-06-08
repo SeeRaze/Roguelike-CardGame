@@ -6,9 +6,27 @@ from core.cards import (
     create_arcane_focus,
 )
 
-# Глитч-цена Нестабильности (ступень «Гни»): HP сквозь щит в начале хода при
-# перегрузе Мастерства. Стартовое число — калибровка тройки отдельным шагом.
-INSTABILITY_HP_COST = 3
+# НЕСТАБИЛЬНОСТЬ (ступень «Гни») — цена в % от MAX HP (масштаб-инвариантна: актуальна
+# на этаже 1 и 100, [[economy-axis-trinity]]). ЭСКАЛИРУЕТ с глубиной Мастерства за порогом:
+# чем дальше «гнёшь» — тем больнее глитчит (прото-Контекстное Окно Демиурга). Награда
+# (×1.5, шаг 2c) растёт сама от большего Мастерства. Числа = ЗАГЛУШКИ под капстоун.
+INSTABILITY_BASE_PCT      = 0.04   # базовая цена на пороге (% max HP/ход)
+INSTABILITY_PCT_PER_STACK = 0.01   # +% за каждый стак Мастерства СВЕРХ порога
+# Комбо-хил (Стихийный резонанс) — тоже % от MAX HP (иначе плоский +7 протух бы к эт.100).
+# Маг = HP-churn: %-искрит / %-лечится → самодостаточен на любом масштабе.
+COMBO_HEAL_PCT            = 0.08
+
+
+def instability_cost(max_hp: int, mastery: int) -> int:
+    """Цена Нестабильности за ход (HP сквозь щит) при данных max_hp и Мастерстве.
+    0 ниже порога перегруза; на пороге = base%, далее +per_stack% за каждый стак сверх.
+    Чистая функция — зовут пассив Мага И бот-политика (оценка риска гамбла)."""
+    threshold = EffectCalculator.MASTERY_INSTABILITY_THRESHOLD
+    if mastery < threshold:
+        return 0
+    over = mastery - threshold
+    pct = INSTABILITY_BASE_PCT + INSTABILITY_PCT_PER_STACK * over
+    return int(max_hp * pct)
 
 
 def get_mage_deck():
@@ -35,11 +53,13 @@ class Mage(Player):
 
     def on_turn_start_passive(self, combat_manager) -> None:
         """НЕСТАБИЛЬНОСТЬ (ступень «Гни»): при перегрузе Мастерства (≥ порога) «интерфейс
-        искрит» — Маг теряет немного HP сквозь щит в начале хода. Это цена за усиленный
-        бонус Мастерства (EffectCalculator шаг 2c). Сеет Контекстное Окно Демиурга
-        (полнее контекст → мощнее, но глитчит). NO-OP ниже порога."""
-        if self.mastery >= EffectCalculator.MASTERY_INSTABILITY_THRESHOLD:
-            lost = self.lose_hp(INSTABILITY_HP_COST)
+        искрит» — Маг теряет HP сквозь щит в начале хода. Цена в % max HP, ЭСКАЛИРУЕТ с
+        глубиной Мастерства (чем дальше гнёшь — тем больнее). Цена за усиленный бонус
+        Мастерства (EffectCalculator шаг 2c). Сеет Контекстное Окно Демиурга. NO-OP ниже
+        порога."""
+        cost = instability_cost(self.max_hp, self.mastery)
+        if cost > 0:
+            lost = self.lose_hp(cost)
             if lost > 0 and combat_manager:
                 combat_manager.add_log_message(
                     f" [МАГ] Нестабильность: интерфейс искрит, -{lost} HP "
@@ -58,7 +78,7 @@ class Mage(Player):
                 combat_manager.add_log_message(
                     " [МАГ] Стихийный резонанс: +1 карта из колоды!"
                 )
-            healed = self.heal(7, combat_manager)
+            healed = self.heal(int(self.max_hp * COMBO_HEAL_PCT), combat_manager)
             if healed > 0:
                 combat_manager.add_log_message(
                     f" [МАГ] Стихийный резонанс: +{healed} HP, "
