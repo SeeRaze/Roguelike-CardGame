@@ -16,6 +16,18 @@ _RANK_BACK_COLOR  = (120, 160, 220)
 _LINE_ABBR = {Line.LEFT: "Л", Line.CENTER: "Ц", Line.RIGHT: "П"}
 
 
+def _fit_text(font, text, max_w):
+    """Усечь строку с «…», чтобы её рендер влез в max_w пикселей (имена врагов в
+    групповом бою выезжали за рамку панели). Возвращает готовую к рендеру строку."""
+    if font.size(text)[0] <= max_w:
+        return text
+    ell = "…"
+    # Откусываем с конца, пока «текст…» не влезет (или не останется 1 символ).
+    while text and font.size(text + ell)[0] > max_w:
+        text = text[:-1]
+    return (text + ell) if text else ell
+
+
 def _draw_rank_chip(screen, font, rank, x, y, line=None):
     """Мини-бейдж 2D-позиции: ранг (ФРОНТ/ТЫЛ) + опц. линия (·Л/·Ц/·П) от (x, y).
     rank=None → ничего не рисует (позиционка выключена). Возвращает Rect или None."""
@@ -171,6 +183,10 @@ def draw_enemy_panels(view, screen, enemies, player, projection=None):
         # --- Имя ---
         name_font = view.main_font if n <= 2 else view.card_desc_font
         enemy_label = f"ВРАГ: {enemy.name}" if n <= 2 else enemy.name.split("(")[0].strip()
+        # Усечение по ширине: при нескольких длинных именах текст выезжал за рамку.
+        # Резервируем место справа под бейдж ранга (~84px) + внутренний отступ.
+        name_max_w = panel_w - inner_pad * 2 - 84
+        enemy_label = _fit_text(name_font, enemy_label, name_max_w)
         screen.blit(name_font.render(enemy_label, True, _WHITE), (x, y))
 
         # Позиционка (§11): бейдж ранга врага (ФРОНТ/ТЫЛ·линия) в правом-верхнем углу —
@@ -272,8 +288,9 @@ def draw_ally_panels(view, screen, allies):
 
             x, y = px + 10, py + 10
 
-            # Имя (обрезаем если длинное) + бейдж ранга справа.
-            name_surf = view.card_desc_font.render(ally.name[:12], True, _GREEN)
+            # Имя (усекаем по ширине) + бейдж ранга справа. Резерв ~46px под чип ранга.
+            ally_name = _fit_text(view.card_desc_font, ally.name, ally_w - 20 - 46)
+            name_surf = view.card_desc_font.render(ally_name, True, _GREEN)
             screen.blit(name_surf, (x, y))
             _draw_rank_chip(screen, view.card_desc_font, getattr(ally, "rank", None),
                             x + name_surf.get_width() + 6, y, getattr(ally, "line", None))
