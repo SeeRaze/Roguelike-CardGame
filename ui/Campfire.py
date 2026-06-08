@@ -14,6 +14,15 @@ class Campfire:
     is_sharpen_hovered = False
     is_ritual_hovered  = False
 
+    # Состояние драфта майлстоуна (B3): индекс кующейся карты + 3 тега-кандидата +
+    # тир (генерятся ОДИН раз при входе, чтобы не перетасовывать каждый кадр).
+    _draft_card_index = None
+    _draft_choices    = []
+    _draft_tier       = None
+
+    # Цвет тира тега в драфте (юзер: тир выделяем цветом текста).
+    _TIER_COLORS = {"early": (140, 200, 255), "legendary": (255, 200, 80)}
+
     # Цена «Ритуала крови»: HP сквозь щит за удаление одной карты из колоды.
     _BLOOD_RITUAL_COST = 10
 
@@ -36,6 +45,13 @@ class Campfire:
         Campfire.is_temper_hovered  = False
         Campfire.is_sharpen_hovered = False
         Campfire.is_ritual_hovered  = False
+        Campfire._clear_draft()
+
+    @staticmethod
+    def _clear_draft():
+        Campfire._draft_card_index = None
+        Campfire._draft_choices    = []
+        Campfire._draft_tier       = None
 
     @staticmethod
     def _ritual_available(view) -> bool:
@@ -72,6 +88,8 @@ class Campfire:
                      "  |  Колесо мыши -- прокрутка",
                 mark_upgraded=False,
             )
+        elif Campfire.sub_state == "DRAFT":
+            Campfire._draw_draft(view, screen, title_font, text_font, btn_font)
 
     # ------------------------------------------------------------------
     # MAIN: три кнопки-опции
@@ -287,6 +305,8 @@ class Campfire:
             Campfire._handle_forge(view, mouse_pos)
         elif Campfire.sub_state == "SACRIFICE":
             Campfire._handle_sacrifice(view, mouse_pos)
+        elif Campfire.sub_state == "DRAFT":
+            Campfire._handle_draft(view, mouse_pos)
 
     @staticmethod
     def _handle_main(view, mouse_pos):
@@ -324,13 +344,100 @@ class Campfire:
             Campfire.sub_state = "MAIN"
             return
         # Клик по карте — поднять её на +1 уровень за FP (остаёмся на экране,
-        # можно ковать дальше, пока хватает FP / не упёрлись в кап).
+        # можно ковать дальше, пока хватает FP / не упёрлись в кап). Если следующий
+        # уровень — майлстоун (открывает тег), уходим в драфт 1-из-3 (B3).
         player     = view.gm.player
         class_name = type(player).__name__
         for card_rect, index in getattr(view, 'campfire_card_rects', []):
             if card_rect.collidepoint(mouse_pos):
                 card = view.gm.current_deck[index]
-                forge_mod.forge_card_one_level(player, card, class_name)
+                if not forge_mod.can_forge(player, card):
+                    break
+                tier = forge_mod.next_forge_milestone_tier(player, card)
+                if tier is not None:
+                    Campfire._open_draft(player, card, index, tier)
+                else:
+                    forge_mod.forge_card_one_level(player, card, class_name)
+                break
+
+    @staticmethod
+    def _open_draft(player, card, index, tier):
+        """Войти в драфт майлстоуна: сгенерить 3 тега-кандидата ОДИН раз (B3) и
+        переключить под-экран. Канал — по природе карты."""
+        from core.ForgeRegistry import draft_tag_choices
+        channel = forge_mod.card_forge_channel(card)
+        class_name = type(player).__name__
+        Campfire._draft_card_index = index
+        Campfire._draft_tier       = tier
+        Campfire._draft_choices    = draft_tag_choices(class_name, tier, channel)
+        # Краевой случай (бедный канал даёт 0 кандидатов) — не блокируем ковку,
+        # падаем на авто-тег (pick_tag), как раньше.
+        if not Campfire._draft_choices:
+            forge_mod.forge_card_one_level(player, card, class_name)
+            Campfire._clear_draft()
+            return
+        Campfire.sub_state = "DRAFT"
+
+    @staticmethod
+    def _draw_draft(view, screen, title_font, text_font, btn_font):
+        """Под-экран драфта майлстоуна (B3): карта + 3 тега-кандидата на выбор.
+        Тир тега выделен цветом текста. Клик по тегу вешает его на карту."""
+        from core.ForgeRegistry import TAGS
+        C    = Campfire
+        W, H = screen.get_size()
+        mouse_pos = pygame.mouse.get_pos()
+        screen.fill(C._BG_COLOR)
+
+        panel = pygame.Rect(W // 2 - 420, 80, 840, H - 160)
+        pygame.draw.rect(screen, C._PANEL_COLOR, panel, border_radius=16)
+        pygame.draw.rect(screen, C._BTN_BORDER,  panel, 2, border_radius=16)
+
+        card = view.gm.current_deck[C._draft_card_index]
+        tier_name = "ЛЕГЕНДАРНЫЙ" if C._draft_tier == "legendary" else "РАННИЙ"
+        tier_col  = C._TIER_COLORS.get(C._draft_tier, C._TEXT_COLOR)
+
+        t = title_font.render("ВЫБОР УЛУЧШЕНИЯ", True, C._TITLE_COLOR)
+        screen.blit(t, (W // 2 - t.get_width() // 2, panel.y + 24))
+        sub = text_font.render(f"Карта «{card.name}»  •  {tier_name} тег", True, tier_col)
+        screen.blit(sub, (W // 2 - sub.get_width() // 2, panel.y + 78))
+        hint = view.card_desc_font.render(
+            "Выбери один из трёх. Рандом кусается — иногда чужой тег, иногда джекпот.",
+            True, C._TEXT_COLOR)
+        screen.blit(hint, (W // 2 - hint.get_width() // 2, panel.y + 116))
+
+        # Три кнопки-кандидата (вертикально). Заголовок — название тега в цвете
+        # тира, под ним — короткое описание эффекта.
+        view.draft_choice_rects = []
+        btn_w, btn_h = 720, 96
+        x  = W // 2 - btn_w // 2
+        y0 = panel.y + 160
+        for i, tag_id in enumerate(C._draft_choices):
+            spec = TAGS.get(tag_id, {})
+            rect = pygame.Rect(x, y0 + i * (btn_h + 18), btn_w, btn_h)
+            hov  = rect.collidepoint(mouse_pos)
+            col  = C._BTN_HOVER_COLOR if hov else C._BTN_COLOR
+            pygame.draw.rect(screen, col, rect, border_radius=12)
+            pygame.draw.rect(screen, tier_col, rect, 2, border_radius=12)
+            name = btn_font.render(spec.get("label", tag_id), True, tier_col)
+            screen.blit(name, (rect.x + 24, rect.y + 22))
+            kind = "усиление ×" if spec.get("kind") == "mult" else "добавка +"
+            desc = view.card_desc_font.render(
+                f"{kind}  •  канал: {spec.get('channel', 'damage')}",
+                True, C._TEXT_COLOR)
+            screen.blit(desc, (rect.x + 24, rect.y + 58))
+            view.draft_choice_rects.append((rect, tag_id))
+
+    @staticmethod
+    def _handle_draft(view, mouse_pos):
+        """Клик по тегу-кандидату → ковка с выбранным тегом, возврат в Кузницу."""
+        player = view.gm.player
+        for rect, tag_id in getattr(view, 'draft_choice_rects', []):
+            if rect.collidepoint(mouse_pos):
+                card = view.gm.current_deck[Campfire._draft_card_index]
+                forge_mod.forge_card_one_level(
+                    player, card, type(player).__name__, forced_tag=tag_id)
+                Campfire._clear_draft()
+                Campfire.sub_state = "FORGE"
                 break
 
     @staticmethod
