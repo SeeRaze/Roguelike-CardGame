@@ -79,7 +79,12 @@ while is_running:
 - **Урон сквозь щит**: `Creature.lose_hp(amount)` — прямо в HP минуя `shield`, без
   боевых хуков. Идиом: `berserker.py`, `DetonationRegistry`, яд. Реюз для будущего
   (Проклятый сундук, карты «Истязания»).
-- **Магазин** (`ui/shop/`): витрина = 5 карт (`data.pick_cards`) + слот реликвии
+- **Магазин** (`ui/shop/`): витрина = 5 карт (`data.pick_cards`; С57 шаг 3 — каждый
+  слот независимо с шансом `SHOP_FORGE_CHANCE`=0.20 куётся до
+  `forge.reward_level_for_floor(floor)` через `forge.forge_card_to_level`, цена
+  `get_forged_card_price` = база+12з/уровень; паспорт пишется на игрока, переходит в
+  колоду при покупке, некупленные снимает `Shop._discard_unbought_forged` на
+  leave/rob-fail) + слот реликвии
   (`data.pick_relic`→`RewardManager.pick_shop_relic`, фильтр имеющихся, цена по
   редкости+этаж `get_relic_price`) + покупка ключа (`get_key_price` 30, беск. запас)
   + **Закалка** (С57: `core.forge.temper`, ЗОЛОТО→+%max_hp+хил — ось выживаемости,
