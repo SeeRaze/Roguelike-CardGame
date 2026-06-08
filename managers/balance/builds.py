@@ -10,7 +10,8 @@
 import random
 
 from core.cards import (
-    create_retribution, create_iron_wall, create_steel_barricade, create_bastion,
+    create_iron_wall, create_bastion,
+    create_punishing_formation, create_warrior_stance,
     create_boil, create_arcane_focus, create_elemental_surge, create_ignite,
     create_splash, create_toxic_cloud, create_poison_stab, create_lacerate,
     create_open_wound, create_hemorrhage, create_battle_cry,
@@ -24,7 +25,10 @@ from core.cards.base import (
 )
 from core.cards.air import FlowEffect
 from core.cards.summon import SummonEffect
-from core.cards.warrior import ShieldDamageEffect
+from core.cards.warrior import (
+    ShieldDamageEffect, DisciplineBurstDamageEffect, DisciplineToShieldEffect,
+    DisciplineGainEffect,
+)
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import MasteryEffect
@@ -57,8 +61,10 @@ _STATUS_VALUE = {
 # Каждое ядро = (extra_cards, relics). Архетип «к чему класс собирается».
 CLASS_CORES = {
     "Warrior": (
-        [create_retribution, create_iron_wall, create_steel_barricade,
-         create_bastion, create_retribution],
+        # Движок Дисциплины: держим строй (барьер/железная воля → щит на конец хода
+        # → пассив копит Дисц каждый ход) + билдеры → сжигаем в бурст/стену.
+        [create_warrior_stance, create_warrior_stance, create_bastion,
+         create_iron_wall, create_punishing_formation],
         [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро, ПроклятаяКорона],
     ),
     "Mage": (
@@ -119,6 +125,12 @@ def _card_themes(card) -> set:
             t.update(("attack", "debt"))        # атака, масштаб от HP-долга
         elif isinstance(e, (SelfHarmEffect, DebtToForgeOnKillEffect)):
             t.add("debt")                       # движок «кровь в мощь» (Берсерк)
+        elif isinstance(e, DisciplineBurstDamageEffect):
+            t.update(("attack", "discipline"))  # сжечь Дисциплину → бурст (Воин)
+        elif isinstance(e, DisciplineToShieldEffect):
+            t.update(("shield", "discipline"))  # сжечь Дисциплину → щит-стена
+        elif isinstance(e, DisciplineGainEffect):
+            t.add("discipline")                 # билдер: копит Дисциплину
     return t
 
 
@@ -171,6 +183,12 @@ def _card_score(card) -> float:
             value += e.base_val + e.per_depth * 5  # база + оценка глубины долга (~серед.)
         elif isinstance(e, DebtToForgeOnKillEffect):
             value += 3                          # пик долг→FP при добивании (ceiling-движок)
+        elif isinstance(e, DisciplineBurstDamageEffect):
+            value += e.base_val + e.per_disc * 5   # база + оценка сожжённой Дисц (~серед.)
+        elif isinstance(e, DisciplineToShieldEffect):
+            value += (e.base_val + e.per_disc * 5) * 0.7   # щит-стена (как ShieldEffect ×0.7)
+        elif isinstance(e, DisciplineGainEffect):
+            value += e.base_val * 2             # билдер: кормит +урон всех атак (как сила)
         # SelfHarmEffect — цена (нырок), не пенализируем: урон карты ценится отдельно.
     return value / max(1, card.cost)            # отдача за единицу энергии
 

@@ -49,7 +49,7 @@ BASELINE_MAX_RISE = 12
 # архетипы-контры билдам учитываются в сложности.
 # Регенерация: python -m managers.balance.baseline
 BASELINE = {
-    "Warrior":   {"wall": 32,   "ceiling": 51},
+    "Warrior":   {"wall": 28,   "ceiling": 51},
     "Rogue":     {"wall": 15,   "ceiling": 19},
     "Mage":      {"wall": 30,   "ceiling": 56},
     "Druid":     {"wall": 20,   "ceiling": 28.5},
@@ -70,7 +70,7 @@ BASELINE = {
 #     единственный РАЗЛИЧАЮЩИЙ сигнал «как часто раскрученный билд долетает».
 FORGE_REACH_FLOOR = 50
 BASELINE_FORGE = {
-    "Warrior":   95,
+    "Warrior":   90,
     "Mage":      100,
     "Berserker": 28,
 }

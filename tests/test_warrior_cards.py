@@ -124,3 +124,59 @@ def test_воин_сигнатурки_не_в_generic():
     generic_names = {f().name for f in GENERIC_FACTORIES}
     for n in _SIGNATURES:
         assert n not in generic_names
+
+
+# ═══════════════════════════════════════════════════════════
+# WarriorPolicy — пилотирование Дисциплины (честность замера)
+# ═══════════════════════════════════════════════════════════
+
+class _StubCombat:
+    """Минимальный контекст для _class_pick: игрок + одна цель."""
+    def __init__(self, player, enemy):
+        self.player = player
+        self.enemies = [enemy]
+        self._enemy = enemy
+
+    def get_target_enemy(self):
+        return self._enemy if self._enemy.hp > 0 else None
+
+
+def _burst():
+    return Card("Карающий строй", 1, "attack", "",
+                [DisciplineBurstDamageEffect(6, 9, 2, 3)])
+
+
+def _stance():
+    from core.cards.base import ShieldEffect
+    return Card("Стойка", 1, "skill", "",
+                [ShieldEffect(5, 8), DisciplineGainEffect(2, 3)])
+
+
+def test_политика_придерживает_спендер_при_низкой_дисциплине(make_creature):
+    from managers.balance.policy import WarriorPolicy
+    player = _warrior(make_creature)
+    player.set_status("discipline", 1)                # ниже порога (_WARRIOR_DISCIPLINE_MIN=4)
+    combat = _StubCombat(player, make_creature("Враг", 50, 50))
+    burst, stance = _burst(), _stance()
+    pick = WarriorPolicy()._class_pick([burst, stance], combat)
+    assert pick is stance                             # копим (билдер), спендер придержан
+
+
+def test_политика_сжигает_дисциплину_при_пороге(make_creature):
+    from managers.balance.policy import WarriorPolicy
+    player = _warrior(make_creature)
+    player.set_status("discipline", 5)                # ≥ порога
+    combat = _StubCombat(player, make_creature("Враг", 50, 50))
+    burst, stance = _burst(), _stance()
+    pick = WarriorPolicy()._class_pick([burst, stance], combat)
+    assert pick is burst                              # накопили — сжигаем в бурст
+
+
+def test_политика_не_сжигает_дисциплину_впустую_играет_другое(make_creature):
+    from managers.balance.policy import WarriorPolicy
+    from core.cards.base import DamageEffect
+    player = _warrior(make_creature)                  # discipline = 0
+    combat = _StubCombat(player, make_creature("Враг", 50, 50))
+    strike = Card("Удар", 1, "attack", "", [DamageEffect(6, 9)])
+    pick = WarriorPolicy()._class_pick([_burst(), strike], combat)
+    assert pick is strike                             # спендер не жжём впустую, бьём базой страйком

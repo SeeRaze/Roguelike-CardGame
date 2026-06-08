@@ -17,13 +17,17 @@ from core.cards.base import (
 )
 from core.cards.air import FlowEffect
 from core.cards.summon import SummonEffect
-from core.cards.warrior import ShieldDamageEffect
+from core.cards.warrior import (
+    ShieldDamageEffect, DisciplineBurstDamageEffect, DisciplineToShieldEffect,
+    DisciplineGainEffect,
+)
 from core.cards.berserker import SelfHarmEffect
 
 # --- Пороги «компетентности» (НЕ игровой баланс, а качество игры бота) ---
 # Жать реактивную способность, когда набралось осмысленно много стаков/щита.
 _WARRIOR_SHIELD_MIN     = 8   # «Щитовой удар»: удар = 50% щита
 _WARRIOR_RETRIBUTION_MIN = 10 # «Возмездие»: придержать, пока щит не накоплен
+_WARRIOR_DISCIPLINE_MIN = 4   # спендер Дисциплины окупается, когда накоплено ≥ стаков
 _ROGUE_BLEED_MIN        = 8   # «Вскрытие»: удвоить кровотечение (ценой -1 энергии)
 _DRUID_POISON_MIN       = 10  # «Токсичный взрыв»: снять весь яд разом
 _MAGE_ELEMENTAL_MIN     = 4   # «Стихийный барьер»: щит = стихийные стаки * 3
@@ -186,23 +190,48 @@ class BerserkerPolicy(BotPolicy):
 
 
 class WarriorPolicy(BotPolicy):
-    """Ядро Воина — «защита = атака»: копим щит, затем конвертируем в урон
-    («Возмездие» = щит, «Щитовой удар» = 50% щита)."""
+    """Ядро Воина (С56) — «Дисциплина-как-ресурс»: копим Дисциплину обороной (держим
+    щит на конец хода → пассив +1/ход; билдеры «Стойка» дают сразу), затем СЖИГАЕМ её
+    спендером в пик. Грамотный пилот придерживает спендеры, пока стак не осмыслен
+    (≥ _WARRIOR_DISCIPLINE_MIN) — иначе сжёг бы Дисциплину впустую (база без бонуса).
+    Старая ось «защита=атака» (Возмездие/Щитовой удар) сохранена как фолбэк."""
 
     def _class_pick(self, playable, combat):
-        shield = combat.player.shield
+        player = combat.player
+        shield = player.shield
+        discipline = getattr(player, "discipline", 0)
+
+        spenders = [c for c in playable
+                    if any(isinstance(e, (DisciplineBurstDamageEffect,
+                                          DisciplineToShieldEffect)) for e in c.effects)]
+        builders = [c for c in playable
+                    if any(isinstance(e, DisciplineGainEffect) for e in c.effects)]
         retribution = [c for c in playable
                        if any(isinstance(e, ShieldDamageEffect) for e in c.effects)]
         shields = [c for c in playable
-                   if any(isinstance(e, ShieldEffect) for e in c.effects)]
-        others = [c for c in playable if c not in retribution]
-        # «Возмездие» — на накопленном щите (или когда больше нечем играть).
-        if retribution and (shield >= _WARRIOR_RETRIBUTION_MIN or not others):
+                   if any(isinstance(e, ShieldEffect) for e in c.effects)
+                   and c not in builders]
+        spent_set = set(spenders)
+
+        # 1) Накопили осмысленную Дисциплину — сжигаем в пик (бурст приоритетнее стены).
+        if spenders and discipline >= _WARRIOR_DISCIPLINE_MIN:
+            burst = [c for c in spenders
+                     if any(isinstance(e, DisciplineBurstDamageEffect) for e in c.effects)]
+            return burst[0] if burst else spenders[0]
+        # 2) Иначе КОПИМ: билдеры Дисциплины (сразу), затем щит (держим строй → пассив).
+        if builders:
+            return random.choice(builders)
+        # 3) Старая ось «Возмездие» — на накопленном щите.
+        non_spend = [c for c in playable if c not in spent_set]
+        if retribution and (shield >= _WARRIOR_RETRIBUTION_MIN or not non_spend):
             return retribution[0]
-        # Иначе сначала строим щит (топливо для удара), потом всё остальное.
         if shields:
             return random.choice(shields)
-        return random.choice(others) if others else random.choice(playable)
+        # 4) Спендер впустую сжигать не хотим, пока есть другие карты; иначе — играем.
+        others = [c for c in non_spend if c not in retribution]
+        if others:
+            return random.choice(others)
+        return spenders[0] if spenders else random.choice(playable)
 
     def on_turn_end(self, combat) -> None:
         ab = _ability(combat)
