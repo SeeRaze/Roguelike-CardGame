@@ -29,6 +29,7 @@ import sys
 
 from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner
 from managers.balance.builds import get_ceiling_build
+from managers.balance.forge import ForgePolicy
 from managers.balance.runner import run_single_run
 
 CLASSES = [Warrior, Rogue, Mage, Druid, Berserker, Summoner]
@@ -48,13 +49,33 @@ BASELINE_MAX_RISE = 12
 # архетипы-контры билдам учитываются в сложности.
 # Регенерация: python -m managers.balance.baseline
 BASELINE = {
-    "Warrior":   {"wall": 27,   "ceiling": 47.5},
-    "Rogue":     {"wall": 19,   "ceiling": 20},
-    "Mage":      {"wall": 31,   "ceiling": 59},
-    "Druid":     {"wall": 21,   "ceiling": 26.5},
-    "Berserker": {"wall": 6,    "ceiling": 15.5},
-    "Summoner":  {"wall": 61,   "ceiling": 69},
+    "Warrior":   {"wall": 32,   "ceiling": 51},
+    "Rogue":     {"wall": 15,   "ceiling": 19},
+    "Mage":      {"wall": 30,   "ceiling": 56},
+    "Druid":     {"wall": 19.5, "ceiling": 28},
+    "Berserker": {"wall": 7,    "ceiling": 17.5},
+    "Summoner":  {"wall": 63,   "ceiling": 67},
 }
+
+# ── FORGE-ON ДВИЖОК (С50, доп. метрика тройки яруса 1) ─────────────────────────
+# Метрики wall/ceiling выше — forge-OFF (каноничный замер). Для Берсерка («Ломай»,
+# гласс-пушка) это СКРЫВАЕТ движок: его потолок живёт в ковке (|HP-долг|→FP→прокачка),
+# а forge-off конверсия FP не делает ничего → ceiling-off выглядит слабым (структурно).
+# Эта метрика мерит ДОХОДИМОСТЬ ceiling-билда с ВКЛ ковкой до FORGE_REACH_FLOOR (%):
+#   • Воин/Маг компаундят НАДЁЖНО (~95-100% забегов долетают) — стабильный движок.
+#   • Берсерк = рисковый движок: ~треть забегов раскручивается (доказанная гласс-пушка,
+#     не тильт — см. balance-findings-berserker-glasscannon). Медиана/p90 тут не годятся:
+#     медиана прячет движок (мрёт рано), p90 упирается в кап у всех. Доля-доходимость =
+#     единственный РАЗЛИЧАЮЩИЙ сигнал «как часто раскрученный билд долетает».
+FORGE_REACH_FLOOR = 50
+BASELINE_FORGE = {
+    "Warrior":   95,
+    "Mage":      100,
+    "Berserker": 32,
+}
+# Тревожит ТОЛЬКО просадка (движок ковки сломался); рост доходимости всегда легитимен.
+# Допуск широкий: доля по N=40 шумна (каждый забег — бинарный 0/1 «долетел/нет»).
+BASELINE_FORGE_MAX_DROP = 18
 
 
 def _median_death(results: list) -> float:
@@ -81,6 +102,26 @@ def measure_class(player_class) -> dict:
     return {"wall": wall, "ceiling": ceiling}
 
 
+def measure_forge_reach(player_class) -> int:
+    """Доля (%) forge-ON ceiling-забегов класса, доживших до FORGE_REACH_FLOOR.
+    Видимость движка ковки — forge-off метрики его не показывают (особенно у Берсерка).
+    Детерминирована при BASELINE_SEED. None death_floor = дошёл до конца (≥ порога)."""
+    name = player_class.__name__
+    draft, extra, relics = get_ceiling_build(name)
+    random.seed(BASELINE_SEED)
+    with open(os.devnull, "w") as dn, contextlib.redirect_stdout(dn):
+        results = [
+            run_single_run(player_class, 100, draft=draft, extra_cards=extra,
+                           relics=relics, forge=ForgePolicy())
+            for _ in range(BASELINE_N)
+        ]
+    reached = sum(
+        1 for r in results
+        if r["death_floor"] is None or r["death_floor"] >= FORGE_REACH_FLOOR
+    )
+    return round(100 * reached / BASELINE_N)
+
+
 def check() -> list:
     """Сравнить текущие медианы с BASELINE. Вернуть список строк-нарушений
     (пустой = баланс в допуске). Общий движок для CLI `--check` и pytest-обёртки."""
@@ -99,6 +140,16 @@ def check() -> list:
                 failures.append(
                     f"{name} {metric}: ВСПЛЕСК {cur[metric]:g} vs эталон {base[metric]:g} "
                     f"(рост {diff:g} > допуск {BASELINE_MAX_RISE} — возможен баг)")
+
+    # FORGE-ON движок (тройка яруса 1): тревожит только ОБВАЛ доходимости (движок сломан).
+    by_name = {c.__name__: c for c in CLASSES}
+    for name, base_reach in BASELINE_FORGE.items():
+        cur_reach = measure_forge_reach(by_name[name])
+        drop = base_reach - cur_reach
+        if drop > BASELINE_FORGE_MAX_DROP:
+            failures.append(
+                f"{name} forge-reach{FORGE_REACH_FLOOR}: ОБВАЛ ДВИЖКА {cur_reach}% vs "
+                f"эталон {base_reach}% (просадка {drop} > допуск {BASELINE_FORGE_MAX_DROP})")
     return failures
 
 
@@ -114,6 +165,15 @@ def _regen() -> None:
         dc = cur["ceiling"] - base.get("ceiling", cur["ceiling"])
         print(f'    "{name}": {{"wall": {cur["wall"]:g}, "ceiling": {cur["ceiling"]:g}}},'
               f'   # Δwall {dw:+g}, Δceil {dc:+g}')
+    print("}")
+
+    by_name = {c.__name__: c for c in CLASSES}
+    print(f"\n# Forge-ON доходимость до эт.{FORGE_REACH_FLOOR} (%, движок ковки):")
+    print("BASELINE_FORGE = {")
+    for name in BASELINE_FORGE:
+        cur = measure_forge_reach(by_name[name])
+        base = BASELINE_FORGE.get(name, cur)
+        print(f'    "{name}": {cur},   # Δ {cur - base:+g}')
     print("}")
 
 
