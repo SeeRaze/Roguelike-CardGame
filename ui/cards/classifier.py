@@ -15,12 +15,13 @@ from core.cards.rogue import FrenzyEffect
 from core.cards.druid import VirulenceEffect
 from core.cards.berserker import DebtScalingDamageEffect
 from core.cards.warrior import DisciplineBurstDamageEffect, DisciplineToShieldEffect
+from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
 
 
 def classify_card(card) -> str:
     """Определяет класс карты по составу эффектов. Возвращает ключ из data._C."""
     effects = card.effects
-    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect)) for e in effects)
+    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
     has_bleed    = any(isinstance(e, (BleedEffect, FrenzyEffect)) for e in effects)
     has_poison   = any(isinstance(e, (PoisonEffect, VirulenceEffect)) for e in effects)
@@ -32,7 +33,7 @@ def classify_card(card) -> str:
     has_detonate = any(isinstance(e, DetonateEffect) for e in effects)
     has_echo     = any(isinstance(e, EchoEffect) for e in effects)
     has_barrier  = any(isinstance(e, BarrierEffect) for e in effects)
-    has_mastery  = any(isinstance(e, MasteryEffect) for e in effects)
+    has_mastery  = any(isinstance(e, (MasteryEffect, OverclockEffect)) for e in effects)
 
     has_ignited  = any(isinstance(e, StatusEffect) and e.status_type == "ignited" for e in effects)
     has_wet      = any(isinstance(e, StatusEffect) and e.status_type == "wet"     for e in effects)
