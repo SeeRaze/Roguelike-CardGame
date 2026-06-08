@@ -48,3 +48,20 @@ class Chemist(Player):
         # Класс ВКЛЮЧАЕТ слияние всегда — это его механика (не Ставка/опт-ин рана).
         self.fusion_enabled = True
         self.reagent_per_turn = REAGENT_PER_TURN
+
+    def reset_combat_statuses(self) -> None:
+        """Между боями: общий сброс + обнуление Реагента (внутрибоевой ресурс, как и
+        Нестабильность — копится в пределах одного боя, не переносится)."""
+        super().reset_combat_statuses()
+        self.reagent = 0
+
+    def on_fusion(self, glitch_card, combat_manager) -> None:
+        """Хук СЛИЯНИЯ (зовётся из CombatManager.fuse_hand_cards): пассив-движок
+        «Нестабильность» — +1 за каждый фьюжн за бой. Стак даёт +N к урону Глитч-карт
+        (EffectCalculator шаг 2e) → поздний бой = чудовищные Глитчи (потолок класса,
+        внутрибоевой компаунд кат.4, сброс между боями)."""
+        self.add_status("instability", 1, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" [ХИМИК] Нестабильность растёт: {self.instability}."
+            )

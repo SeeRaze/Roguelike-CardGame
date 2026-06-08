@@ -94,6 +94,23 @@ class EffectCalculator:
                 if not dry_run:
                     print(f" [ДИСЦИПЛИНА] +{discipline} к урону (строй держится).")
 
+        # 2e. НЕСТАБИЛЬНОСТЬ (Химик, §2) — движок кат.4 ВНУТРИбоевой: +N к урону
+        # ГЛИТЧ-карт за каждый стак (накоплен +1 за каждый фьюжн за бой, см.
+        # Chemist.on_fusion). Бонус — ТОЛЬКО слитым картам (is_fused): «варишь карты,
+        # не играешь» → награда за авторство контента. Гейт is_player_attack + карта
+        # из контекста розыгрыша/превью — флат, как Мастерство/Дисциплина. Сброс между
+        # боями (_COMBAT_RESET_KEYS) → компаунд только в пределах боя.
+        if is_player_attack:
+            instability = getattr(attacker, 'instability', 0)
+            if instability > 0:
+                inst_card = (card_override if card_override is not None
+                             else getattr(combat_manager, "_card_being_played", None))
+                if inst_card is not None and getattr(inst_card, "is_fused", False):
+                    base_damage += instability
+                    _rec("Нестабильность", "+", instability)
+                    if not dry_run:
+                        print(f" [НЕСТАБИЛЬНОСТЬ] +{instability} к урону Глитча.")
+
         # 2b. (Передел Берсерка, этап 1) Старый плоский пассив «Ярость крови» (бонус от
         # недостатка HP) УБРАН — единственный движок урона Берсерка теперь HP-долг
         # множитель (шаг 8-ter, только в МИНУСЕ): награда за НЫРОК в красную зону, без
