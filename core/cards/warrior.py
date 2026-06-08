@@ -1,14 +1,93 @@
 # core/cards/warrior.py
-# Классовые карты Воина. Идентичность класса — «защита = атака»: Воин копит щит
-# и конвертирует его в урон. ShieldDamageEffect — win-condition танка против
-# масштабирующихся врагов средней игры.
+# Классовые карты Воина. Идентичность класса (С56, передел) — «Дисциплина-как-ресурс»:
+# Воин копит Дисциплину обороной (пассив: держишь строй → +1; +урон ПОКА держишь,
+# EffectCalculator шаг 2d), а сигнатурки её ТРАТЯТ (сжигают стаки) в разовый пик —
+# урон («Карающий строй») или щит-стену («Стена щитов»). Выбор «копи vs слей».
+# Ось класса = ВЫЖИВАЕМОСТЬ, поэтому НИ ОДНА сигнатурка не генерит FP (в отличие от
+# Берсерка); связь с золотом-выживаемостью — отдельная эконом-дуга ([[economy-axis-trinity]]).
 #
-# Барьер (кат.4 движок): несгораемый щит — не сбрасывается между ходами.
-# Воин строит барьер защитными картами → shield floor растёт → Возмездие бьёт
-# всё сильнее. Компаунд: каждый сыгранный защитный скилл усиливает ВСЕ будущие ходы.
+# Каждая грань — «учитель», не замкнутый луп: спендеры вознаграждают Дисциплину от
+# ЛЮБОГО источника (пассив/карты), билд игрок собирает по ходу забега.
+#
+# Прежняя ось «защита=атака» (Возмездие = щит→урон, Барьер) сохранена как ДРАФТ-ПУЛ
+# класса (ниже) — достижима, но вне стартера. Числа = ЗАГЛУШКИ под капстоун-калибровку.
 from core.cards.base import Card, ShieldEffect, BarrierEffect
 from core.EffectCalculator import EffectCalculator
 from core.rarity import Rarity
+
+
+# ─── Кирпичи движка Дисциплины (С56) ──────────────────────────────────────────
+class DisciplineBurstDamageEffect:
+    """Грань «Дисциплина → бурст» (роль Возмездия в новой идентичности). Сжигает ВСЮ
+    Дисциплину игрока и наносит урон = base + per×(сожжено). Трата ОБНУЛЯЕТ стак ДО
+    EffectCalculator → шаг 2d (+N урона за стак) не задваивает: карта САМА и есть payoff
+    накопленного. Вне Дисциплины → просто base, поэтому учит грань, работая от любого
+    источника стаков. Урон через EffectCalculator (уязвимость/Заточка учитываются)."""
+
+    def __init__(self, base_val, upgrade_val, per_disc, upgrade_per_disc):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+        self.per_disc = per_disc
+        self.upgrade_per_disc = upgrade_per_disc
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        per = self.upgrade_per_disc if is_upgraded else self.per_disc
+        spent = max(0, getattr(player, "discipline", 0))
+        player.set_status("discipline", 0)          # сжечь стак ДО расчёта (без задвоя 2d)
+        amount = base + per * spent
+        gm_ref = combat_manager.gm if combat_manager is not None else None
+        final = EffectCalculator.calculate_damage(
+            player, enemy, amount, gm_ref, combat_manager
+        )
+        enemy.take_damage(final, attacker=player, combat_manager=combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Карающий строй: {final} урона "
+                f"(сожжено {spent} Дисциплины → +{per * spent})."
+            )
+
+
+class DisciplineToShieldEffect:
+    """Грань «Дисциплина → выживаемость» (ось класса). Сжигает ВСЮ Дисциплину и даёт
+    щит = base + per×(сожжено). Оборонный payoff накопителя: держал строй — конвертируй
+    в стену сейчас. Мини-хил компонуется отдельным HealEffect в фабрике."""
+
+    def __init__(self, base_val, upgrade_val, per_disc, upgrade_per_disc):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+        self.per_disc = per_disc
+        self.upgrade_per_disc = upgrade_per_disc
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        per = self.upgrade_per_disc if is_upgraded else self.per_disc
+        spent = max(0, getattr(player, "discipline", 0))
+        player.set_status("discipline", 0)
+        amount = base + per * spent
+        player.gain_shield(amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Стена щитов: +{amount} щита "
+                f"(сожжено {spent} Дисциплины → +{per * spent})."
+            )
+
+
+class DisciplineGainEffect:
+    """Грань-билдер: +N Дисциплины напрямую (учит «оборона = накопитель», ускоряет
+    пассив). Тонкий кирпич; обычно компонуется со ShieldEffect в защитной карте."""
+
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        amount = self.upgrade_val if is_upgraded else self.base_val
+        player.add_status("discipline", amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Стойка: +{amount} Дисциплины (всего {player.discipline})."
+            )
 
 
 class ShieldDamageEffect:
