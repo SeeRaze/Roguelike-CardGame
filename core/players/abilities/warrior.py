@@ -29,9 +29,14 @@ class WarriorAbility(ClassAbility):
             )
             return False
 
+        # Живой враг с учётом перехвата (в группе enemies[0] может быть трупом).
+        target = combat_manager.get_target_enemy()
+        if target is None:
+            return False
+
         dmg = max(1, shield // 2)
-        combat_manager.enemy.take_damage(dmg, attacker=combat_manager.player,
-                                         combat_manager=combat_manager)
+        target.take_damage(dmg, attacker=combat_manager.player,
+                            combat_manager=combat_manager)
         self._used = True
         combat_manager.add_log_message(
             f"[ВОИН] Щитовой удар: {dmg} урона врагу (50% от {shield} щита)!"

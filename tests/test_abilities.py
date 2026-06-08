@@ -19,6 +19,20 @@ def test_воин_щитовой_удар(make_combat):
     assert cm.enemy.hp == 45
 
 
+def test_воин_щитовой_удар_бьёт_живого_в_группе(make_combat, make_creature):
+    # Групповой бой: enemies[0] труп → удар уходит по живому, а не в пустоту (AUDIT 1.5).
+    cm = make_combat()
+    dead = cm.enemy
+    dead.hp = 0
+    alive = make_creature("Тыл", 30, 30)
+    cm.enemies = [dead, alive]
+    cm.player.shield = 10
+    ab = WarriorAbility()
+    assert ab.activate(cm) is True
+    assert dead.hp == 0             # труп не трогаем
+    assert alive.hp == 25           # урон 50% от 10 щита = 5 по живому
+
+
 def test_разбойник_вскрытие_удваивает_кровотечение(make_combat):
     cm = make_combat()
     cm.enemy.bleed = 3
