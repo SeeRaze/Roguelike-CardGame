@@ -21,6 +21,17 @@ def draw_remove(shop, view, screen, fonts):
         True, _TEXT_COLOR)
     screen.blit(hint, (W // 2 - hint.get_width() // 2, 110))
 
+    # Кнопка «Назад» — выйти без удаления (игрок мог зайти просто посмотреть колоду).
+    back_rect = pygame.Rect(60, 42, 200, 52)
+    back_hov  = back_rect.collidepoint(mouse_pos)
+    pygame.draw.rect(screen, (60, 50, 30) if back_hov else (40, 34, 22),
+                     back_rect, border_radius=10)
+    pygame.draw.rect(screen, _BTN_BORDER, back_rect, 2, border_radius=10)
+    back_lbl = text_font.render("← Назад", True, _TEXT_COLOR)
+    screen.blit(back_lbl, (back_rect.centerx - back_lbl.get_width() // 2,
+                           back_rect.centery - back_lbl.get_height() // 2))
+    view.shop_remove_back_rect = back_rect
+
     cards_per_row = 7
     card_w, card_h = view.card_width, view.card_height
     spacing_x = card_w + 24

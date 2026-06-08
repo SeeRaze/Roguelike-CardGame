@@ -190,8 +190,15 @@ class Campfire:
             done_hov = view.btn_forge_done_rect.collidepoint(mouse_pos)
             Campfire._draw_button(screen, small_font, view.btn_forge_done_rect,
                                   "← ГОТОВО", done_hov, True)
+            view.btn_campfire_back_rect = None
         else:
             view.btn_forge_done_rect = None
+            # Ритуал/жертва — кнопка «Назад»: выйти без удаления (игрок мог зайти
+            # просто посмотреть колоду; не наказываем за любопытство).
+            view.btn_campfire_back_rect = pygame.Rect(60, 42, 210, 56)
+            back_hov = view.btn_campfire_back_rect.collidepoint(mouse_pos)
+            Campfire._draw_button(screen, small_font, view.btn_campfire_back_rect,
+                                  "← НАЗАД", back_hov, True)
 
         cards_per_row = 7
         card_w, card_h = view.card_width, view.card_height
@@ -327,6 +334,12 @@ class Campfire:
 
     @staticmethod
     def _handle_sacrifice(view, mouse_pos):
+        # «Назад» — вернуться на главный экран костра без жертвы (HP не теряется).
+        back = getattr(view, 'btn_campfire_back_rect', None)
+        if back is not None and back.collidepoint(mouse_pos):
+            view.scroll_y = 0
+            Campfire.sub_state = "MAIN"
+            return
         for card_rect, index in getattr(view, 'campfire_card_rects', []):
             if card_rect.collidepoint(mouse_pos):
                 removed = view.gm.current_deck.pop(index)

@@ -152,6 +152,11 @@ class Shop:
 
     @staticmethod
     def _handle_remove(view, mouse_pos):
+        # «Назад» — вернуться в магазин без удаления (золото не тратится).
+        if getattr(view, 'shop_remove_back_rect', None) \
+                and view.shop_remove_back_rect.collidepoint(mouse_pos):
+            Shop.sub_state = "MAIN"
+            return
         if not hasattr(view, 'shop_remove_card_rects'):
             return
         for card_rect, index in view.shop_remove_card_rects:
