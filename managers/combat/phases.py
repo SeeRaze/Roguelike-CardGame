@@ -40,6 +40,11 @@ class TurnPhaseMixin:
 
         self.player.energy = self.player.max_energy
 
+        # РЕАГЕНТ (Химик, §2): фикс-приток в начало хода (ресурс-тормоз слияния карт).
+        # Гейт fusion_enabled → NO-OP для всех классов кроме Химика (baseline зелёный).
+        if getattr(self.player, "fusion_enabled", False):
+            self.player.reagent += getattr(self.player, "reagent_per_turn", 0)
+
         bonus = getattr(self.player, "bonus_draw", 0)
         self.deck_manager.draw_cards(5 + bonus)
 

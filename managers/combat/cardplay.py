@@ -134,6 +134,64 @@ class CardPlayMixin:
         self._check_victory()
         return True
 
+    def fuse_hand_cards(self, index_a: int, index_b: int) -> bool:
+        """СЛИЯНИЕ КАРТ (Химик, §2): сплавить две карты руки в одну Глитч-карту
+        (`core/fusion.fuse_cards`). Возвращает True при успехе.
+
+        Гейтится `player.fusion_enabled` (ДОСТУП к механизму — как positioning_enabled);
+        тормозится ресурсом Реагент (`FUSION_REAGENT_COST` за слияние). Глитч-карта
+        ТРАНЗИЕНТНА на бой: ложится в руку на место источников, оригиналы уходят в
+        discard (вернутся в пул при reset_deck следующего боя). Эффекты конкатенируются,
+        стоимость = max(пол 1), прокачка сброшена.
+
+        Отказывает (False, без побочек) если: доступ закрыт · индексы невалидны/совпадают ·
+        не хватает Реагента · суммарный кап эффектов превышен (`can_fuse`). UI/бот обязаны
+        заранее свериться; здесь — авторитетный enforcement."""
+        from core.fusion import fuse_cards, can_fuse, FUSION_REAGENT_COST
+
+        player = self.player
+        if not getattr(player, "fusion_enabled", False):
+            return False
+
+        hand = self.deck_manager.hand
+        n = len(hand)
+        if index_a == index_b or not (0 <= index_a < n) or not (0 <= index_b < n):
+            return False
+
+        if getattr(player, "reagent", 0) < FUSION_REAGENT_COST:
+            self.add_log_message("[ХИМИК] Не хватает Реагента для слияния!")
+            return False
+
+        card_a = hand[index_a]
+        card_b = hand[index_b]
+        if not can_fuse(card_a, card_b):
+            self.add_log_message("[ХИМИК] Слияние превысит кап эффектов!")
+            return False
+
+        glitch = fuse_cards(card_a, card_b)
+        player.reagent -= FUSION_REAGENT_COST
+
+        # Источники → discard (вернутся в пул следующего боя); Глитч встаёт на меньший
+        # из индексов, чтобы место в руке было предсказуемым. Удаляем по объектам
+        # (индексы сдвигаются при первом remove).
+        self.deck_manager.hand.remove(card_a)
+        self.deck_manager.hand.remove(card_b)
+        self.deck_manager.discard_pile.append(card_a)
+        self.deck_manager.discard_pile.append(card_b)
+        insert_at = min(index_a, index_b)
+        self.deck_manager.hand.insert(min(insert_at, len(self.deck_manager.hand)), glitch)
+
+        # Пассив «Нестабильность» (этап 3) — хук фьюжна. NO-OP, пока классом не задан.
+        on_fuse = getattr(player, "on_fusion", None)
+        if callable(on_fuse):
+            on_fuse(glitch, self)
+
+        self.add_log_message(
+            f"[ХИМИК] Слияние: {card_a.name} + {card_b.name} → {glitch.name} "
+            f"(стоимость {glitch.cost}). Реагент: {player.reagent}."
+        )
+        return True
+
     def _build_play_snapshot(self, target, card=None) -> dict:
         """Снимок контекста на момент намерения разыграть карту (§10.6). Предикаты
         тегов прокачки (core/ForgeRegistry.py) читают ТОЛЬКО его — заморожен до
