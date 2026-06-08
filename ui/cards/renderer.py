@@ -284,10 +284,15 @@ class CardRenderer:
         """Текущее значение урона карты из ЭФФЕКТА (а не из строки описания):
         upgrade_val если карта улучшена/прокачана, иначе base_val. Учитывает
         линейный слой ковки (+δ бампит base_val/upgrade_val). None, если карта без
-        урона. Используется для корректного превью числа на карте (39.5 хотфикс)."""
+        урона. Используется для корректного превью числа на карте (39.5 хотфикс).
+
+        Урон-эффекты с плоской базой: DamageEffect и EchoPayoffEffect («Каскад» —
+        ×2 при Эхо остаётся условным, показывается отдельно). ShieldDamageEffect
+        («Возмездие») НЕ считается: его урон = живой щит, плоского числа нет."""
         from core.cards.base import DamageEffect
+        from core.cards.echo import EchoPayoffEffect
         for e in card.effects:
-            if isinstance(e, DamageEffect):
+            if isinstance(e, (DamageEffect, EchoPayoffEffect)):
                 return e.upgrade_val if card.upgraded else e.base_val
         return None
 

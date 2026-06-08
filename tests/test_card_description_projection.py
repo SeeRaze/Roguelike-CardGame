@@ -81,3 +81,68 @@ def test_lone_paren_number_is_noop():
 def test_no_numbers_is_noop():
     c = Card("Перестроение", 0, "skill", "Тасует колоду.", [])
     assert project_forge_values(c) == "Тасует колоду."
+
+
+# ─── Финальный урон в бою: замена ЦЕЛИТ в урон-пару N(M) ───────────────────────
+
+from ui.cards.description import _resolve_description  # noqa: E402
+from ui.cards.data import DMG_MARKER  # noqa: E402
+
+
+class _Stub:
+    pass
+
+
+def _combat(desc, upgraded, base, predicted):
+    return _resolve_description(desc, upgraded, player=_Stub(), enemy=_Stub(),
+                                base_override=base, predicted=predicted)
+
+
+def test_combat_simple_attack_replaces_damage():
+    r = _combat("Наносит 6 (9) чистейшего урона.", False, 6, 10)
+    assert r == f"Наносит {DMG_MARKER}10 чистейшего урона."
+
+
+def test_combat_multihit_preserves_hit_count():
+    # «3 удара» — счётчик, НЕ урон; урон в паре 2(3) → подменяется он, не «3».
+    r = _combat("Наносит 3 удара по 2(3) урона.", False, 2, 4)
+    assert r == f"Наносит 3 удара по {DMG_MARKER}4 урона."
+
+
+def test_combat_multihit_upgraded_collision():
+    # Улучшено: урон=3 совпал со счётчиком=3 — позиционный якорь на пару спасает.
+    r = _combat("Наносит 3 удара по 2(3) урона.", True, 3, 5)
+    assert r == f"Наносит 3 удара по {DMG_MARKER}5 урона."
+
+
+def test_combat_cascade_preserves_x2():
+    # «×2» не пара → не трогаем; урон-пара 8(12) подменяется.
+    r = _combat("Урон 8(12). Если есть Эхо — урон ×2.", False, 8, 12)
+    assert r == f"Урон {DMG_MARKER}12. Если есть Эхо — урон ×2."
+
+
+def test_combat_multi_effect_resolves_other_pairs():
+    r = _combat("Урон 4(6). Накладывает 3(5) Яда.", False, 4, 7)
+    assert r == f"Урон {DMG_MARKER}7. Накладывает 3 Яда."
+
+
+def test_combat_no_modifier_no_highlight():
+    r = _combat("Наносит 6 (9) урона.", False, 6, 6)
+    assert DMG_MARKER not in r and r == "Наносит 6 урона."
+
+
+def test_card_base_damage_detects_echo_payoff():
+    from ui.cards.renderer import CardRenderer
+    from core.cards.echo import EchoPayoffEffect
+    c = Card("Каскад", 2, "attack", "Урон 8(12).", [EchoPayoffEffect(8, 12)])
+    assert CardRenderer._card_base_damage(c) == 8
+    c.upgrade()
+    assert CardRenderer._card_base_damage(c) == 12
+
+
+def test_card_base_damage_skips_shield_damage():
+    from ui.cards.renderer import CardRenderer
+    from core.cards.warrior import ShieldDamageEffect
+    c = Card("Возмездие", 1, "attack", "Урон = щиту (130%).",
+             [ShieldDamageEffect(1.0, 1.3)])
+    assert CardRenderer._card_base_damage(c) is None

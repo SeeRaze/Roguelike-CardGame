@@ -62,12 +62,28 @@ def draw_centered_title(surface, text, font, card_rect, is_hovered,
     return start_y + len(lines) * line_height
 
 
+# Урон-число карты пишется ПАРОЙ N(M) (base/upgrade). Несущественные числа —
+# счётчик ударов «3 удара», проценты «130%» — без скобок, их НЕ трогаем.
+_DMG_PAIR_RE = re.compile(r'(\d+)\s*\((\d+)\)')
+
+
 def _get_base_damage(description: str, is_upgraded: bool) -> int:
+    """Напечатанное урон-число = ПЕРВАЯ пара N(M): база (или верхнее при улучшении).
+    Якорь на пару, а не на первое число, спасает мульти-хит карты («3 удара по
+    2(3)»), где первое число — счётчик ударов, а не урон. Fallback на первое
+    число, если пар в строке нет."""
+    pair = _DMG_PAIR_RE.search(description)
+    if pair:
+        return int(pair.group(2) if is_upgraded else pair.group(1))
+    match = re.search(r'\d+', description)
+    return int(match.group()) if match else 0
+
+
+def _resolve_pairs(s: str, is_upgraded: bool) -> str:
+    """Свернуть все пары N(M) в одно число: верхнее при улучшении, базовое иначе."""
     if is_upgraded:
-        match = re.search(r'\d+\s*\((\d+)\)', description)
-    else:
-        match = re.search(r'(\d+)', description)
-    return int(match.group(1)) if match else 0
+        return _DMG_PAIR_RE.sub(r'\2', s)
+    return _DMG_PAIR_RE.sub(r'\1', s)
 
 
 # Пары «N (M)» в описании = base/upgrade одного эффекта. Ковка (+δ) бампит эффекты,
@@ -112,21 +128,18 @@ def project_forge_values(card) -> str:
 def _resolve_description(description: str, is_upgraded: bool,
                          player=None, enemy=None,
                          base_override=None, predicted=None) -> str:
-    if is_upgraded:
-        cleaned = re.sub(r'\d+\s*\((\d+)\)', r'\1', description)
-    else:
-        cleaned = re.sub(r'(\d+)\s*\(\d+\)', r'\1', description)
-
+    # Вне боя (костёр/магазин) числа уже актуальны через project_forge_values —
+    # просто сворачиваем пары N(M) в одно число.
     if player is None or enemy is None:
-        return cleaned
+        return _resolve_pairs(description, is_upgraded)
 
     # База урона = ЗНАЧЕНИЕ ЭФФЕКТА карты (base_override), а не число из строки:
     # ковка (+δ) бампит эффект, но НЕ строку описания. printed_base — что напечатано
-    # в строке (для решения, надо ли подсветить изменённое число).
+    # в урон-паре (для решения, надо ли подсветить изменённое число).
     printed_base = _get_base_damage(description, is_upgraded)
     base_dmg = base_override if base_override is not None else printed_base
     if base_dmg == 0:
-        return cleaned
+        return _resolve_pairs(description, is_upgraded)
 
     # Показанное число = ГАРАНТИРОВАННОЕ (predicted считает renderer через
     # EffectCalculator.preview: баффы игрока + дебаффы врага + Заточка + уровень,
@@ -137,11 +150,20 @@ def _resolve_description(description: str, is_upgraded: bool,
             attacker=player, target=enemy, base_damage=base_dmg, dry_run=True,
         )
 
-    # Подсвечиваем число, только если оно отличается от напечатанного (есть модификатор
-    # ИЛИ уровень ковки) — иначе показываем строку как есть.
+    # Подсвечиваем число, только если оно отличается от напечатанного (модификатор/
+    # ковка). Замену ЦЕЛИМ строго в урон-пару N(M), а остальные пары сворачиваем —
+    # так счётчик ударов «3 удара» в мульти-хит картах не перетирается уроном.
+    dmg_pair = _DMG_PAIR_RE.search(description)
     if predicted != printed_base:
-        return re.sub(r'\d+', DMG_MARKER + str(predicted), cleaned, count=1)
-    return cleaned
+        marked = DMG_MARKER + str(predicted)
+        if dmg_pair is not None:
+            head = _resolve_pairs(description[:dmg_pair.start()], is_upgraded)
+            tail = _resolve_pairs(description[dmg_pair.end():], is_upgraded)
+            return head + marked + tail
+        # Карта без пары (урон бара числом) — заменяем первое число.
+        return re.sub(r'\d+', marked, _resolve_pairs(description, is_upgraded),
+                      count=1)
+    return _resolve_pairs(description, is_upgraded)
 
 
 def _wrap_lines(text, font, max_width):
