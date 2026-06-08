@@ -170,16 +170,20 @@ class CardRenderer:
         chips_h = 22 if has_chips else 0
         desc_bottom = rect.bottom - 10 - max(marks_h, 0) - chips_h
 
+        # Описание с актуальными числами эффектов (ковка +δ не трогает строку):
+        # пары N(M) пересчитываются из эффектов везде — и в бою, и в костре/магазине.
+        display_desc = description.project_forge_values(card)
+
         if preview is not None:
             description.draw_smart_description(
-                surface, card.description, font_desc, rect,
+                surface, display_desc, font_desc, rect,
                 card.upgraded, player=player, enemy=enemy,
                 base_override=base, predicted=predicted,
                 top_y=desc_top, bottom_y=desc_bottom,
             )
         else:
             description.draw_smart_description(
-                surface, card.description, font_desc, rect,
+                surface, display_desc, font_desc, rect,
                 card.upgraded, top_y=desc_top, bottom_y=desc_bottom,
             )
 

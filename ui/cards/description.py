@@ -70,6 +70,45 @@ def _get_base_damage(description: str, is_upgraded: bool) -> int:
     return int(match.group(1)) if match else 0
 
 
+# Пары «N (M)» в описании = base/upgrade одного эффекта. Ковка (+δ) бампит эффекты,
+# но НЕ строку описания — поэтому без проекции форжёная карта в костре/магазине
+# показывает устаревшее число (см. core.forge.apply_linear_level).
+_PAIR_RE = re.compile(r'(\d+)(\s*)\((\d+)\)')
+
+
+def _effect_display_pairs(card):
+    """Текущие отображаемые пары (base, upgrade) эффектов карты В ПОРЯДКЕ: значения
+    (DamageEffect/ShieldEffect/…) или длительности (StatusEffect). Ровно те числа,
+    что печатаются в описании пары N(M)."""
+    pairs = []
+    for e in getattr(card, "effects", None) or []:
+        if hasattr(e, "base_val") and hasattr(e, "upgrade_val"):
+            pairs.append((e.base_val, e.upgrade_val))
+        elif hasattr(e, "base_turns") and hasattr(e, "upgrade_turns"):
+            pairs.append((e.base_turns, e.upgrade_turns))
+    return pairs
+
+
+def project_forge_values(card) -> str:
+    """Описание карты с пересчётом пар N(M) из ТЕКУЩИХ значений эффектов (ковка их
+    бампит, строку — нет). Позиционно: i-я пара ↔ i-й отображаемый эффект, исходный
+    пробел сохраняется. СТРАХОВКА: если число пар в строке ≠ числу эффектов —
+    строка возвращается БЕЗ изменений (нестандартные описания: мульти-хиты,
+    призывы, «половину» — их не корёжим)."""
+    desc = getattr(card, "description", "") or ""
+    matches = list(_PAIR_RE.finditer(desc))
+    eff_pairs = _effect_display_pairs(card)
+    if not matches or len(matches) != len(eff_pairs):
+        return desc
+    out, last = [], 0
+    for m, (bv, uv) in zip(matches, eff_pairs):
+        out.append(desc[last:m.start()])
+        out.append(f"{bv}{m.group(2)}({uv})")
+        last = m.end()
+    out.append(desc[last:])
+    return "".join(out)
+
+
 def _resolve_description(description: str, is_upgraded: bool,
                          player=None, enemy=None,
                          base_override=None, predicted=None) -> str:
