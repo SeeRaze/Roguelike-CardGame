@@ -38,6 +38,14 @@ class Player(Creature):
         self._forge_uid_next = 0           # счётчик выдачи uid инстансам карт
         self.atk_mult        = 1.0         # компаунд-множитель урона (Заточка; шаг 8)
 
+        # ── CARD FUSION (§2, фундамент Химика) ─────────────────────────────────
+        # Гейт ДОСТУПА к слиянию карт в руке (как positioning_enabled у позиционки):
+        # дефолт False → механизм core/fusion.py существует, но для всех классов
+        # инертен. Химик ставит True. `reagent` — ресурс-ТОРМОЗ слияния (приток
+        # фикс/ход, тратится на фьюжн); инертен без fusion_enabled.
+        self.fusion_enabled = False
+        self.reagent        = 0
+
     def get_starter_deck(self) -> list:
         return self._starter_deck_factory() + list(self._extra_starter_cards)
 
