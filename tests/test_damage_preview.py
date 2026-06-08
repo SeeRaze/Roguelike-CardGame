@@ -38,15 +38,15 @@ class _GM:
 
 def test_guaranteed_includes_player_buffs_and_enemy_debuffs():
     player = Creature("Игрок", 50, 50)
-    player.mastery = 5          # +5 (Маг)
+    player.mastery = 4          # +4 (Маг; ниже порога Нестабильности=5 → чистый флат)
     player.atk_mult = 1.5       # ×1.5 (Заточка)
     target = Creature("Враг", 100, 100)
     target.vulnerable = 1       # ×1.5
     cm = _Combat(player)
     pv = EffectCalculator.preview(player, target, 10, combat_manager=cm)
-    # (10 + 5 маст) ×1.5 уязв = 22 (int), ×1.5 Заточка = 33
-    assert pv["guaranteed"] == 33
-    assert pv["full"] == 33     # нет комбо/ковки → full == guaranteed
+    # (10 + 4 маст) ×1.5 уязв = 21 (int), ×1.5 Заточка = 31
+    assert pv["guaranteed"] == 31
+    assert pv["full"] == 31     # нет комбо/ковки → full == guaranteed
     assert pv["reactions"] == []
 
 
