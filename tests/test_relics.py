@@ -11,10 +11,12 @@ from core.relics import (
 )
 
 
-def test_в_пуле_32_уникальные_реликвии():
-    assert len(ALL_RELICS) == 32
+def test_в_пуле_31_уникальная_реликвия():
+    # С57 (1d-pre): Проклятая Корона убрана из выдачи (32→31), класс остался для
+    # будущего ивента-анлока — см. core/relics/__init__.py.
+    assert len(ALL_RELICS) == 31
     имена = [r().name for r in ALL_RELICS]
-    assert len(set(имена)) == 32
+    assert len(set(имена)) == 31
 
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):

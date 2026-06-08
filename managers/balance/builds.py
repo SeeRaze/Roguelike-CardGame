@@ -41,7 +41,7 @@ from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
 )
 from core.relics import (
-    ПроклятаяКорона, ЭнергоЯдро, ТочильныйКамень, ЖелезнаяВоля, ШипастаяБроня,
+    ЭнергоЯдро, ТочильныйКамень, ЖелезнаяВоля, ШипастаяБроня,
     ДревнееОгниво, ФлаконСЖелчью, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
     ТрофейныйКлык,
 )
@@ -68,14 +68,14 @@ CLASS_CORES = {
         # → пассив копит Дисц каждый ход) + билдеры → сжигаем в бурст/стену.
         [create_warrior_stance, create_warrior_stance, create_bastion,
          create_iron_wall, create_punishing_formation],
-        [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро, ПроклятаяКорона],
+        [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро],
     ),
     "Mage": (
         # Движок Мастерства: гамбл Разгоном + комбо (Поджог/Всплеск) растят Мастерство →
         # перегруз ×1.5 → Резонансный разряд выжимает глубину. HP-churn (хил от комбо).
         [create_overclock, create_resonant_discharge, create_arcane_focus,
          create_ignite, create_splash],
-        [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень, ПроклятаяКорона],
+        [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень],
     ),
     "Druid": (
         [create_virulent_strain, create_toxic_cloud, create_poison_stab,
@@ -89,7 +89,7 @@ CLASS_CORES = {
     ),
     "Berserker": (
         [create_battle_cry],
-        [ПроклятаяКорона, ЭнергоЯдро, СердцеТитана, ТочильныйКамень],
+        [ЭнергоЯдро, СердцеТитана, ТочильныйКамень],
     ),
     "Summoner": (
         [create_summon_golem, create_summon_wolf, create_summon_golem],
