@@ -8,7 +8,62 @@
 # атак до конца боя (пассив Мага). MasteryEffect — карта-катализатор, дающая
 # мастерство напрямую (стартовый разгон движка).
 from core.cards.base import Card, DamageEffect, StatusEffect
+from core.EffectCalculator import EffectCalculator
 from core.rarity import Rarity
+
+
+# ─── Кирпичи движка Мастерства/Нестабильности (С56, передел Мага) ──────────────
+class OverclockEffect:
+    """Грань «гамбл/Нестабильность» («Разгон»): заплати % ОТ MAX HP (сквозь щит) →
+    +N Мастерства разом. Активная ручка «Гни»: игрок САМ перешагивает порог перегруза
+    (mastery≥5 → ×1.5 + эскалирующая %-цена в начале хода). Цена в % → масштаб-инвариантна
+    (актуальна на этаже 1 и 100). Ось класса = HP-казино: гэмблишь HP за компаунд."""
+
+    def __init__(self, hp_pct, gain, upgrade_gain):
+        self.hp_pct = hp_pct
+        self.gain = gain
+        self.upgrade_gain = upgrade_gain
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        gain = self.upgrade_gain if is_upgraded else self.gain
+        cost = int(getattr(player, "max_hp", 0) * self.hp_pct)
+        lost = player.lose_hp(cost) if cost > 0 else 0
+        player.add_status("mastery", gain, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Разгон: −{lost} HP ({int(self.hp_pct * 100)}% max) → "
+                f"+{gain} Мастерства (всего {player.mastery})."
+            )
+
+
+class MasteryScalingDamageEffect:
+    """Грань «выжать глубину» («Резонансный разряд»): урон = base + per×Мастерство.
+    Читает Мастерство, НЕ тратит (компаунд держится — контраст спендеру Воина). Это
+    payoff-карта накопленного Мастерства: масштабируется С НИМ СВЕРХ обычного бонуса
+    Мастерства (шаг 2c добавляет свой +Мастерство к ЛЮБОЙ атаке) → разряд = лучший слив
+    глубины. Урон через EffectCalculator (перегруз ×1.5/уязвимость учтены)."""
+
+    def __init__(self, base_val, upgrade_val, per_mastery, upgrade_per_mastery):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+        self.per_mastery = per_mastery
+        self.upgrade_per_mastery = upgrade_per_mastery
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        per = self.upgrade_per_mastery if is_upgraded else self.per_mastery
+        mastery = max(0, getattr(player, "mastery", 0))
+        amount = base + per * mastery
+        gm_ref = combat_manager.gm if combat_manager is not None else None
+        final = EffectCalculator.calculate_damage(
+            player, enemy, amount, gm_ref, combat_manager
+        )
+        enemy.take_damage(final, attacker=player, combat_manager=combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Резонансный разряд: {final} урона "
+                f"(Мастерство {mastery} → +{per * mastery} базы)."
+            )
 
 
 class MasteryEffect:
