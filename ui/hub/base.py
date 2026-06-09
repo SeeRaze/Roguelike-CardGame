@@ -19,6 +19,7 @@ class HubView:
         self.is_deck_hovered:  bool  = False
         self.class_buttons:    dict  = {}
         self.stake_buttons:    dict  = {}
+        self.dev_button              = None
         self.is_start_hovered: bool  = False
 
     def reset(self):
@@ -66,7 +67,30 @@ class HubView:
         )
         self._draw_meta_stats(screen, gm)
         self._draw_stake_toggles(screen, gm)
+        self._draw_dev_toggle(screen, gm)
         self._draw_start_button(view, screen, mouse_pos)
+
+    def _draw_dev_toggle(self, screen, gm):
+        """DEV-тоггл «полный доступ»: открывает ВЕСЬ пул карт/артефактов (минуя анлоки)
+        для тест-сессий, пока анлок-слой (казино/достижения) не построен. Пишет
+        meta['dev_unlock_all'] (персист через SaveManager). Служебная кнопка в углу,
+        помечена DEV — НЕ часть игрового цикла; перед релизом скрыть/убрать."""
+        meta = getattr(gm, "meta", None)
+        if meta is None:
+            return
+        font = pygame.font.SysFont("Arial", 16, bold=True)
+        on = bool(meta.get("dev_unlock_all", False))
+        btn_w, btn_h = 240, 34
+        rect = pygame.Rect(SCREEN_W - btn_w - 20, 20, btn_w, btn_h)
+        pygame.draw.rect(screen, (110, 70, 30) if on else (45, 35, 25),
+                         rect, border_radius=6)
+        pygame.draw.rect(screen, (220, 160, 60) if on else _BTN_BORDER,
+                         rect, 2, border_radius=6)
+        mark = "[+]" if on else "[ ]"
+        t = font.render(f"{mark} DEV: полный доступ", True, _TEXT_COLOR)
+        screen.blit(t, (rect.centerx - t.get_width() // 2,
+                        rect.centery - t.get_height() // 2))
+        self.dev_button = rect
 
     def _draw_stake_toggles(self, screen, gm):
         """Ряд тогглов Ставок (опт-ин сложность поверх RuleStack). Клик переключает
@@ -177,6 +201,17 @@ class HubView:
                 else:
                     gm.pending_stakes.append(stake_id)
                 return
+
+        # DEV-тоггл полного доступа: переключает meta['dev_unlock_all'] + персист.
+        dev_rect = getattr(self, "dev_button", None)
+        if dev_rect is not None and dev_rect.collidepoint(mouse_pos):
+            meta = getattr(gm, "meta", None)
+            if meta is not None:
+                meta["dev_unlock_all"] = not meta.get("dev_unlock_all", False)
+                from managers import SaveManager
+                SaveManager.save()
+                print(f"[DEV] Полный доступ: {meta['dev_unlock_all']}")
+            return
 
         if hasattr(view, 'btn_start_run') and \
                 view.btn_start_run.collidepoint(mouse_pos):

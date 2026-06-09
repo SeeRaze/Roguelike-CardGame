@@ -39,3 +39,23 @@ def test_смена_класса_перевыдаёт_колоду():
     gm = _FakeGM()
     HubView._select_class(gm, "Mage")
     assert gm.current_deck                # стартовая колода нового класса непуста
+
+
+def test_dev_тоггл_переключает_полный_доступ(monkeypatch):
+    # DEV-кнопка в Хабе переключает meta['dev_unlock_all'] (персист через SaveManager).
+    import pygame
+    from managers import SaveManager
+    monkeypatch.setattr(SaveManager, "save", lambda: None)   # не писать на диск
+    gm = _FakeGM()
+    hub = HubView()
+    hub.dev_button = pygame.Rect(0, 0, 100, 30)              # минуем отрисовку
+
+    class _V:
+        pass
+    v = _V(); v.gm = gm
+
+    assert not gm.meta.get("dev_unlock_all", False)
+    hub.handle_click(v, (50, 15))
+    assert gm.meta["dev_unlock_all"] is True                 # вкл
+    hub.handle_click(v, (50, 15))
+    assert gm.meta["dev_unlock_all"] is False                # выкл
