@@ -17,12 +17,25 @@ def _run(seed, **kw):
         return run_single_run(Warrior, 100, **kw)
 
 
-def _median(seed, n=20, cls=Warrior, **kw):
-    random.seed(seed)
-    with open(os.devnull, "w") as dn, contextlib.redirect_stdout(dn):
-        runs = [run_single_run(cls, 100, **kw) for _ in range(n)]
-    vals = [r["death_floor"] if r["death_floor"] is not None else 100 for r in runs]
+def _pooled_median(seeds, n=30, cls=Warrior, **kw):
+    """Медиана этажа смерти по ПУЛУ прогонов с нескольких seed.
+
+    Тенденц-тесты Ставок мерят НАПРАВЛЕНИЕ сдвига (Ставка роняет выживаемость).
+    Один seed × малый n даёт хрупкий замер: любой RNG-сдвиг от нового контента
+    (новая элита/реликвия меняет порядок random.choice) может качнуть медиану на
+    1 этаж и опрокинуть строгое неравенство, хотя тенденция сохраняется. Пул по
+    нескольким seed усредняет это дрожание → устойчивый прибор тенденции."""
+    vals = []
+    for seed in seeds:
+        random.seed(seed)
+        with open(os.devnull, "w") as dn, contextlib.redirect_stdout(dn):
+            for _ in range(n):
+                r = run_single_run(cls, 100, **kw)
+                vals.append(r["death_floor"] if r["death_floor"] is not None else 100)
     return statistics.median(vals)
+
+
+_TENDENCY_SEEDS = (1, 2, 3, 4, 5)
 
 
 def test_stakes_none_равно_без_аргумента():
@@ -42,16 +55,18 @@ def test_активная_ставка_детерминирована():
 def test_аскет_роняет_выживаемость():
     """Калибровка С46 (true ascension): «Аскет» (≤6 карт, без награды) роняет
     медиану смерти — для Мага (несовместим с обрезкой). Доказывает сим-нативность
-    слома: RuleStack измеримо влияет на симуляцию, причём ВНИЗ (опт-ин сложность)."""
-    base    = _median(99, cls=Mage, stakes=None)
-    ascetic = _median(99, cls=Mage, stakes=["ascetic"])
+    слома: RuleStack измеримо влияет на симуляцию, причём ВНИЗ (опт-ин сложность).
+    Замер на ПУЛЕ seed (устойчив к RNG-сдвигам от нового контента)."""
+    base    = _pooled_median(_TENDENCY_SEEDS, cls=Mage, stakes=None)
+    ascetic = _pooled_median(_TENDENCY_SEEDS, cls=Mage, stakes=["ascetic"])
     assert ascetic < base
 
 
 def test_хрупкость_роняет_выживаемость():
-    """«Хрупкость» (30% HP) — универсальный ascension-штраф: медиана падает у Воина."""
-    base    = _median(99, cls=Warrior, stakes=None)
-    fragile = _median(99, cls=Warrior, stakes=["fragile"])
+    """«Хрупкость» (30% HP) — универсальный ascension-штраф: медиана падает у Воина.
+    Замер на ПУЛЕ seed (устойчив к RNG-сдвигам от нового контента)."""
+    base    = _pooled_median(_TENDENCY_SEEDS, cls=Warrior, stakes=None)
+    fragile = _pooled_median(_TENDENCY_SEEDS, cls=Warrior, stakes=["fragile"])
     assert fragile < base
 
 

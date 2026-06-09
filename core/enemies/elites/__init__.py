@@ -8,6 +8,7 @@ from core.enemies.elites.spell_eater import SpellEater
 from core.enemies.elites.plague import PlaguePustule
 from core.enemies.elites.butcher import ButcherTorturer
 from core.enemies.elites.devourer import CorruptionDevourer
+from core.enemies.elites.regression import RegressionElite
 
 # Реестр элитных архетипов. Наполняется по мере добавления файлов.
 # EnemySpawner.build_enemy: random.choice(ELITE_REGISTRY) при is_elite.
@@ -16,6 +17,7 @@ ELITE_REGISTRY = [
     PlaguePustule,
     ButcherTorturer,
     CorruptionDevourer,
+    RegressionElite,
 ]
 
 __all__ = [
@@ -24,5 +26,6 @@ __all__ = [
     "PlaguePustule",
     "ButcherTorturer",
     "CorruptionDevourer",
+    "RegressionElite",
     "ELITE_REGISTRY",
 ]

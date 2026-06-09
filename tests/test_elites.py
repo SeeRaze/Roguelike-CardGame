@@ -9,6 +9,7 @@ from core.enemies.elites.spell_eater import SpellEater
 from core.enemies.elites.plague import PlaguePustule
 from core.enemies.elites.butcher import ButcherTorturer
 from core.enemies.elites.devourer import CorruptionDevourer
+from core.enemies.elites.regression import RegressionElite
 from core.enemies import ELITE_REGISTRY
 from managers.EnemySpawner import build_enemy
 
@@ -160,18 +161,54 @@ class TestCorruptionDevourer:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Регрессия — накопительная броня (закрывающееся окно) + реген
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestRegressionElite:
+    def test_first_turn_hardens(self):
+        e = RegressionElite("RE", 100, 100)
+        e.on_turn_start(None, None)
+        assert e.hardening == RegressionElite.HARDEN_RAMP
+        assert e.shield == RegressionElite.HARDEN_RAMP
+
+    def test_hardening_accumulates_each_turn(self):
+        e = RegressionElite("RE", 100, 100)
+        # Щит обнуляется вражеской фазой между ходами — эмулируем сбросом.
+        e.on_turn_start(None, None)
+        e.shield = 0
+        e.on_turn_start(None, None)
+        # Накопитель растёт: окно убийства закрывается всё сильнее.
+        assert e.hardening == RegressionElite.HARDEN_RAMP * 2
+        assert e.shield == RegressionElite.HARDEN_RAMP * 2
+
+    def test_regen_when_damaged(self):
+        e = RegressionElite("RE", 50, 100)
+        e.on_turn_start(None, None)
+        assert e.hp == 50 + RegressionElite.REGEN_PER_TURN
+
+    def test_no_regen_at_full_hp(self):
+        e = RegressionElite("RE", 100, 100)
+        e.on_turn_start(None, None)
+        assert e.hp == 100   # реген не переливает через max_hp
+
+    def test_random_title_in_list(self):
+        assert RegressionElite.random_title() in RegressionElite._TITLES
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Реестр и диспатч спавна
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestEliteDispatch:
-    def test_registry_has_four_archetypes(self):
-        assert len(ELITE_REGISTRY) == 4
+    def test_registry_has_five_archetypes(self):
+        assert len(ELITE_REGISTRY) == 5
 
     def test_registry_contents(self):
         assert SpellEater in ELITE_REGISTRY
         assert PlaguePustule in ELITE_REGISTRY
         assert ButcherTorturer in ELITE_REGISTRY
         assert CorruptionDevourer in ELITE_REGISTRY
+        assert RegressionElite in ELITE_REGISTRY
 
     def test_build_elite_returns_archetype(self):
         random.seed(0)
