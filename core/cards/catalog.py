@@ -7,6 +7,7 @@
 #   CLASS_FACTORIES    — классовые карты, выдаются в забеге ТОЛЬКО своему классу.
 #
 # Добавить классовую карту = одна строка в CLASS_FACTORIES.
+from core.progression import is_card_unlocked, card_id_for
 from core.cards import (
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
     create_catalyst,
@@ -87,10 +88,18 @@ _TAGGED_CLASS_FACTORIES = {
 }
 
 
-def get_pool_for_class(class_name) -> list:
+def get_pool_for_class(class_name, meta=None) -> list:
     """Пул выдачи карт для класса: generic + классовые этого класса.
-    Используется магазином / сундуком / событиями в забеге."""
-    return GENERIC_FACTORIES + _TAGGED_CLASS_FACTORIES.get(class_name, [])
+    Используется магазином / сундуком / событиями в забеге.
+
+    meta=None → ВЕСЬ пул без фильтра (обратная совместимость: сим/baseline и любые
+    ещё-не-проведённые вызовы видят всё, как раньше → эталон не двинут). При переданной
+    meta фильтруем по анлокам ([[capstone-reorder-content-first]], узкий стартовый пул):
+    стартовые карты всегда, locked — только если их card_id записан в meta['unlocks']."""
+    pool = GENERIC_FACTORIES + _TAGGED_CLASS_FACTORIES.get(class_name, [])
+    if meta is None:
+        return pool
+    return [f for f in pool if is_card_unlocked(meta, card_id_for(f))]
 
 
 def get_class_cards(class_name) -> list:
