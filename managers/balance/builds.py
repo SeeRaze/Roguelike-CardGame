@@ -195,7 +195,7 @@ def _card_score(card) -> float:
         elif isinstance(e, DebtToForgeOnKillEffect):
             value += 3                          # пик долг→FP при добивании (ceiling-движок)
         elif isinstance(e, DisciplineBurstDamageEffect):
-            value += e.base_val + e.per_disc * 5   # база + оценка сожжённой Дисц (~серед.)
+            value += int(e.base_val * (1 + e.mult_per * 5))  # база ×множитель при ~5 стаках
         elif isinstance(e, DisciplineToShieldEffect):
             value += (e.base_val + e.per_disc * 5) * 0.7   # щит-стена (как ShieldEffect ×0.7)
         elif isinstance(e, DisciplineGainEffect):

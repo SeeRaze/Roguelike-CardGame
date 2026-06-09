@@ -19,23 +19,25 @@ from core.rarity import Rarity
 # ─── Кирпичи движка Дисциплины (С56) ──────────────────────────────────────────
 class DisciplineBurstDamageEffect:
     """Грань «Дисциплина → бурст» (роль Возмездия в новой идентичности). Сжигает ВСЮ
-    Дисциплину игрока и наносит урон = base + per×(сожжено). Трата ОБНУЛЯЕТ стак ДО
-    EffectCalculator → шаг 2d (+N урона за стак) не задваивает: карта САМА и есть payoff
-    накопленного. Вне Дисциплины → просто base, поэтому учит грань, работая от любого
-    источника стаков. Урон через EffectCalculator (уязвимость/Заточка учитываются)."""
+    Дисциплину игрока и наносит урон = base × (1 + mult×сожжено) — МУЛЬТИПЛИКАТИВНО
+    от стака (С57: флат +N/стак тонул против экспоненты врага в эндгейме; множитель
+    масштаб-инвариантен — пик растёт с накоплением и домножается forge/уязвимостью).
+    Трата ОБНУЛЯЕТ стак ДО EffectCalculator → шаг 2d (+N урона за стак) не задваивает.
+    Вне Дисциплины → просто base (множитель ×1). Числа = ЗАГЛУШКИ под капстоун."""
 
-    def __init__(self, base_val, upgrade_val, per_disc, upgrade_per_disc):
+    def __init__(self, base_val, upgrade_val, mult_per, upgrade_mult_per):
         self.base_val = base_val
         self.upgrade_val = upgrade_val
-        self.per_disc = per_disc
-        self.upgrade_per_disc = upgrade_per_disc
+        self.mult_per = mult_per                 # доля множителя за каждый сожжённый стак
+        self.upgrade_mult_per = upgrade_mult_per
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         base = self.upgrade_val if is_upgraded else self.base_val
-        per = self.upgrade_per_disc if is_upgraded else self.per_disc
+        mult_per = self.upgrade_mult_per if is_upgraded else self.mult_per
         spent = max(0, getattr(player, "discipline", 0))
         player.set_status("discipline", 0)          # сжечь стак ДО расчёта (без задвоя 2d)
-        amount = base + per * spent
+        mult = 1.0 + mult_per * spent
+        amount = int(base * mult)
         gm_ref = combat_manager.gm if combat_manager is not None else None
         final = EffectCalculator.calculate_damage(
             player, enemy, amount, gm_ref, combat_manager
@@ -44,7 +46,7 @@ class DisciplineBurstDamageEffect:
         if combat_manager:
             combat_manager.add_log_message(
                 f" -> Карающий строй: {final} урона "
-                f"(сожжено {spent} Дисциплины → +{per * spent})."
+                f"(сожжено {spent} Дисциплины → ×{mult:.2f})."
             )
 
 
@@ -140,15 +142,15 @@ class ShieldDamageEffect:
 
 # ─── Фабрики сигнатурок Дисциплины (С56). Числа = ЗАГЛУШКИ под капстоун ─────────
 def create_punishing_formation():
-    """«Карающий строй» — сжигает ВСЮ Дисциплину → урон 6(9) + 2(3) за стак. Грань
-    «Дисц → бурст» (роль Возмездия). Учит «копи строй → слей в удар»; бьёт базой
-    вне Дисциплины → не рельсы. UNCOMMON."""
+    """«Карающий строй» — сжигает ВСЮ Дисциплину → урон base ×(1 + 30%(40%) за стак).
+    Грань «Дисц → бурст» (роль Возмездия). Мультипликативно (С57): пик растёт со стаком
+    и домножается forge/уязвимостью, не тонет в эндгейме. UNCOMMON."""
     return Card(
         name="Карающий строй",
         cost=1,
         card_type="attack",
-        description="Сжечь всю Дисциплину: урон 6(9) + 2(3) за сожжённый стак.",
-        effects=[DisciplineBurstDamageEffect(6, 9, 2, 3)],
+        description="Сжечь всю Дисциплину: урон 6(9) ×(1 + 30%(40%) за сожжённый стак).",
+        effects=[DisciplineBurstDamageEffect(6, 9, 0.30, 0.40)],
         rarity=Rarity.UNCOMMON,
     )
 

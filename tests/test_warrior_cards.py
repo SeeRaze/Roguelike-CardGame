@@ -15,22 +15,22 @@ def _warrior(make_creature, hp=90, max_hp=90):
 
 
 # ═══════════════════════════════════════════════════════════
-# DisciplineBurstDamageEffect — сжечь Дисциплину → урон base+per×spent
+# DisciplineBurstDamageEffect — сжечь Дисциплину → урон base×(1+mult×spent)
 # ═══════════════════════════════════════════════════════════
 
 def test_карающий_строй_вне_дисциплины_бьёт_базой(make_creature):
     player = _warrior(make_creature)                 # discipline = 0
     enemy = make_creature("Враг", 50, 50)
-    DisciplineBurstDamageEffect(6, 9, 2, 3).execute(player, enemy, None, False)
-    assert enemy.hp == 44                             # ровно base=6, бонуса нет
+    DisciplineBurstDamageEffect(6, 9, 0.30, 0.40).execute(player, enemy, None, False)
+    assert enemy.hp == 44                             # base=6 ×1.0, бонуса нет
 
 
 def test_карающий_строй_сжигает_дисциплину_в_урон(make_creature):
     player = _warrior(make_creature)
     player.set_status("discipline", 5)                # накоплено 5
     enemy = make_creature("Враг", 50, 50)
-    DisciplineBurstDamageEffect(6, 9, 2, 3).execute(player, enemy, None, False)
-    assert enemy.hp == 50 - (6 + 2 * 5)               # 6 + 2×5 = 16
+    DisciplineBurstDamageEffect(6, 9, 0.30, 0.40).execute(player, enemy, None, False)
+    assert enemy.hp == 50 - int(6 * (1 + 0.30 * 5))   # ×2.5 → 15
     assert player.discipline == 0                     # стак сожжён (теряем +урон 2d)
 
 
@@ -38,8 +38,8 @@ def test_карающий_строй_улучшенный_сильнее(make_cr
     player = _warrior(make_creature)
     player.set_status("discipline", 5)
     enemy = make_creature("Враг", 50, 50)
-    DisciplineBurstDamageEffect(6, 9, 2, 3).execute(player, enemy, None, True)
-    assert enemy.hp == 50 - (9 + 3 * 5)               # улучш: 9 + 3×5 = 24
+    DisciplineBurstDamageEffect(6, 9, 0.30, 0.40).execute(player, enemy, None, True)
+    assert enemy.hp == 50 - int(9 * (1 + 0.40 * 5))   # улучш: ×3.0 → 27
     assert player.discipline == 0
 
 
@@ -90,12 +90,12 @@ def test_спендер_тратит_всю_дисциплину_второй_б
     player.set_status("discipline", 6)
     enemy = make_creature("Враг", 99, 99)
     burst = Card("Карающий строй", 1, "attack", "",
-                 [DisciplineBurstDamageEffect(6, 9, 2, 3)])
+                 [DisciplineBurstDamageEffect(6, 9, 0.30, 0.40)])
     burst.apply(player, enemy)
-    assert enemy.hp == 99 - (6 + 2 * 6)               # 18 урона
-    # Дисциплина обнулена — второй спендер бьёт только базой.
+    assert enemy.hp == 99 - int(6 * (1 + 0.30 * 6))   # ×2.8 → 16 урона
+    # Дисциплина обнулена — второй спендер бьёт только базой (×1.0).
     burst2 = Card("Карающий строй", 1, "attack", "",
-                  [DisciplineBurstDamageEffect(6, 9, 2, 3)])
+                  [DisciplineBurstDamageEffect(6, 9, 0.30, 0.40)])
     burst2.apply(player, enemy)
     assert player.discipline == 0
 
