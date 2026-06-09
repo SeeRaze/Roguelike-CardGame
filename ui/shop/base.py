@@ -39,7 +39,8 @@ class Shop:
     def generate_showcase(gm):
         class_name      = type(gm.player).__name__
         Shop.items      = pick_cards(SHOP_CARD_SLOTS, class_name,
-                                     player=gm.player, floor=gm.current_floor)
+                                     player=gm.player, floor=gm.current_floor,
+                                     meta=getattr(gm, "meta", None))
         Shop.relic_item = pick_relic(gm)
         Shop.showcase_generated = True
 

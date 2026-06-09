@@ -61,15 +61,17 @@ def get_relic_price(relic, floor: int) -> int:
     return _RELIC_PRICE.get(relic.rarity, 100) + floor * 2
 
 
-def pick_cards(n: int, class_name=None, player=None, floor: int = 1):
+def pick_cards(n: int, class_name=None, player=None, floor: int = 1, meta=None):
     """n случайных РАЗНЫХ карт для витрины (готовые экземпляры).
     Пул = generic + классовые карты класса игрока (class_name).
+
+    meta (узкий стартовый пул, С57 step 1): фильтрует locked-карты; None → весь пул.
 
     С57 (шаг 3): если передан player, каждый слот НЕЗАВИСИМО с шансом
     SHOP_FORGE_CHANCE выковывается до reward_level_for_floor(floor) (паспорт
     пишется на player; некупленные снимаются Shop при выходе). Уровень 0 (до
     первого босса) → ковка no-op, карты обычные."""
-    pool = get_pool_for_class(class_name)
+    pool = get_pool_for_class(class_name, meta)
     n    = min(n, len(pool))
     cards = [factory() for factory in random.sample(pool, n)]
     if player is not None:

@@ -139,7 +139,7 @@ def apply_effect(effect_str: str, gm) -> None:
         gm.event_result_card = card
 
     elif key == "gain_random_card":
-        pool = get_pool_for_class(type(gm.player).__name__)
+        pool = get_pool_for_class(type(gm.player).__name__, getattr(gm, "meta", None))
         card = random.choice(pool)()
         gm.add_card(card)
         gm.event_result      = "Получена карта:"

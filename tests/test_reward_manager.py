@@ -21,6 +21,32 @@ def test_босс_даёт_редкую_реликвию_и_ключ():
     assert relic["value"].rarity == Rarity.RARE
 
 
+def test_новый_игрок_получает_только_стартовый_артефакт():
+    # Узкий стартовый пул (С57): RARE заперт → босс новому игроку (пустые unlocks)
+    # выдаёт стартовый COMMON, не locked.
+    from core.progression import LOCKED_RELICS, relic_id_for
+    gm = SimpleNamespace(relics=[], current_floor=20, meta={"unlocks": []})
+    random.seed(1)
+    rewards = build_rewards(gm, is_boss=True, is_elite=False)
+    relic = next((r for r in rewards if r["type"] == "relic"), None)
+    assert relic is not None
+    assert relic_id_for(type(relic["value"])) not in LOCKED_RELICS  # стартовый
+
+
+def test_анлок_открывает_locked_артефакт_в_выдаче():
+    # Если locked-артефакт записан в meta['unlocks'] — снова доступен в выдаче.
+    gm = SimpleNamespace(relics=[], current_floor=20, meta={"unlocks": ["СердцеТитана"]})
+    seen = set()
+    for s in range(60):
+        random.seed(s)
+        g = SimpleNamespace(relics=[], current_floor=20, meta=gm.meta)
+        rewards = build_rewards(g, is_boss=True, is_elite=False)
+        relic = next((r for r in rewards if r["type"] == "relic"), None)
+        if relic:
+            seen.add(type(relic["value"]).__name__)
+    assert "СердцеТитана" in seen
+
+
 def test_проклятая_корона_убирает_золото():
     rewards = build_rewards(_gm(relics=[ПроклятаяКорона()]), is_boss=True, is_elite=False)
     types = [r["type"] for r in rewards]

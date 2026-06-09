@@ -52,9 +52,10 @@ def pick_chest_type():
     return random.choices(CHEST_TYPES, weights=CHEST_WEIGHTS, k=1)[0]
 
 
-def generate_chest_cards(count=2, class_name=None):
-    """Карты для сундука. Пул = generic + классовые карты класса игрока."""
-    pool      = get_pool_for_class(class_name)
+def generate_chest_cards(count=2, class_name=None, meta=None):
+    """Карты для сундука. Пул = generic + классовые карты класса игрока.
+    meta (узкий стартовый пул, С57) фильтрует locked-карты; None → весь пул."""
+    pool      = get_pool_for_class(class_name, meta)
     factories = random.sample(pool, min(count, len(pool)))
     return [f() for f in factories]
 

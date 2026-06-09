@@ -4,6 +4,7 @@
 import random
 from core.relics import RELIC_POOL, ALL_RELICS
 from core.rarity import Rarity
+from core.progression import is_relic_unlocked, relic_id_for
 
 
 def _roll_relic_rarity(is_boss: bool, is_elite: bool, floor: int = 0) -> Rarity:
@@ -34,18 +35,31 @@ def _roll_relic_rarity(is_boss: bool, is_elite: bool, floor: int = 0) -> Rarity:
 
 
 def _pick_relic(gm, rarity: Rarity):
-    """Выбрать новую (ещё не имеющуюся) реликвию заданной редкости."""
+    """Выбрать новую (ещё не имеющуюся) реликвию заданной редкости.
+
+    Узкий стартовый пул (С57): locked-артефакты (не в meta['unlocks']) НЕ выпадают —
+    открываются за достижения ([[capstone-reorder-content-first]]). meta берём с gm
+    (getattr-страховка: нет меты → None → is_relic_unlocked отдаёт только стартовые)."""
+    # meta=None → без фильтра (как get_pool_for_class: обр. совместимость для тестов/
+    # путей без меты). Live gm всегда несёт meta → стартовый пул реально сужается.
+    meta = getattr(gm, "meta", None)
+
+    def _ok(r):
+        if r().name in current_names:
+            return False
+        return meta is None or is_relic_unlocked(meta, relic_id_for(r))
+
     # Берём пул под нужную редкость; если пуст — смотрим все реликвии этой редкости
     pool = RELIC_POOL.get(rarity, [])
     if not pool:
         pool = [r for r in ALL_RELICS if r().rarity == rarity]
 
     current_names    = {r.name for r in gm.relics}
-    available_relics = [r for r in pool if r().name not in current_names]
+    available_relics = [r for r in pool if _ok(r)]
 
     # Фоллбэк: если в пуле нужной редкости ничего не осталось — ищем среди ВСЕХ
     if not available_relics:
-        available_relics = [r for r in ALL_RELICS if r().name not in current_names]
+        available_relics = [r for r in ALL_RELICS if _ok(r)]
 
     if not available_relics:
         return None

@@ -33,11 +33,12 @@ class Chest:
         gm.chest_opened   = False
         class_name        = type(gm.player).__name__
 
+        meta = getattr(gm, "meta", None)
         if chest_type == "common":
-            gm.chest_cards = generate_chest_cards(2, class_name)
+            gm.chest_cards = generate_chest_cards(2, class_name, meta)
             gm.chest_gold  = 0
         elif chest_type == "locked":
-            gm.chest_cards = generate_chest_cards(4, class_name)
+            gm.chest_cards = generate_chest_cards(4, class_name, meta)
             gm.chest_gold  = random.randint(30, 60)
         elif chest_type == "cursed":
             gm.chest_cards  = []
