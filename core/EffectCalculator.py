@@ -230,7 +230,7 @@ class EffectCalculator:
             hp = getattr(player, "hp", 0)
             if hp < 0:
                 from core.debt import hp_debt_multiplier
-                hp_mult = hp_debt_multiplier(-hp)
+                hp_mult = hp_debt_multiplier(-hp, getattr(player, "max_hp", 0))
                 if hp_mult != 1.0:
                     final_damage = int(final_damage * hp_mult)
                     _rec("Долг HP", "×", hp_mult)

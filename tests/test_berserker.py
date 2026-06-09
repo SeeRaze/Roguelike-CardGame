@@ -18,7 +18,7 @@ def _cm(enemy_hp=999):
 def test_берсерк_включает_hp_овердрафт():
     p = Berserker()
     assert p.hp_overdraft is True
-    assert p._hp_floor() == -debt.HP_DEBT_MAX_OVERDRAFT   # выживает в минусе до пола
+    assert p._hp_floor() == debt.hp_debt_floor(p.max_hp)  # пол = −50% max HP (масштаб-инвар.)
 
 
 # ── строгая расплата ──────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ def test_безумие_карта_берёт_hp_не_энергию():
 # ── множитель урона от минуса (foundation) ────────────────────────────────────
 def test_множитель_от_минуса_в_бою():
     cm, p = _cm()
-    p.hp = -5                         # долг 5 → ×1.5 (HP_DEBT_DAMAGE_PER_POINT 0.10)
+    p.hp = -5                         # долг 5 от 60 → ×1.5 (доля 5/60, масштаб-инвар.)
     dmg = EffectCalculator.calculate_damage(p, cm.enemies[0], 10,
                                             game_manager=cm.gm, combat_manager=cm)
     assert dmg == 15

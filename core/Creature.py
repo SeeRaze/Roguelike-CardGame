@@ -96,12 +96,13 @@ class Creature:
 
         Норма → 0 (старое поведение, все клампы байт-в-байт). При HP-ОВЕРДРАФТЕ
         (субстрат Берсерка «Отрицание Смерти», флаг self.hp_overdraft) → отрицательный
-        пол -HP_DEBT_MAX_OVERDRAFT: HP уходит в МИНУС (долг жизни), глубина минуса даёт
+        пол hp_debt_floor(max_hp) = −50% от max HP (С57: ПРОЦЕНТ, не флат — масштаб-
+        инвариантно к росту max HP). HP уходит в МИНУС (долг жизни), глубина минуса даёт
         множитель урона (EffectCalculator), а достижение пола = неминуемая смерть
         (defeat-проверка). Дефолт-инертен: у врагов/обычных классов флага нет → пол 0."""
         if getattr(self, 'hp_overdraft', False):
-            from core.debt import HP_DEBT_MAX_OVERDRAFT
-            return -HP_DEBT_MAX_OVERDRAFT
+            from core.debt import hp_debt_floor
+            return hp_debt_floor(self.max_hp)
         return 0
 
     def lose_hp(self, amount: int) -> int:

@@ -47,26 +47,37 @@ def test_положительная_энергия_не_трогает_урон(
     assert _hit(player, 10) == 10
 
 
-# ── ДОЛГ HP (С49, субстрат Берсерка) — pure-формула, симметрична энергии ──────────
+# ── ДОЛГ HP (С49 субстрат Берсерка; С57 — ПРОЦЕНТНАЯ, МАСШТАБ-ИНВАРИАНТНАЯ ось) ────
 
 def test_hp_формула_инертна_без_долга():
     from core.debt import hp_debt_multiplier
-    assert hp_debt_multiplier(0) == 1.0
-    assert hp_debt_multiplier(-5) == 1.0               # «отрицат. долг» = нет долга
+    assert hp_debt_multiplier(0, 60) == 1.0
+    assert hp_debt_multiplier(-5, 60) == 1.0           # «отрицат. долг» = нет долга
+    assert hp_debt_multiplier(10, 0) == 1.0            # max_hp<=0 → инертно (защита)
 
 
-def test_hp_линейная_кривая_дефолт():
+def test_hp_линейная_от_доли_дефолт():
+    """Множитель от ДОЛИ max HP. На 60 HP ≡ прежней 1+0.10·глубина (дно −30 → ×4.0)."""
     from core.debt import hp_debt_multiplier
-    assert hp_debt_multiplier(1) == 1.10               # +0.10/ед.
-    assert round(hp_debt_multiplier(10), 4) == 2.0     # пол-глубина → ×2
+    assert round(hp_debt_multiplier(1, 60), 4) == 1.10    # 1 + 6·(1/60)
+    assert round(hp_debt_multiplier(10, 60), 4) == 2.0    # 1 + 6·(10/60)
+    assert round(hp_debt_multiplier(30, 60), 4) == 4.0    # дно (−50% от 60) → ×4.0
 
 
-def test_hp_экспонента_рубильником(monkeypatch):
+def test_hp_множитель_масштаб_инвариантен():
+    """Нырок на ТУ ЖЕ долю пула → ТА ЖЕ награда при любом max HP (суть С57-фикса):
+    дно (−50%) даёт ×4.0 и на 60, и на 1000 HP — механика не отмирает с ростом max HP."""
     from core.debt import hp_debt_multiplier
-    monkeypatch.setattr(debt, "HP_DEBT_CURVE_MODE", "exp")
-    monkeypatch.setattr(debt, "HP_DEBT_EXP_RATE", 0.2)
-    assert hp_debt_multiplier(1) == 1.2
-    assert round(hp_debt_multiplier(2), 4) == 1.44
+    assert round(hp_debt_multiplier(30, 60), 4) == 4.0      # −50% от 60
+    assert round(hp_debt_multiplier(500, 1000), 4) == 4.0   # −50% от 1000 → то же ×4.0
+    assert round(hp_debt_multiplier(100, 1000), 4) == 1.6   # −10% от 1000 → ×1.6
+
+
+def test_hp_пол_процент_от_max_hp():
+    from core.debt import hp_debt_floor
+    assert hp_debt_floor(60) == -30        # −50% (на 60 ≡ прежний фикс −30)
+    assert hp_debt_floor(1000) == -500     # растёт с max HP (масштаб-инвариантно)
+    assert hp_debt_floor(0) == 0           # защита
 
 
 def test_общая_формула_ресурс_агностична():

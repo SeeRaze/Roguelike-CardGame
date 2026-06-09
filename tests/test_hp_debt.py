@@ -22,7 +22,7 @@ def test_пол_hp_дефолт_0():
 def test_пол_hp_сдвинут_при_овердрафте():
     c = Creature("X", 30, 30)
     c.hp_overdraft = True
-    assert c._hp_floor() == -debt.HP_DEBT_MAX_OVERDRAFT
+    assert c._hp_floor() == debt.hp_debt_floor(30)   # −50% от max HP (= −15)
 
 
 # ── клампы урона уходят в минус только с флагом ───────────────────────────────
@@ -36,15 +36,15 @@ def test_take_damage_уходит_в_минус_с_флагом():
     c = Creature("X", 10, 10)
     c.hp_overdraft = True
     c.take_damage(999)
-    assert c.hp == -debt.HP_DEBT_MAX_OVERDRAFT    # дно = пол долга, не глубже
+    assert c.hp == debt.hp_debt_floor(10)         # дно = пол долга (−50% max HP), не глубже
 
 
 def test_lose_hp_уходит_в_минус_с_флагом():
     c = Creature("X", 5, 5)
     c.hp_overdraft = True
     lost = c.lose_hp(999)
-    assert c.hp == -debt.HP_DEBT_MAX_OVERDRAFT
-    assert lost == 5 + debt.HP_DEBT_MAX_OVERDRAFT  # фактически снято до пола
+    assert c.hp == debt.hp_debt_floor(5)
+    assert lost == 5 - debt.hp_debt_floor(5)       # фактически снято до пола (−50% max HP)
 
 
 def test_lose_hp_клампит_на_0_без_флага():
@@ -64,7 +64,7 @@ def _hit(player, base=10):
 
 def test_минус_hp_множит_урон():
     p = Creature("Игрок", 50, 50)
-    p.hp = -2                                     # долг HP 2 → ×1.20
+    p.hp = -2                                     # долг 2 от 50 → ×1.24 (доля 2/50)
     assert _hit(p, 10) == 12
 
 
@@ -100,7 +100,7 @@ def test_смерть_на_дне_долга(monkeypatch):
     monkeypatch.setattr(defeat_mod, "send_run_record", lambda *a, **k: None)
     monkeypatch.setattr(nm, "_get_username", lambda *a, **k: "test")
     cm, p = _cm(overdraft=True)
-    p.hp = -debt.HP_DEBT_MAX_OVERDRAFT           # на дне
+    p.hp = p._hp_floor()                         # на дне (−50% max HP)
     assert cm.check_player_defeat() is True
     assert p.hp == 0                              # обнулён на смерти
 
