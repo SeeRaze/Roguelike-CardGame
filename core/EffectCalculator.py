@@ -7,10 +7,14 @@ class EffectCalculator:
     SHATTER_MULT = 3.0
 
     # НЕСТАБИЛЬНОСТЬ Мага (ступень «Гни»): при Мастерстве ≥ порога «контекст
-    # переполняется» — флат-бонус Мастерства усиливается ×MULT (перегруз мощи).
-    # Цена перегруза — глитч-урон в начале хода (Mage.on_turn_start_passive).
+    # переполняется» — урон ВСЕХ атак умножается на ЭСКАЛИРУЮЩИЙ множитель, растущий
+    # с перегрузом (С57: был флат ×1.5 к бонусу Мастерства → не масштабировался против
+    # экспоненты врага и был асимметричен эскалирующей HP-цене instability_cost; теперь
+    # награда растёт ВМЕСТЕ с ценой). На пороге ×(1+BASE), далее +PER_OVER за стак сверх.
+    # Цена перегруза — глитч-урон в начале хода (Mage.on_turn_start_passive). ЗАГЛУШКИ.
     MASTERY_INSTABILITY_THRESHOLD = 5
-    MASTERY_INSTABILITY_MULT = 1.5
+    INSTABILITY_MULT_BASE     = 0.25   # множитель на пороге: ×1.25
+    INSTABILITY_MULT_PER_OVER = 0.10   # +×0.10 за каждый стак Мастерства сверх порога
 
     @staticmethod
     def calculate_damage(attacker, target, base_damage,
@@ -64,23 +68,16 @@ class EffectCalculator:
             base_damage += attacker.strength
             _rec("Сила", "+", attacker.strength)
 
-        # 2c. МАСТЕРСТВО СТИХИЙ (Маг): +N к урону за каждое комбо в этом бою.
-        # НЕСТАБИЛЬНОСТЬ (ступень «Гни»): на пороге (mastery≥THRESHOLD) контекст
-        # «переполняется» — бонус усиливается ×MULT (перегруз). Цена — глитч-урон в
-        # начале хода (Mage.on_turn_start_passive). Чистый множитель → считается и в превью.
+        # 2c. МАСТЕРСТВО СТИХИЙ (Маг): +N к урону за каждое комбо в этом бою (флат-аддитив,
+        # как Сила/Дисциплина). Перегруз Нестабильности (множитель) — отдельный шаг 4c
+        # ПОСЛЕ аддитивов, чтобы домножать весь накопленный урон. Чистый → считается в превью.
         if is_player_attack:
             mastery = getattr(attacker, 'mastery', 0)
             if mastery > 0:
-                bonus = mastery
-                unstable = mastery >= EffectCalculator.MASTERY_INSTABILITY_THRESHOLD
-                if unstable:
-                    bonus = int(mastery * EffectCalculator.MASTERY_INSTABILITY_MULT)
-                base_damage += bonus
-                _rec("Мастерство", "+", bonus)
+                base_damage += mastery
+                _rec("Мастерство", "+", mastery)
                 if not dry_run:
-                    tail = " [НЕСТАБИЛЬНОСТЬ: перегруз]" if unstable else ""
-                    print(f" [МАСТЕРСТВО] +{bonus} к урону "
-                          f"(стихийный резонанс).{tail}")
+                    print(f" [МАСТЕРСТВО] +{mastery} к урону (стихийный резонанс).")
 
         # 2d. ДИСЦИПЛИНА (Воин «Соблюдай») — +N к урону за каждый стак. Накопитель
         # яруса 1 (стабильная ступень лестницы): растёт, когда Воин держит строй
@@ -139,6 +136,22 @@ class EffectCalculator:
                 combat_manager.add_log_message(
                     f"[РАСКОЛ] Броня крошится: урон ×{EffectCalculator.SHATTER_MULT}!"
                 )
+
+        # 4c. НЕСТАБИЛЬНОСТЬ Мага (перегруз) — ЭСКАЛИРУЮЩИЙ множитель на ВСЕ атаки при
+        # Мастерстве ≥ порога. Растёт с глубиной перегруза, СИММЕТРИЧНО эскалирующей HP-цене
+        # (instability_cost): дальше гнёшь → больнее глитчит И сильнее бьёшь. Множитель (не
+        # аддитив) → масштаб-инвариант против экспоненты врага. Чистый → считается в превью.
+        if is_player_attack:
+            mastery = getattr(attacker, 'mastery', 0)
+            over = mastery - EffectCalculator.MASTERY_INSTABILITY_THRESHOLD
+            if over >= 0:
+                inst_mult = (1.0 + EffectCalculator.INSTABILITY_MULT_BASE
+                             + EffectCalculator.INSTABILITY_MULT_PER_OVER * over)
+                final_damage = int(final_damage * inst_mult)
+                _rec("Нестабильность", "×", inst_mult)
+                if not dry_run:
+                    print(f" [НЕСТАБИЛЬНОСТЬ: перегруз] урон ×{inst_mult:.2f} "
+                          f"(Мастерство {mastery}).")
 
         # 5. СТИХИЙНЫЕ КОМБО — data-driven реестр (core/ComboRegistry.py).
         # Множительные комбо (ПАР и т.п.) — условная «реакция», показываемая

@@ -45,22 +45,22 @@ def test_разгон_не_уводит_ниже_нуля(make_creature):
 
 
 # ═══════════════════════════════════════════════════════════
-# MasteryScalingDamageEffect — урон = base + per×Мастерство (НЕ тратит)
+# MasteryScalingDamageEffect — урон = base × (1 + mult×Мастерство) (НЕ тратит)
 # ═══════════════════════════════════════════════════════════
 
 def test_разряд_вне_мастерства_бьёт_базой(make_creature):
     player = _mage(make_creature)                    # mastery = 0
     enemy = make_creature("Враг", 50, 50)
-    MasteryScalingDamageEffect(6, 9, 2, 3).execute(player, enemy, None, False)
-    assert enemy.hp == 44                             # ровно base=6
+    MasteryScalingDamageEffect(6, 9, 0.25, 0.35).execute(player, enemy, None, False)
+    assert enemy.hp == 44                             # base=6 ×1.0
 
 
 def test_разряд_масштабируется_с_мастерством_не_тратит(make_creature):
     player = _mage(make_creature)
-    player.set_status("mastery", 4)
+    player.set_status("mastery", 4)                   # ниже порога → шаг 4c не множит
     enemy = make_creature("Враг", 50, 50)
-    MasteryScalingDamageEffect(6, 9, 2, 3).execute(player, enemy, None, False)
-    assert enemy.hp == 50 - (6 + 2 * 4)               # 6 + 2×4 = 14
+    MasteryScalingDamageEffect(6, 9, 0.25, 0.35).execute(player, enemy, None, False)
+    assert enemy.hp == 50 - int(6 * (1 + 0.25 * 4))   # ×2.0 → 12
     assert player.mastery == 4                        # НЕ потрачено (компаунд держится)
 
 
@@ -68,8 +68,8 @@ def test_разряд_улучшенный_сильнее(make_creature):
     player = _mage(make_creature)
     player.set_status("mastery", 4)
     enemy = make_creature("Враг", 50, 50)
-    MasteryScalingDamageEffect(6, 9, 2, 3).execute(player, enemy, None, True)
-    assert enemy.hp == 50 - (9 + 3 * 4)               # улучш: 9 + 3×4 = 21
+    MasteryScalingDamageEffect(6, 9, 0.25, 0.35).execute(player, enemy, None, True)
+    assert enemy.hp == 50 - int(9 * (1 + 0.35 * 4))   # улучш: ×2.4 → 21
 
 
 # ═══════════════════════════════════════════════════════════
@@ -82,8 +82,8 @@ def test_разгон_затем_разряд(make_creature):
     Card("Разгон", 1, "skill", "", [OverclockEffect(0.10, 3, 4)]).apply(player, enemy)
     assert player.mastery == 3
     Card("Резонансный разряд", 2, "attack", "",
-         [MasteryScalingDamageEffect(6, 9, 2, 3)]).apply(player, enemy)
-    assert enemy.hp == 99 - (6 + 2 * 3)               # урон с накопленным Мастерством 3
+         [MasteryScalingDamageEffect(6, 9, 0.25, 0.35)]).apply(player, enemy)
+    assert enemy.hp == 99 - int(6 * (1 + 0.25 * 3))   # ×1.75 с накопленным Мастерством 3
     assert player.mastery == 3                        # Разряд Мастерство не сжёг
 
 

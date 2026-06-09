@@ -37,23 +37,24 @@ class OverclockEffect:
 
 
 class MasteryScalingDamageEffect:
-    """Грань «выжать глубину» («Резонансный разряд»): урон = base + per×Мастерство.
-    Читает Мастерство, НЕ тратит (компаунд держится — контраст спендеру Воина). Это
-    payoff-карта накопленного Мастерства: масштабируется С НИМ СВЕРХ обычного бонуса
-    Мастерства (шаг 2c добавляет свой +Мастерство к ЛЮБОЙ атаке) → разряд = лучший слив
-    глубины. Урон через EffectCalculator (перегруз ×1.5/уязвимость учтены)."""
+    """Грань «выжать глубину» («Резонансный разряд»): урон = base × (1 + mult×Мастерство)
+    — МУЛЬТИПЛИКАТИВНО (С57, единый формат с Воином: флат per×mastery тонул в эндгейме).
+    Читает Мастерство, НЕ тратит (компаунд держится — контраст спендеру Воина). payoff
+    поверх пассива: шаг 2c добавит свой +Мастерство, перегруз 4c домножит → разряд =
+    лучший слив глубины. Множитель масштаб-инвариантен. Числа = ЗАГЛУШКИ под капстоун."""
 
-    def __init__(self, base_val, upgrade_val, per_mastery, upgrade_per_mastery):
+    def __init__(self, base_val, upgrade_val, mult_per, upgrade_mult_per):
         self.base_val = base_val
         self.upgrade_val = upgrade_val
-        self.per_mastery = per_mastery
-        self.upgrade_per_mastery = upgrade_per_mastery
+        self.mult_per = mult_per                 # доля множителя за стак Мастерства
+        self.upgrade_mult_per = upgrade_mult_per
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         base = self.upgrade_val if is_upgraded else self.base_val
-        per = self.upgrade_per_mastery if is_upgraded else self.per_mastery
+        mult_per = self.upgrade_mult_per if is_upgraded else self.mult_per
         mastery = max(0, getattr(player, "mastery", 0))
-        amount = base + per * mastery
+        mult = 1.0 + mult_per * mastery
+        amount = int(base * mult)
         gm_ref = combat_manager.gm if combat_manager is not None else None
         final = EffectCalculator.calculate_damage(
             player, enemy, amount, gm_ref, combat_manager
@@ -62,7 +63,7 @@ class MasteryScalingDamageEffect:
         if combat_manager:
             combat_manager.add_log_message(
                 f" -> Резонансный разряд: {final} урона "
-                f"(Мастерство {mastery} → +{per * mastery} базы)."
+                f"(Мастерство {mastery} → ×{mult:.2f} базы)."
             )
 
 
@@ -98,15 +99,15 @@ def create_overclock():
 
 
 def create_resonant_discharge():
-    """«Резонансный разряд» — урон 6(9) + 2(3) за каждый стак Мастерства. Грань «выжать
-    глубину»: payoff накопленного Мастерства, НЕ тратит его (компаунд цел). Бьёт базой
-    вне Мастерства → учит, не запирает. UNCOMMON."""
+    """«Резонансный разряд» — урон 6(9) ×(1 + 25%(35%) за стак Мастерства). Грань «выжать
+    глубину»: payoff накопленного Мастерства, НЕ тратит его (компаунд цел). Мультипликатив
+    (С57): пик растёт со стаком и домножается перегрузом/ковкой, не тонет. UNCOMMON."""
     return Card(
         name="Резонансный разряд",
         cost=2,
         card_type="attack",
-        description="Урон 6(9) + 2(3) за каждый стак Мастерства. Мастерство не тратится.",
-        effects=[MasteryScalingDamageEffect(6, 9, 2, 3)],
+        description="Урон 6(9) ×(1 + 25%(35%) за каждый стак Мастерства). Мастерство не тратится.",
+        effects=[MasteryScalingDamageEffect(6, 9, 0.25, 0.35)],
         rarity=Rarity.UNCOMMON,
     )
 

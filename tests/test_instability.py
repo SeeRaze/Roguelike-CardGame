@@ -24,33 +24,44 @@ class FakeCombat:
 
 
 _THR = EffectCalculator.MASTERY_INSTABILITY_THRESHOLD
-_MULT = EffectCalculator.MASTERY_INSTABILITY_MULT
+_MBASE = EffectCalculator.INSTABILITY_MULT_BASE
+_MPER = EffectCalculator.INSTABILITY_MULT_PER_OVER
 
 
-# ─── амплификация Мастерства на пороге ──────────────────────────────────────────────
+def _inst_mult(mastery):
+    """Ожидаемый эскалирующий множитель перегруза (шаг 4c)."""
+    over = mastery - _THR
+    return 1.0 + _MBASE + _MPER * over
+
+
+# ─── Мастерство: флат-аддитив + эскалирующий множитель перегруза ─────────────────────
 
 def test_ниже_порога_мастерство_флатом():
     cm = FakeCombat()
     p = cm.player
-    p.mastery = _THR - 1                              # перегруза нет
+    p.mastery = _THR - 1                              # перегруза нет → только флат
     dmg = EffectCalculator.calculate_damage(p, cm.enemy, 10, None, cm, dry_run=True)
-    assert dmg == 10 + (_THR - 1)                     # обычный флат
+    assert dmg == 10 + (_THR - 1)                     # обычный флат, множителя нет
 
 
-def test_на_пороге_мастерство_усиливается():
+def test_на_пороге_включается_множитель():
     cm = FakeCombat()
     p = cm.player
     p.mastery = _THR                                  # перегруз включается
     dmg = EffectCalculator.calculate_damage(p, cm.enemy, 10, None, cm, dry_run=True)
-    assert dmg == 10 + int(_THR * _MULT)              # ×MULT
+    # флат +mastery, затем ×множитель перегруза (шаг 4c)
+    assert dmg == int((10 + _THR) * _inst_mult(_THR))
 
 
-def test_перегруз_растёт_с_мастерством():
+def test_множитель_перегруза_растёт_с_мастерством():
     cm = FakeCombat()
     p = cm.player
-    p.mastery = 10
+    shallow = _inst_mult(_THR)
+    deep = _inst_mult(_THR + 10)
+    assert deep > shallow                             # множитель эскалирует с глубиной
+    p.mastery = _THR + 10
     dmg = EffectCalculator.calculate_damage(p, cm.enemy, 10, None, cm, dry_run=True)
-    assert dmg == 10 + int(10 * _MULT)                # 15 при mult=1.5
+    assert dmg == int((10 + (_THR + 10)) * deep)
 
 
 # ─── глитч-цена (С56: % от max HP, эскалирует с глубиной Мастерства) ───────────────────

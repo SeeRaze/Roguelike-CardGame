@@ -183,7 +183,7 @@ def _card_score(card) -> float:
         elif isinstance(e, OverclockEffect):
             value += e.gain * 3                 # +Мастерство разом (ценой %HP — не штрафуем)
         elif isinstance(e, MasteryScalingDamageEffect):
-            value += e.base_val + e.per_mastery * 5  # база + оценка глубины Мастерства
+            value += int(e.base_val * (1 + e.mult_per * 5))  # база ×множитель при ~5 Мастерства
         elif isinstance(e, BarrierEffect):
             value += e.base_val * 2.5           # несгораемый щит (компаунд)
         elif isinstance(e, FrenzyEffect):
