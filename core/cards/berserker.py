@@ -45,18 +45,22 @@ class DebtScalingDamageEffect:
 
 
 class SelfHarmEffect:
-    """Игрок теряет HP СКВОЗЬ ЩИТ (`player.lose_hp`). Для Берсерка (hp_overdraft) уводит
-    в МИНУС (долг жизни). Однофункциональный кирпич «заплати кровью»: ставится ПЕРЕД
-    атакующим кирпичом → удар уже кормится свежим долгом (8-ter), уча связку «нырни →
-    бей». Реюзабелен любой картой «ценой HP». Вне овердрафта lose_hp клампится на 0
-    (нельзя уйти ниже пола) → инертно-безопасен для не-Берсерков."""
+    """Игрок теряет % MAX HP СКВОЗЬ ЩИТ (`player.lose_hp`). Для Берсерка (hp_overdraft)
+    уводит в МИНУС (долг жизни). Однофункциональный кирпич «заплати кровью»: ставится ПЕРЕД
+    атакующим кирпичом → удар уже кормится свежим долгом (8-ter), уча связку «нырни → бей».
+    Реюзабелен любой картой «ценой HP». Вне овердрафта lose_hp клампится на 0 → инертно-
+    безопасен для не-Берсерков.
 
-    def __init__(self, base_val, upgrade_val):
-        self.base_val = base_val
-        self.upgrade_val = upgrade_val
+    С57: цена в ПРОЦЕНТАХ от max HP, не флат → нырок растёт с max HP (масштаб-инвариантно
+    к экспоненте, [[balance-curve-framework]]). На 60 HP ≡ прежним флат-числам (0.07·60≈4)."""
+
+    def __init__(self, base_pct, upgrade_pct):
+        self.base_pct = base_pct
+        self.upgrade_pct = upgrade_pct
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
-        amount = self.upgrade_val if is_upgraded else self.base_val
+        pct = self.upgrade_pct if is_upgraded else self.base_pct
+        amount = int(pct * getattr(player, "max_hp", 0))
         lost = player.lose_hp(amount)
         if combat_manager:
             combat_manager.add_log_message(
@@ -135,9 +139,9 @@ def create_blood_thirst():
         name="Жажда крови",
         cost=1,
         card_type="attack",
-        description="Платите 4(3) HP, наносите 8(11) урона. При добивании: "
+        description="Платите 7%(5%) макс. HP, наносите 8(11) урона. При добивании: "
                     "половина HP-долга → Forge Power.",
-        effects=[SelfHarmEffect(4, 3), DamageEffect(8, 11),
+        effects=[SelfHarmEffect(0.07, 0.05), DamageEffect(8, 11),
                  DebtToForgeOnKillEffect(0.5, 0.5)],
         rarity=Rarity.UNCOMMON,
     )

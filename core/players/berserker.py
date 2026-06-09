@@ -1,6 +1,6 @@
 from core.players.base import Player
 from core.players.abilities import BerserkerAbility
-from core.players.abilities.berserker import MADNESS_HP_PER_COST
+from core.players.abilities.berserker import MADNESS_HP_PCT_PER_COST
 from core.cards import (
     create_strike, create_heavy_blade,
     create_flex, create_battle_cry,
@@ -43,8 +43,9 @@ class Berserker(Player):
         self.active_ability = BerserkerAbility()
         # Класс ВКЛЮЧАЕТ долг HP всегда — это его движок (не Ставка/опт-ин).
         self.hp_overdraft = True
-        # Ставка «Безумия»: HP за единицу стоимости карты (карты за 0 энергии ценой HP).
-        self.madness_hp_per_cost = MADNESS_HP_PER_COST
+        # Ставка «Безумия»: HP за единицу стоимости карты = % max HP (карты за 0 энергии
+        # ценой крови; С57 — процент, масштаб-инвариантно к росту max HP).
+        self.madness_hp_pct_per_cost = MADNESS_HP_PCT_PER_COST
 
     def on_hp_debt_settle(self, combat_manager) -> None:
         """СТРОГАЯ расплата (вызывается в конце хода ядром, когда hp<0): если бой НЕ

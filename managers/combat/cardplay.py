@@ -22,10 +22,12 @@ class CardPlayMixin:
         selected_card = self.deck_manager.hand[card_index]
         effective_cost = getattr(selected_card, 'temp_cost', selected_card.cost)
 
-        # БЕЗУМИЕ (Берсерк): карта стоит 0 энергии, но берёт HP (стоимость × ставка,
+        # БЕЗУМИЕ (Берсерк): карта стоит 0 энергии, но берёт HP (стоимость × % max HP,
         # сквозь щит). Для hp_overdraft уходит в МИНУС → множитель урона. Энергия не тронута.
+        # С57: цена в ПРОЦЕНТАХ от max HP (масштаб-инвариантно к росту max HP).
         if getattr(self.player, 'madness_active', False):
-            hp_cost = effective_cost * getattr(self.player, 'madness_hp_per_cost', 1)
+            pct = getattr(self.player, 'madness_hp_pct_per_cost', 0)
+            hp_cost = int(effective_cost * pct * self.player.max_hp)
             if hp_cost > 0:
                 self.player.lose_hp(hp_cost)
             self.add_log_message(

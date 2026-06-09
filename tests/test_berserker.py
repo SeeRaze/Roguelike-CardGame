@@ -76,7 +76,8 @@ def test_безумие_карта_берёт_hp_не_энергию():
     hp0, e0 = p.hp, p.energy
     cm.play_card_by_index(idx)
     assert p.energy == e0                            # энергия НЕ тронута
-    assert p.hp == hp0 - cost * p.madness_hp_per_cost  # HP-цена (стоимость × ставка)
+    expected = int(cost * p.madness_hp_pct_per_cost * p.max_hp)  # % max HP × стоимость
+    assert p.hp == hp0 - expected                    # HP-цена (стоимость × % max HP)
 
 
 # ── множитель урона от минуса (foundation) ────────────────────────────────────
