@@ -146,3 +146,35 @@ def test_card_base_damage_skips_shield_damage():
     c = Card("Возмездие", 1, "attack", "Урон = щиту (130%).",
              [ShieldDamageEffect(1.0, 1.3)])
     assert CardRenderer._card_base_damage(c) is None
+
+
+# ─── Свёртка процентных пар base(upgrade): «(значение после улучшения)» не торчит ──
+
+def test_resolve_pairs_collapses_percent_pairs():
+    from ui.cards.description import _resolve_pairs
+    s = "урон 6(9) ×(1 + 30%(40%) за стак)"
+    assert _resolve_pairs(s, False) == "урон 6 ×(1 + 30% за стак)"
+    assert _resolve_pairs(s, True) == "урон 9 ×(1 + 40% за стак)"
+    # процент-цена в начале (Жажда крови)
+    assert _resolve_pairs("Платите 7%(5%) макс. HP", False) == "Платите 7% макс. HP"
+    # формульная скобка ×(1 + ...) без пары — не трогаем
+    assert _resolve_pairs("урон 6 + 1 за долг", False) == "урон 6 + 1 за долг"
+
+
+# ─── Проекция scaling-карт: база учитывает ТЕКУЩИЙ ресурс игрока (== удар) ─────────
+
+def test_card_base_damage_scaling_uses_player_resource():
+    from ui.cards.renderer import CardRenderer
+    from core.cards.catalog import get_class_cards
+    from core.players import Warrior
+    card = next(f() for f in get_class_cards("Warrior")
+                if f().name == "Карающий строй")
+    eff = card.effects[0]
+    p = Warrior()
+    # без Дисциплины → база (множитель ×1)
+    assert CardRenderer._card_base_damage(card, p) == eff.base_val
+    # с Дисциплиной → base × (1 + mult_per × стак)
+    p.set_status("discipline", 5)
+    assert CardRenderer._card_base_damage(card, p) == int(eff.base_val * (1 + eff.mult_per * 5))
+    # без игрока (библиотека/магазин) → база, без падения
+    assert CardRenderer._card_base_damage(card, None) == eff.base_val

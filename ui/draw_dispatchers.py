@@ -42,7 +42,8 @@ def _draw_combat(view):
         damage_steps = None
         combat = view.gm.active_combat
         card = view.hover.card_obj
-        base = CardRenderer._card_base_damage(card) if card else None
+        base = CardRenderer._card_base_damage(
+            card, combat.player if combat else None) if card else None
         target = combat.get_target_enemy() if combat else None
         if combat and target and base:
             from core.EffectCalculator import EffectCalculator

@@ -49,6 +49,14 @@ class MasteryScalingDamageEffect:
         self.mult_per = mult_per                 # доля множителя за стак Мастерства
         self.upgrade_mult_per = upgrade_mult_per
 
+    def projected_damage(self, player, is_upgraded):
+        """База урона ДО общих модификаторов (для проекции на карте) = base × текущий
+        множитель Мастерства. Совпадает с amount в execute → preview == фактический удар."""
+        base = self.upgrade_val if is_upgraded else self.base_val
+        mult_per = self.upgrade_mult_per if is_upgraded else self.mult_per
+        mastery = max(0, getattr(player, "mastery", 0)) if player else 0
+        return int(base * (1.0 + mult_per * mastery))
+
     def execute(self, player, enemy, combat_manager, is_upgraded):
         base = self.upgrade_val if is_upgraded else self.base_val
         mult_per = self.upgrade_mult_per if is_upgraded else self.mult_per

@@ -66,6 +66,11 @@ def draw_centered_title(surface, text, font, card_rect, is_hovered,
 # счётчик ударов «3 удара», проценты «130%» — без скобок, их НЕ трогаем.
 _DMG_PAIR_RE = re.compile(r'(\d+)\s*\((\d+)\)')
 
+# Свёртка ЛЮБОЙ пары base(upgrade) в одно число, включая процентные «30%(40%)» —
+# у классовых карт множители/цена пишутся в процентах, и «значение после улучшения»
+# в скобках игроку не нужно (приводим к общему виду, как у обычных карт).
+_ANY_PAIR_RE = re.compile(r'(\d+%?)\s*\((\d+%?)\)')
+
 
 def _get_base_damage(description: str, is_upgraded: bool) -> int:
     """Напечатанное урон-число = ПЕРВАЯ пара N(M): база (или верхнее при улучшении).
@@ -80,10 +85,10 @@ def _get_base_damage(description: str, is_upgraded: bool) -> int:
 
 
 def _resolve_pairs(s: str, is_upgraded: bool) -> str:
-    """Свернуть все пары N(M) в одно число: верхнее при улучшении, базовое иначе."""
-    if is_upgraded:
-        return _DMG_PAIR_RE.sub(r'\2', s)
-    return _DMG_PAIR_RE.sub(r'\1', s)
+    """Свернуть все пары base(upgrade) в одно число: верхнее при улучшении, базовое
+    иначе. Ловит и процентные пары «30%(40%)» (классовые множители/цена), чтобы
+    «(значение после улучшения)» не торчало в скобках."""
+    return _ANY_PAIR_RE.sub(r'\2' if is_upgraded else r'\1', s)
 
 
 # Пары «N (M)» в описании = base/upgrade одного эффекта. Ковка (+δ) бампит эффекты,

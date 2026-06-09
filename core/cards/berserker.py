@@ -26,6 +26,15 @@ class DebtScalingDamageEffect:
         self.per_depth = per_depth
         self.upgrade_per_depth = upgrade_per_depth
 
+    def projected_damage(self, player, is_upgraded):
+        """База урона ДО общих модификаторов (для проекции на карте) = base + бонус за
+        текущую глубину HP-долга. Совпадает с amount в execute → preview == удар.
+        (Универсальный множитель долга 8-ter EffectCalculator наложит preview сверх.)"""
+        base = self.upgrade_val if is_upgraded else self.base_val
+        per = self.upgrade_per_depth if is_upgraded else self.per_depth
+        depth = max(0, -getattr(player, "hp", 0)) if player else 0
+        return base + per * depth
+
     def execute(self, player, enemy, combat_manager, is_upgraded):
         base = self.upgrade_val if is_upgraded else self.base_val
         per = self.upgrade_per_depth if is_upgraded else self.per_depth

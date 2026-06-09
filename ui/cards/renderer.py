@@ -148,9 +148,9 @@ class CardRenderer:
 
         preview = None
         if card.card_type == "attack" and player is not None and enemy is not None:
-            # База урона для превью — из ЭФФЕКТА (учитывает уровень ковки +δ), а не
-            # из строки описания (которая ковкой не обновляется).
-            base = CardRenderer._card_base_damage(card)
+            # База урона для превью — из ЭФФЕКТА (учитывает уровень ковки +δ + текущий
+            # ресурс для scaling-карт), а не из строки описания (ковкой не обновляется).
+            base = CardRenderer._card_base_damage(card, player)
             predicted = None
             if base and combat_manager is not None:
                 # Единый расчёт: КОНЕЧНОЕ число (со ВСЕМИ реакциями — комбо ×N,
@@ -280,7 +280,7 @@ class CardRenderer:
         return cy + r
 
     @staticmethod
-    def _card_base_damage(card):
+    def _card_base_damage(card, player=None):
         """Текущее значение урона карты из ЭФФЕКТА (а не из строки описания):
         upgrade_val если карта улучшена/прокачана, иначе base_val. Учитывает
         линейный слой ковки (+δ бампит base_val/upgrade_val). None, если карта без
@@ -288,10 +288,16 @@ class CardRenderer:
 
         Урон-эффекты с плоской базой: DamageEffect и EchoPayoffEffect («Каскад» —
         ×2 при Эхо остаётся условным, показывается отдельно). ShieldDamageEffect
-        («Возмездие») НЕ считается: его урон = живой щит, плоского числа нет."""
+        («Возмездие») НЕ считается: его урон = живой щит, плоского числа нет.
+
+        Классовые scaling-эффекты (Дисциплина/Мастерство/HP-долг) сами знают свою
+        проекцию через projected_damage(player) — урон с учётом ТЕКУЩЕГО ресурса
+        игрока, чтобы превью == фактический удар."""
         from core.cards.base import DamageEffect
         from core.cards.echo import EchoPayoffEffect
         for e in card.effects:
+            if hasattr(e, "projected_damage"):
+                return e.projected_damage(player, card.upgraded)
             if isinstance(e, (DamageEffect, EchoPayoffEffect)):
                 return e.upgrade_val if card.upgraded else e.base_val
         return None
