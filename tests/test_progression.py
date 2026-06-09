@@ -7,7 +7,7 @@ import core.progression as prog
 from core.progression import (
     TIER1, class_tier, is_unlocked, newly_unlocked, UNLOCK_CONDITIONS,
     LOCKED_CARDS, LOCKED_RELICS, card_id_for, relic_id_for,
-    is_card_unlocked, is_relic_unlocked,
+    is_card_unlocked, is_relic_unlocked, dev_unlock_all,
 )
 
 
@@ -154,3 +154,43 @@ def test_locked_артефакт_требует_анлок_в_мете(monkeypat
     assert is_relic_unlocked(_meta(), "СердцеТитана") is False
     assert is_relic_unlocked({"unlocks": ["СердцеТитана"]}, "СердцеТитана") is True
     assert is_relic_unlocked(_meta(), "ТочильныйКамень") is True  # стартовый — мимо
+
+
+# ── Дев-флаг «полный доступ» (С57, под тест-сессии) ──────────────────────────
+
+def test_дев_флаг_дефолт_выключен(monkeypatch):
+    # Без env и без meta-ключа флаг выключен → поведение байт-в-байт прежнее.
+    monkeypatch.delenv("ROGUELIKE_DEV_UNLOCK", raising=False)
+    assert dev_unlock_all(None) is False
+    assert dev_unlock_all(_meta()) is False
+
+
+def test_дев_флаг_через_env(monkeypatch):
+    monkeypatch.setenv("ROGUELIKE_DEV_UNLOCK", "1")
+    assert dev_unlock_all(None) is True
+    # env=0 → выключен (не ложно-положительный).
+    monkeypatch.setenv("ROGUELIKE_DEV_UNLOCK", "0")
+    assert dev_unlock_all(None) is False
+
+
+def test_дев_флаг_через_мету(monkeypatch):
+    monkeypatch.delenv("ROGUELIKE_DEV_UNLOCK", raising=False)
+    assert dev_unlock_all({"dev_unlock_all": True}) is True
+    assert dev_unlock_all({"dev_unlock_all": False}) is False
+
+
+def test_дев_флаг_открывает_всё(monkeypatch):
+    # Взведённый флаг открывает залоченные классы/карты/артефакты, минуя unlocks.
+    monkeypatch.setenv("ROGUELIKE_DEV_UNLOCK", "1")
+    monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
+    monkeypatch.setattr(prog, "LOCKED_RELICS", {"СердцеТитана"})
+    assert is_unlocked(_meta(), "Druid") is True          # тир-2 без анлока
+    assert is_card_unlocked(_meta(), "fire_breath") is True
+    assert is_relic_unlocked(_meta(), "СердцеТитана") is True
+
+
+def test_дев_флаг_не_трогает_sim_путь(monkeypatch):
+    # Sim/baseline зовут с meta=None и без env → флаг молчит, локи в силе.
+    monkeypatch.delenv("ROGUELIKE_DEV_UNLOCK", raising=False)
+    monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
+    assert is_card_unlocked(None, "fire_breath") is False

@@ -1,6 +1,13 @@
 # core/progression.py
 # ЯРУСНАЯ ПРОГРЕССИЯ КЛАССОВ (С50) — какие классы доступны сразу, а какие
 # открываются за достижения. Пирамида 3 ярусов ([[class-tier-progression]]):
+#
+# ДЕВ-ФЛАГ «ПОЛНЫЙ ДОСТУП» (С57, под тест-сессии): пока анлок-слой (казино/
+# достижения) не достроен, залоченный контент обедняет пул → честного плейтеста не
+# выйдет. dev_unlock_all() открывает ВСЁ (классы+карты+артефакты) — для тест-билда.
+# Взводится двумя способами (любой): env ROGUELIKE_DEV_UNLOCK=1 (для тест-билда без
+# правки сейва) ИЛИ meta['dev_unlock_all']=True (под будущий тоггл в Хабе). Дефолт
+# False → прод/сим/baseline не затронуты (sim зовёт is_*_unlocked с meta=None).
 #   • Ярус 1 — фундамент, доступен с первого запуска (лестница Соблюдай/Гни/Ломай).
 #   • Ярус 2 — открывается за прогресс (анлок записывается в мету и хранится навсегда).
 #   • Ярус 3 — Демиург-ФИНАЛ за «Идеальный аудит» (МАЯК: класс ещё не реализован,
@@ -30,6 +37,22 @@ CLASS_TIERS = {
     "Chemist":   2,
     "Demiurge":  3,
 }
+
+
+def dev_unlock_all(meta: dict = None) -> bool:
+    """Дев-флаг «полный доступ»: открыт ли ВЕСЬ контент (классы+карты+артефакты).
+
+    Для тест-сессий, пока анлок-слой (казино/достижения) не достроен. Источники
+    (любой истинный → True): env ROGUELIKE_DEV_UNLOCK (для тест-билда без правки
+    сейва) ИЛИ meta['dev_unlock_all'] (под будущий тоггл в Хабе). Дефолт False.
+
+    Sim/baseline зовут is_*_unlocked с meta=None и без env → флаг False → поведение
+    байт-в-байт прежнее (эталон не задет)."""
+    import os
+    env = os.environ.get("ROGUELIKE_DEV_UNLOCK", "")
+    if env and env not in ("0", "false", "False", ""):
+        return True
+    return bool(meta) and bool(meta.get("dev_unlock_all", False))
 
 
 def _reached_floor(n):
@@ -62,6 +85,8 @@ def is_unlocked(meta: dict, class_name: str) -> bool:
     """Доступен ли класс для выбора в Хабе. Ярус 1 — всегда. Иначе — записан ли он
     в meta['unlocks'] (постоянный анлок, выданный за достижение)."""
     if class_name in TIER1:
+        return True
+    if dev_unlock_all(meta):
         return True
     if not meta:
         return False
@@ -149,6 +174,8 @@ def is_card_unlocked(meta: dict, card_id: str) -> bool:
     Иначе — записан ли id в meta['unlocks'] (постоянный анлок за прогресс)."""
     if card_id not in LOCKED_CARDS:
         return True
+    if dev_unlock_all(meta):
+        return True
     if not meta:
         return False
     return card_id in meta.get("unlocks", [])
@@ -157,6 +184,8 @@ def is_card_unlocked(meta: dict, card_id: str) -> bool:
 def is_relic_unlocked(meta: dict, relic_id: str) -> bool:
     """Доступен ли артефакт в выдаче забега. Стартовые — всегда; иначе по meta."""
     if relic_id not in LOCKED_RELICS:
+        return True
+    if dev_unlock_all(meta):
         return True
     if not meta:
         return False
