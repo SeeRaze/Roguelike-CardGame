@@ -33,12 +33,16 @@ _ELITE_FROM_FLOOR  = 8
 _ELITE_ROOM_CHANCE = 0.10
 
 
-def default_draft(deck: list, class_name: str) -> None:
+def default_draft(deck: list, class_name: str, meta=None) -> None:
     """Драфт метрики WALL: с вероятностью _CARD_REWARD_CHANCE добавить в колоду
     СЛУЧАЙНУЮ карту из пула класса. Моделирует игрока без плана сборки —
-    «базовая стена». Удаление/апгрейд не моделируем."""
+    «базовая стена». Удаление/апгрейд не моделируем.
+
+    meta=None → весь пул (обр. совместимость). При переданной meta пул фильтруется
+    по анлокам ([[capstone-reorder-content-first]], стартер-режим): день-1 видит в
+    выдаче только разлоченные карты."""
     if random.random() < _CARD_REWARD_CHANCE:
-        pool = get_pool_for_class(class_name)
+        pool = get_pool_for_class(class_name, meta)
         deck.append(random.choice(pool)())
 
 
@@ -79,7 +83,7 @@ class _StubGM:
 def run_single_run(player_class, max_floor: int = 100, *,
                    draft=None, extra_cards=None, relics=None, economy=None,
                    forge=None, events=None, stakes=None, debt=False,
-                   hp_debt=False, positioning=False) -> dict:
+                   hp_debt=False, positioning=False, meta=None) -> dict:
     """Один забег: бот идёт floor=1..max_floor одной колодой.
 
     Параметры билда (дефолты = метрика WALL, прежнее поведение):
@@ -116,6 +120,12 @@ def run_single_run(player_class, max_floor: int = 100, *,
                     Зеркало берётся из класс-флага mirrored_layout (Призыватель →
                     саммоны фронт). По умолчанию False → флаг не ставится, рангов
                     нет → перехват = старый пул (регресс-нейтрально, baseline зелёный).
+      meta        — мета-словарь анлоков или None (С57, стартер-режим
+                    [[capstone-reorder-content-first]]). Прокидывается в драфт →
+                    пул выдачи фильтруется по разлокам. None → весь пул (full-access,
+                    регресс-нейтрально). meta={'unlocks': []} → ЧЕСТНЫЙ день-1 (только
+                    стартовые карты). Ядро билда (extra_cards/relics) фильтрует caller
+                    через get_ceiling_build(class, meta).
 
     Возвращает {'death_floor': int|None, 'hp_by_floor': {floor: %hp}}.
     death_floor=None означает, что бот дошёл до max_floor живым.
@@ -219,7 +229,8 @@ def run_single_run(player_class, max_floor: int = 100, *,
                 forge.forge_between_acts(player, deck, class_name)
 
         # Прогрессия колоды: карта-награда за бой (стратегия драфта).
-        draft(deck, class_name)
+        # meta прокидывается → пул выдачи фильтруется по анлокам (стартер-режим).
+        draft(deck, class_name, meta)
 
         # %-Событие (39.3, «скачки» триединства): на фикс. EVENT-этажах бот
         # играет азартный размен (стохастический приток MaxHP/FP по акт-скейлу).

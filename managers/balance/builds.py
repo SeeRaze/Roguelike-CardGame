@@ -204,16 +204,20 @@ def _card_score(card) -> float:
     return value / max(1, card.cost)            # отдача за единицу энергии
 
 
-def greedy_draft(deck: list, class_name: str) -> None:
+def greedy_draft(deck: list, class_name: str, meta=None) -> None:
     """Драфт метрики CEILING: с тем же шансом-добора, что у wall, семплируем
     _DRAFT_SAMPLE карт и берём ЛУЧШУЮ по эвристике, усиленной «темами» колоды
     (АРХЕТИП-осознанный выбор). Моделирует игрока, собирающего билд вокруг
-    своего ядра, а не случайный набор."""
+    своего ядра, а не случайный набор.
+
+    meta=None → весь пул (full-access). При переданной meta пул фильтруется по
+    анлокам (стартер-режим [[capstone-reorder-content-first]]): день-1 собирает
+    потолок только из разлоченного."""
     from managers.balance.runner import _CARD_REWARD_CHANCE
     if random.random() >= _CARD_REWARD_CHANCE:
         return
     from core.cards.catalog import get_pool_for_class
-    pool = get_pool_for_class(class_name)
+    pool = get_pool_for_class(class_name, meta)
     themes = _deck_themes(deck)
     candidates = [random.choice(pool)() for _ in range(_DRAFT_SAMPLE)]
 
@@ -224,8 +228,23 @@ def greedy_draft(deck: list, class_name: str) -> None:
     deck.append(max(candidates, key=scored))
 
 
-def get_ceiling_build(class_name: str):
+def get_ceiling_build(class_name: str, meta=None):
     """Параметры идеального билда для run_single_run: (draft, extra_cards, relics).
-    Если ядро для класса не задано — только жадный драфт (без ручного ядра)."""
+    Если ядро для класса не задано — только жадный драфт (без ручного ядра).
+
+    meta=None → ядро как есть (full-access, регресс-нейтрально). При переданной meta
+    ([[capstone-reorder-content-first]], стартер-режим) ручное ядро ФИЛЬТРУЕТСЯ по
+    анлокам: залоченные карты/реликвии выпадают из ядра (день-1 их не имеет). Ядра
+    тройки тир-1 опираются почти целиком на залоченные реликвии-движки → стартер-
+    потолок честно обваливается до «почти стены». greedy_draft получает meta при
+    вызове из run_single_run (фильтрует и добор)."""
     extra_cards, relics = CLASS_CORES.get(class_name, ([], []))
+    if meta is not None:
+        from core.progression import (
+            is_card_unlocked, is_relic_unlocked, card_id_for, relic_id_for,
+        )
+        extra_cards = [f for f in extra_cards
+                       if is_card_unlocked(meta, card_id_for(f))]
+        relics = [r for r in relics
+                  if is_relic_unlocked(meta, relic_id_for(r))]
     return greedy_draft, extra_cards, relics
