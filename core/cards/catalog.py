@@ -57,6 +57,10 @@ GENERIC_FACTORIES = [
     # Дисциплину): универсальная защита, доступна всем. У Воина косвенно питает пассив
     # (держишь щит → +Дисциплина). LOCKED (за прогресс, не в узком стартере).
     create_steel_barricade, create_bastion,
+    # «Закипание» — переехало из классового пула Мага (С57, чистка под Нестабильность):
+    # чистый ПАР-сетап (Мокрый+Горение), 0 Мастерства → дублировало generic-стихии.
+    # Стихийный сетап = универсален, доступен всем. LOCKED (за прогресс).
+    create_boil,
 ]
 
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────
@@ -66,8 +70,11 @@ CLASS_FACTORIES = {
     # убрана из классового пула. Барьер (Заслон/Бастион) → generic; Возмездие → из выдачи
     # (фабрика жива для совместимости/тестов, но не выдаётся — дублировала Карающий строй).
     "Warrior":   [create_punishing_formation, create_shield_wall, create_warrior_stance],
+    # Маг = ось Мастерства/Нестабильности (С57, чистка под единый формат): «Закипание»
+    # (чистый ПАР, 0 Мастерства) → generic. Остальные 4 трогают Мастерство (Стихийный
+    # всплеск = мост стихии→ось через MasteryEffect).
     "Mage":      [create_overclock, create_resonant_discharge,
-                  create_boil, create_arcane_focus, create_elemental_surge],
+                  create_arcane_focus, create_elemental_surge],
     "Rogue":     [create_bloodlust, create_serrated_edge],
     "Druid":     [create_virulent_strain],
     "Berserker": [create_blood_rage, create_reckless_blow, create_blood_thirst,
