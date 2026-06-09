@@ -128,10 +128,16 @@ def test_барьер_работает_как_движок_возмездия():
     assert dmg >= 5  # минимум щит
 
 
-def test_барьер_в_каталоге_воина():
-    """Карты барьера — в пуле Воина (class-specific)."""
-    from core.cards.catalog import CLASS_FACTORIES
-    warrior_factories = CLASS_FACTORIES.get("Warrior", [])
-    names = [f.__name__ for f in warrior_factories]
-    assert "create_steel_barricade" in names
-    assert "create_bastion" in names
+def test_барьер_в_generic_не_в_классе_воина():
+    """Барьер переехал из классового пула Воина в GENERIC (С57, чистка под Дисциплину):
+    универсальная защита, доступна всем; класс Воина = чисто ось Дисциплины."""
+    from core.cards.catalog import CLASS_FACTORIES, GENERIC_FACTORIES
+    generic_names = [f.__name__ for f in GENERIC_FACTORIES]
+    warrior_names = [f.__name__ for f in CLASS_FACTORIES.get("Warrior", [])]
+    # Теперь в generic
+    assert "create_steel_barricade" in generic_names
+    assert "create_bastion" in generic_names
+    # И УЖЕ НЕ в классовом пуле Воина (старая ось вычищена)
+    assert "create_steel_barricade" not in warrior_names
+    assert "create_bastion" not in warrior_names
+    assert "create_retribution" not in warrior_names   # Возмездие убрано из выдачи

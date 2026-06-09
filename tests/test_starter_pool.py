@@ -18,7 +18,7 @@ def _meta(*unlocks) -> dict:
 def test_meta_none_возвращает_весь_пул():
     # Обратная совместимость: без меты фильтра нет (сим/baseline видят всё).
     full = get_pool_for_class("Warrior")
-    assert len(full) == len(GENERIC_FACTORIES) + 6   # generic + 6 классовых Воина
+    assert len(full) == len(GENERIC_FACTORIES) + 3   # generic + 3 классовых Воина (С57: ось Дисц)
 
 
 def test_meta_none_не_фильтрует_даже_при_locked(monkeypatch):
@@ -75,5 +75,5 @@ def test_стартовый_generic_пул_ровно_13_карт():
 def test_классовые_сигнатурки_остаются_у_нового_игрока():
     # Тир-1 сигнатурки не заперты (стартдеки не трогаем) → видны при пустых unlocks.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
-    # 13 стартовых generic + 6 классовых Воина = 19.
-    assert len(ids) == 19
+    # 13 стартовых generic + 3 классовых Воина (С57: ось Дисц, старая ось вычищена) = 16.
+    assert len(ids) == 16

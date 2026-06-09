@@ -136,7 +136,7 @@ def newly_unlocked(meta: dict) -> list:
 #     блокировкой КЛАССА у тир-2). Стартдеки не трогаем.
 # Карта/артефакт здесь = LOCKED (вливается за мета-прогрессию). Остальное — стартовое.
 
-# card_id'ы карт, требующие анлока (34 из 47 generic = синергия/RARE/вампир/эхо/AoE).
+# card_id'ы карт, требующие анлока (36 из 49 generic = синергия/RARE/вампир/эхо/AoE/Барьер).
 LOCKED_CARDS: set = {
     "catalyst", "fire_breath", "rain_cloud", "chain_lightning", "thunder_strike",
     "overload", "crush", "tectonic_strike", "updraft", "whirlwind", "sirocco",
@@ -144,6 +144,8 @@ LOCKED_CARDS: set = {
     "thorn_armor", "second_wind", "elixir", "regenerate", "vitality", "triage",
     "drain", "blood_feast", "life_tap", "lacerate", "hemorrhage", "open_wound",
     "echo_resonance", "echo_strike", "echo_cascade", "piercing_thrust", "wide_swing",
+    # Барьер: переехал из классового пула Воина (С57); мощный (несгораемый щит) → за прогресс.
+    "steel_barricade", "bastion",
 }
 # relic_id'ы (имена классов), требующие анлока (27 из 33 = весь UNCOMMON+ и часть COMMON).
 LOCKED_RELICS: set = {

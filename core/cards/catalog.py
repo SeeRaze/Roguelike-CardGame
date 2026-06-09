@@ -25,7 +25,6 @@ from core.cards import (
     create_drain, create_blood_feast, create_life_tap,
     create_lacerate, create_hemorrhage, create_open_wound,
     create_summon_wolf, create_summon_golem,
-    create_retribution,
     create_punishing_formation, create_shield_wall, create_warrior_stance,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
@@ -54,13 +53,19 @@ GENERIC_FACTORIES = [
     create_lacerate, create_hemorrhage, create_open_wound,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
+    # Барьер (несгораемый щит) — переехал из классового пула Воина (С57, чистка под
+    # Дисциплину): универсальная защита, доступна всем. У Воина косвенно питает пассив
+    # (держишь щит → +Дисциплина). LOCKED (за прогресс, не в узком стартере).
+    create_steel_barricade, create_bastion,
 ]
 
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────
 CLASS_FACTORIES = {
     "Summoner":  [create_summon_wolf, create_summon_golem],
-    "Warrior":   [create_punishing_formation, create_shield_wall, create_warrior_stance,
-                  create_retribution, create_steel_barricade, create_bastion],
+    # Воин = чисто ось Дисциплины (С57, чистка под единый формат): старая ось «щит=атака»
+    # убрана из классового пула. Барьер (Заслон/Бастион) → generic; Возмездие → из выдачи
+    # (фабрика жива для совместимости/тестов, но не выдаётся — дублировала Карающий строй).
+    "Warrior":   [create_punishing_formation, create_shield_wall, create_warrior_stance],
     "Mage":      [create_overclock, create_resonant_discharge,
                   create_boil, create_arcane_focus, create_elemental_surge],
     "Rogue":     [create_bloodlust, create_serrated_edge],
