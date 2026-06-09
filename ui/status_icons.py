@@ -199,6 +199,25 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
     elif key == "mastery":
         _star(screen, cx, cy, r, color, points=4)
 
+    elif key == "discipline":
+        # Ровный строй (порядок/дисциплина): 4 вертикальных столбика одинаковой
+        # высоты на общей базе. Отличается от barrier (контур щита) — это про строй,
+        # а не защиту. Тема Воина «держишь строй → +урон».
+        base_y = cy + r
+        top_y  = cy - r
+        for col in (-int(r * 0.66), -int(r * 0.22), int(r * 0.22), int(r * 0.66)):
+            pygame.draw.line(screen, color, (cx + col, top_y), (cx + col, base_y), lw)
+        pygame.draw.line(screen, color, (cx - r, base_y), (cx + r, base_y), lw)
+
+    elif key == "instability":
+        # Предупреждающий треугольник с «!» (нестабильность/глитч/ошибка). Тема
+        # айти-сеттинга (warning-токен) — ресурс «Нестабильность» Химика/Мага.
+        pts = [(cx, cy - r), (cx - r, cy + int(r * 0.85)), (cx + r, cy + int(r * 0.85))]
+        pygame.draw.polygon(screen, color, pts, lw)
+        pygame.draw.line(screen, color,
+                         (cx, cy - int(r * 0.2)), (cx, cy + int(r * 0.35)), lw)
+        pygame.draw.circle(screen, color, (cx, cy + int(r * 0.62)), max(1, lw // 2))
+
     elif key == "frenzy":
         # Следы когтей: три параллельные диагонали.
         for off in (-int(r * 0.45), 0, int(r * 0.45)):

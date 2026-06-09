@@ -33,6 +33,24 @@ def test_unknown_key_falls_back():
     draw_status_icon(_surf(), "definitely_not_a_status", 30, 30, 12, (255, 255, 255))
 
 
+def test_classовые_ресурсы_тройки_имеют_иконки():
+    """discipline (Воин) / mastery (Маг) / instability (глитч) — выделенные геометрич.
+    иконки, НЕ буквенный фолбэк (единый формат подачи ресурсов, С57). Проверяем по
+    крайним точкам: геометрия дотягивается до края радиуса, центрированная буква — нет."""
+    cx, cy, r, col = 30, 30, 20, (255, 0, 0)
+    for key in ("discipline", "mastery", "instability"):
+        surf = pygame.Surface((60, 60))
+        surf.fill((0, 0, 0))
+        draw_status_icon(surf, key, cx, cy, r, col)
+        # Считаем закрашенные пиксели у границ bbox (буква-фолбэк туда не достаёт).
+        edge_hits = 0
+        for x in range(cx - r, cx + r + 1):
+            for y in (cy - r, cy + r):
+                if 0 <= x < 60 and 0 <= y < 60 and surf.get_at((x, y))[0] > 80:
+                    edge_hits += 1
+        assert edge_hits > 0, f"{key}: похоже на фолбэк (нет геометрии у краёв)"
+
+
 def test_icon_draws_at_small_radius():
     """Малый радиус (плотный HUD) не вызывает ошибок деления/полигонов."""
     surf = _surf()
