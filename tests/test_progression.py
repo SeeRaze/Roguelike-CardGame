@@ -123,10 +123,16 @@ def test_relic_id_это_имя_класса():
     assert relic_id_for(ТочильныйКамень) == "ТочильныйКамень"
 
 
-def test_К1_инертно_реестры_пусты():
-    # На шаге К1 ничего не заперто → поведение не меняется (baseline зелёный).
-    assert LOCKED_CARDS == set()
-    assert LOCKED_RELICS == set()
+def test_реестры_locked_наполнены_разметкой():
+    # К3: разметка страманом — узкий стартовый пул (часть заперта за мета-прогрессию).
+    assert len(LOCKED_CARDS) == 34      # 34 из 47 generic заперты
+    assert len(LOCKED_RELICS) == 27     # 27 из 33 артефактов заперты
+    # Базовые карты НЕ заперты (стартовые).
+    for starter in ("strike", "defend", "heavy_blade", "iron_wall"):
+        assert starter not in LOCKED_CARDS
+    # Стартовые артефакты по осям НЕ заперты.
+    for starter in ("ТочильныйКамень", "Заплатка", "СчастливаяМонетка"):
+        assert starter not in LOCKED_RELICS
 
 
 def test_стартовая_карта_всегда_доступна():

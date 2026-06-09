@@ -100,13 +100,36 @@ def newly_unlocked(meta: dict) -> list:
 # meta['unlocks'] — общий список (классы + card_id'ы + relic_id'ы; namespace'ы не
 # пересекаются: классы "Rogue", карты "fire_breath", реликвии "СердцеТитана").
 #
-# ИНЕРТНО на шаге К1: оба множества ПУСТЫ → всё стартовое → поведение не меняется
-# (baseline зелёный). Разметку (К3) зальём страманом из спеки.
+# РАЗМЕТКА (К3, страman `_starter_pool_design.md`, согласовано юзером):
+#   СТАРТОВЫЕ generic (13, НЕ заперты): базовые strike/defend/heavy_blade/iron_wall +
+#     по 1 «вкусу» стихии (ignite/splash/shock_bolt/rockfall/gust/poison_stab) +
+#     bandage (сустейн) + intimidate (дебафф) + cleaving_strike (позиц-вкус).
+#   СТАРТОВЫЕ артефакты (6): ТочильныйКамень(FP)/ЗаточенныйОсколок(+урон)/Заплатка(HP)/
+#     СчастливаяМонетка(золото)/ЗасохшийКлевер(удача)/ТотемЯрости — разные механики
+#     ВИДНЫ и ОЩУТИМЫ, но слабы; мощь (UNCOMMON+) за достижениями.
+#   Сигнатурки тир-1 (Воин/Маг/Берсерк) — стартовые (НЕ в этом списке; гейтятся
+#     блокировкой КЛАССА у тир-2). Стартдеки не трогаем.
+# Карта/артефакт здесь = LOCKED (вливается за мета-прогрессию). Остальное — стартовое.
 
-# card_id'ы, требующие анлока (К3 заполнит). Пусто = всё стартовое.
-LOCKED_CARDS: set = set()
-# relic_id'ы (имена классов реликвий), требующие анлока (К3 заполнит).
-LOCKED_RELICS: set = set()
+# card_id'ы карт, требующие анлока (34 из 47 generic = синергия/RARE/вампир/эхо/AoE).
+LOCKED_CARDS: set = {
+    "catalyst", "fire_breath", "rain_cloud", "chain_lightning", "thunder_strike",
+    "overload", "crush", "tectonic_strike", "updraft", "whirlwind", "sirocco",
+    "toxic_cloud", "acid_shield", "bash", "neutralize", "flex", "battle_cry",
+    "thorn_armor", "second_wind", "elixir", "regenerate", "vitality", "triage",
+    "drain", "blood_feast", "life_tap", "lacerate", "hemorrhage", "open_wound",
+    "echo_resonance", "echo_strike", "echo_cascade", "piercing_thrust", "wide_swing",
+}
+# relic_id'ы (имена классов), требующие анлока (27 из 33 = весь UNCOMMON+ и часть COMMON).
+LOCKED_RELICS: set = {
+    "LuckyClover", "SpikedBracelet", "СтараяПиявка", "ПанцирьДикобраза",
+    "ГрозоваяБатарея", "МеткаОхотника", "ФлаконКатализатора",
+    "ДревнееОгниво", "НамокшаяРукавица", "ОкровавленныйШприц", "ФлаконСЖелчью",
+    "СвинцовыйНабалдашник", "ШипастаяБроня", "ТрофейныйКлык", "СердцеВеликана",
+    "ЭнергоЯдро", "СердцеТитана", "ГнилойКлык", "ЖелезнаяВоля", "БерсеркМедальон",
+    "КоронаВознесения", "СердцеБездны", "ЭхоВечности", "НесокрушимыйБастион",
+    "КаменьВечнойЖизни", "СтеклянныйГлаз", "ГнилоеСердце",
+}
 
 
 def card_id_for(factory) -> str:
