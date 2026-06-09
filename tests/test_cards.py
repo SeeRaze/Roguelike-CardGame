@@ -269,3 +269,37 @@ def test_возмездие_бьёт_всех_врагов(make_combat, make_cre
                                          is_upgraded=False)
     assert e1.hp == 42 and e2.hp == 42     # 8 урона КАЖДОМУ
     assert player.shield == 8              # щит сохраняется
+
+# ═══════════════════════════════════════════════════════════
+# Реестр воссоздания карт (сейв забега, С57)
+# ═══════════════════════════════════════════════════════════
+
+def test_реестр_round_trip_id_карта():
+    from core.cards.catalog import RAW_FACTORIES, make_card_by_id, card_id_of
+    for cid, f in RAW_FACTORIES.items():
+        card = make_card_by_id(cid)
+        assert card is not None
+        # card_id_of по имени; для дубля имени даём подсказку класса фабрики
+        hint = getattr(f(), "card_class", None)
+        assert card_id_of(card, hint_class=hint) == cid
+
+
+def test_реестр_имена_уникальны_кроме_дубля():
+    # Матчинг по имени надёжен только при уникальных именах (единств. исключение —
+    # «Жажда крови», развязывается классом). Защита от новых дублей имени.
+    from core.cards.catalog import _NAME_TO_ENTRIES
+    dups = {n: e for n, e in _NAME_TO_ENTRIES.items() if len(e) > 1}
+    assert set(dups) <= {"Жажда крови"}, f"новые дубли имён: {set(dups)-{'Жажда крови'}}"
+
+
+def test_реестр_дубль_развязан_классом():
+    from core.cards.catalog import make_card_by_id, card_id_of
+    bt = make_card_by_id("blood_thirst")   # Berserker
+    bl = make_card_by_id("bloodlust")      # Rogue
+    assert card_id_of(bt, hint_class="Berserker") == "blood_thirst"
+    assert card_id_of(bl, hint_class="Rogue") == "bloodlust"
+
+
+def test_реестр_неизвестный_id_none():
+    from core.cards.catalog import make_card_by_id
+    assert make_card_by_id("definitely_not_a_card") is None

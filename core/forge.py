@@ -267,6 +267,18 @@ def apply_linear_level(card, delta: int) -> None:
             e.upgrade_val += delta
 
 
+def rebuild_card_linear_to(card, level: int) -> None:
+    """Восстановить ЛИНЕЙНЫЙ слой ковки карты до `level` БЕЗ траты FP (загрузка сейва
+    забега, С57). Воспроизводит мутацию base_val как forge_card_one_level: уровень 1 =
+    ручной upgrade, уровни ≥2 = +δ за каждый. Майлстоун-теги (slots) живут в
+    deck_forge_state по uid и читаются при расчёте урона — карту не мутируют, поэтому
+    их восстанавливать тут не нужно (state восстанавливается отдельно)."""
+    if level >= 1 and hasattr(card, "upgrade"):
+        card.upgrade()
+    for _ in range(max(0, level - 1)):
+        apply_linear_level(card, LINEAR_BONUS_PER_LEVEL)
+
+
 def card_forge_channel(card) -> str:
     """КАНАЛ карты для выбора тега (Развилка №1, §5): природа карты определяет, какой
     тег откроется на её майлстоуне. Щитовая/барьерная → 'shield', чисто лечащая →

@@ -118,3 +118,51 @@ def get_pool_for_class(class_name, meta=None) -> list:
 def get_class_cards(class_name) -> list:
     """Только классовые карты класса (для вкладки библиотеки)."""
     return _TAGGED_CLASS_FACTORIES.get(class_name, [])
+
+
+# ─── РЕЕСТР ВОССОЗДАНИЯ КАРТ (сейв забега, С57) ───────────────────────────────
+# Карта = объект с эффектами + мутируется ковкой (base_val/uid/теги) → в сейв пишем
+# card_id + forge-уровень, а при загрузке ПЕРЕСОЗДАЁМ фабрикой и накатываем ковку.
+# RAW_FACTORIES: card_id → фабрика (классовые — TAGGED, чтобы проставился card_class).
+RAW_FACTORIES = {}
+for _f in GENERIC_FACTORIES:
+    RAW_FACTORIES[card_id_for(_f)] = _f
+for _cls_facs in _TAGGED_CLASS_FACTORIES.values():
+    for _f in _cls_facs:
+        RAW_FACTORIES[card_id_for(_f)] = _f
+
+# name → [(card_id, card_class)]: определяет id уже созданной карты для сохранения БЕЗ
+# origin-поля на инстансе (не трогаем точки создания). В ЖИВОЙ колоде card_class почти
+# всегда None (стартдек/generic тег не ставят), поэтому матчим по ИМЕНИ. Имена уникальны
+# (65/66), единственный дубль «Жажда крови» (bloodlust/Rogue vs blood_thirst/Berserker)
+# развязывается классом игрока (hint_class). Гарантия — тест test_card_registry.
+_NAME_TO_ENTRIES = {}
+for _cid, _f in RAW_FACTORIES.items():
+    _c = _f()
+    _NAME_TO_ENTRIES.setdefault(_c.name, []).append((_cid, getattr(_c, "card_class", None)))
+
+
+def make_card_by_id(card_id):
+    """Пересоздать карту по card_id (для загрузки сейва). None, если id неизвестен
+    (карта вне реестра — напр. транзиентный Глитч/особая). Forge-уровень накатывает
+    вызывающий через core.forge."""
+    factory = RAW_FACTORIES.get(card_id)
+    return factory() if factory else None
+
+
+def card_id_of(card, hint_class=None):
+    """Определить card_id уже созданной карты (для сохранения колоды). None, если карта
+    вне реестра. Матч по имени; при дубле имени разрешаем по классу карты ИЛИ подсказке
+    класса игрока (hint_class — для стартдек-карт, где card_class не проставлен)."""
+    # Ковка уровня 1 (card.upgrade) добавляет «+» к имени — зачищаем для матча по базовому.
+    base_name = card.name.rstrip("+")
+    entries = _NAME_TO_ENTRIES.get(base_name)
+    if not entries:
+        return None
+    if len(entries) == 1:
+        return entries[0][0]
+    want = getattr(card, "card_class", None) or hint_class
+    for cid, cclass in entries:
+        if cclass == want:
+            return cid
+    return entries[0][0]
