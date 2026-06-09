@@ -11,12 +11,13 @@ from core.relics import (
 )
 
 
-def test_в_пуле_33_уникальные_реликвии():
+def test_в_пуле_34_уникальные_реликвии():
     # С57 (1d-pre): −Проклятая Корона (32→31). 2b/2c HP-ось: +Сердце Великана
-    # (UNCOMMON), +Камень Вечной Жизни (EPIC) → 31→33.
-    assert len(ALL_RELICS) == 33
+    # (UNCOMMON), +Камень Вечной Жизни (EPIC) → 31→33. Срез Берсерка: +Технический
+    # Долг (UNCOMMON, классовый компаунд) → 33→34.
+    assert len(ALL_RELICS) == 34
     имена = [r().name for r in ALL_RELICS]
-    assert len(set(имена)) == 33
+    assert len(set(имена)) == 34
 
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):

@@ -43,9 +43,17 @@ def _pick_relic(gm, rarity: Rarity):
     # meta=None → без фильтра (как get_pool_for_class: обр. совместимость для тестов/
     # путей без меты). Live gm всегда несёт meta → стартовый пул реально сужается.
     meta = getattr(gm, "meta", None)
+    # Классовый резонанс (С57): реликвия с relic_class выпадает ТОЛЬКО своему классу
+    # (универсальная relic_class=None — всем). Берсерк-движок «Технический Долг» не
+    # мусорит выдачу Воину/Магу (им долга нет → реликвия мертва) — доктрина реиграбельности.
+    player_class = type(getattr(gm, "player", None)).__name__
 
     def _ok(r):
-        if r().name in current_names:
+        inst = r()
+        if inst.name in current_names:
+            return False
+        rc = getattr(inst, "relic_class", None)
+        if rc is not None and rc != player_class:
             return False
         return meta is None or is_relic_unlocked(meta, relic_id_for(r))
 

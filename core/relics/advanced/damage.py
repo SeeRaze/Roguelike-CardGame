@@ -137,3 +137,42 @@ class БерсеркМедальон(Relic):
         combat_manager.add_log_message(
             f"[Реликвия] '{self.name}': +1 Энергия!"
         )
+
+
+class ТехническийДолг(Relic):
+    """Классовый КАТ.4-компаунд Берсерка (резонанс: выпадает только ему). Каждое
+    ДОБИВАНИЕ врага в HP-долге → +1 стак НАВСЕГДА (весь забег, переносится между боями).
+    Каждый стак = +PER_STACK ко всему урону игрока. Растёт с числом киллов-в-долге И
+    персистентен → закрывает дефицит кат.4 ([[scaling-audit]]: у игрока не было компаунда,
+    который растёт И переносится). Малый % + низкий тир = «слоу-берн» под ДЛИННЫЙ забег
+    (дольше = сильнее), не бурст; без капа — крошечный per-stack не ломает иерархию тиров.
+    Тематика: проценты по долгу капают в твою пользу, пока платишь кровью."""
+
+    PER_STACK = 0.01   # +1% урона за стак (ручка калибровки; малый → можно без капа)
+
+    def __init__(self):
+        super().__init__(
+            "Технический Долг",
+            "Добили врага в HP-долге → +1% ко всему урону НАВСЕГДА (растёт весь забег).",
+            Rarity.UNCOMMON,
+            relic_class="Berserker",
+        )
+        self.stacks = 0
+
+    def on_combat_start(self, combat_manager):
+        # Стаки НЕ сбрасываются (кат.4-перенос по забегу) — намеренно без сброса здесь.
+        pass
+
+    def on_kill(self, enemy, combat_manager):
+        # Гейт «в долге»: награда именно за долговой плейстайл (hp<0 в момент килла).
+        if combat_manager.player.hp < 0:
+            self.stacks += 1
+            combat_manager.add_log_message(
+                f"[Реликвия] '{self.name}': долг капает → +1% урона "
+                f"(стаков: {self.stacks})."
+            )
+
+    def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
+        if is_player_attack and self.stacks:
+            return int(base_dmg * (1 + self.stacks * self.PER_STACK))
+        return base_dmg

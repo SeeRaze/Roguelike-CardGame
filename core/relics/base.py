@@ -49,11 +49,16 @@ class Relic:
     """
 
     def __init__(self, name: str, description: str,
-                 rarity: Rarity = Rarity.COMMON):
+                 rarity: Rarity = Rarity.COMMON, relic_class: str = None):
         self.name        = name
         self.description = description
         self.rarity      = rarity
         self.is_active   = False
+        # Классовый резонанс (С57, зеркало card_class): None = универсальная (выпадает
+        # всем); имя класса = выпадает ТОЛЬКО ему (RewardManager._pick_relic фильтрует).
+        # Для реликвий-движков класса (напр. Технический Долг Берсерка), бесполезных
+        # другим → не мусорят чужую выдачу (доктрина против мёртвых дропов).
+        self.relic_class = relic_class
 
     # --- Пассивные хуки ---
     def on_combat_start(self, combat_manager):          pass
