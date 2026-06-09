@@ -8,6 +8,7 @@ import pytest
 
 from managers.balance.baseline import (
     CLASSES, BASELINE, BASELINE_MAX_DROP, BASELINE_MAX_RISE, measure_class,
+    BASELINE_STARTER, STARTER_CLASSES, measure_starter,
 )
 
 pytestmark = pytest.mark.balance
@@ -29,3 +30,19 @@ def test_класс_в_допуске_баланса(player_class):
         assert diff <= BASELINE_MAX_RISE, (
             f"{name} {metric} ВСПЛЕСК: {cur[metric]:g} vs эталон {base[metric]:g} "
             f"(возможен баг вроде несброса статусов между боями).")
+
+
+@pytest.mark.parametrize("player_class", STARTER_CLASSES, ids=lambda c: c.__name__)
+def test_стартер_в_допуске_баланса(player_class):
+    """Стартер-режим (meta=∅, честный день-1): медианы тройки яруса 1 в допуске.
+    Контент/анлоки не должны обвалить стартовый опыт. Тот же допуск, что у full."""
+    name = player_class.__name__
+    cur = measure_starter(player_class)
+    base = BASELINE_STARTER[name]
+    for metric in ("wall", "ceiling"):
+        diff = cur[metric] - base[metric]
+        assert diff >= -BASELINE_MAX_DROP, (
+            f"{name} starter-{metric} ОБВАЛ: {cur[metric]:g} vs эталон {base[metric]:g}. "
+            f"Осознанно? Переблагослови: python -m managers.balance.baseline")
+        assert diff <= BASELINE_MAX_RISE, (
+            f"{name} starter-{metric} ВСПЛЕСК: {cur[metric]:g} vs эталон {base[metric]:g}.")

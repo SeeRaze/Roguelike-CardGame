@@ -84,6 +84,38 @@ BASELINE_FORGE = {
 # Допуск широкий: доля по N=40 шумна (каждый забег — бинарный 0/1 «долетел/нет»).
 BASELINE_FORGE_MAX_DROP = 18
 
+# ── СТАРТЕР-ЭТАЛОН (С57, шаг 2 капстоун-реордера) ─────────────────────────────
+# Метрики BASELINE/BASELINE_FORGE выше — FULL-ACCESS (весь пул разлочен) = «потенциал
+# класса ПОСЛЕ мета-прогрессии». Но день-1 игрок видит лишь УЗКИЙ стартовый пул
+# ([[capstone-reorder-content-first]], узкий пул + анлоки): бо́льшая часть карт/реликвий
+# заперта за достижениями/казино. Эта метрика мерит ЧЕСТНЫЙ опыт дня-1 — прогон с
+# meta.unlocks=∅ → драфт и ручное ядро фильтруются по анлокам.
+#
+# ТОЛЬКО ТРОЙКА ЯРУСА 1 (Воин/Маг/Берсерк) — они играются с первого запуска, поэтому
+# meta=∅ для них РЕАЛИСТИЧЕН. Тир-2 (Раз/Друид/Призыв/Химик) заперты до анлока класса,
+# а к их разлочке игрок уже накопил анлоки карт → meta=∅ им нереалистичен (мерим их
+# full-access выше). Зеркалит трио-only структуру BASELINE_FORGE.
+#
+# КОНТРАСТ starter↔full = «сколько силы класса заперто за мета-прогрессией»:
+#   • Ядра потолка тройки опираются почти целиком на ЗАЛОЧЕННЫЕ реликвии-движки
+#     (Воин 3/3, Маг/Берс 2/3) → стартер-потолок честно НИЖЕ full-потолка.
+#   • Берсерк: ядро [battle_cry] заперто → стартер-ядро пусто → ceiling≈wall.
+#     ⚠️ Берсерк всё равно меряется ботом КРИВО ([[balance-findings-berserker-autopsy]]):
+#     greedy-бот истекает в акте 1 без сустейна → не привязывать калибровку к этой медиане.
+# Регенерация: python -m managers.balance.baseline
+STARTER_META = {"unlocks": []}
+STARTER_CLASSES = (Warrior, Mage, Berserker)
+BASELINE_STARTER = {
+    # ВАЖНО (находка С57): стартер-числа местами ≥ full — НЕ баг. Узкий стартовый
+    # пул меньше разбавляет колоду синергийными картами, которые бот не пилотирует
+    # ([[balance-findings-shock-dilution]]), а залоченный контент = в основном
+    # РЕЛИКВИИ → их теряет сильнее всех Воин (потолок 42→29, движок Дисциплины
+    # живёт в залоченных реликвиях ЖелезнаяВоля/ШипастаяБроня/ЭнергоЯдро).
+    "Warrior":   {"wall": 31, "ceiling": 29},
+    "Mage":      {"wall": 18, "ceiling": 30.5},  # потолок ~не зависит от залоченного
+    "Berserker": {"wall": 7,  "ceiling": 7},     # ядро [battle_cry] заперто → ≈wall
+}
+
 
 def _median_death(results: list) -> float:
     """Медиана этажа смерти; дошедшие до конца = max_floor (100)."""
@@ -105,6 +137,27 @@ def measure_class(player_class) -> dict:
 
     wall = _run()                                       # случайный драфт
     draft, extra, relics = get_ceiling_build(name)      # идеальный билд
+    ceiling = _run(draft=draft, extra_cards=extra, relics=relics)
+    return {"wall": wall, "ceiling": ceiling}
+
+
+def measure_starter(player_class) -> dict:
+    """Медианы этажа смерти в СТАРТЕР-режиме (meta=∅) — честный опыт дня-1.
+    wall = случайный драфт из СТАРТОВОГО пула; ceiling = стартер-ядро (залоченные
+    карты/реликвии отфильтрованы) + жадный драфт из стартового пула. Детерминирована
+    при BASELINE_SEED. Контраст с full-access measure_class = вклад мета-прогрессии."""
+    name = player_class.__name__
+
+    def _run(**kw) -> float:
+        random.seed(BASELINE_SEED)
+        with open(os.devnull, "w") as dn, contextlib.redirect_stdout(dn):
+            return _median_death(
+                [run_single_run(player_class, 100, meta=STARTER_META, **kw)
+                 for _ in range(BASELINE_N)]
+            )
+
+    wall = _run()                                                 # стартовый пул
+    draft, extra, relics = get_ceiling_build(name, meta=STARTER_META)  # стартер-ядро
     ceiling = _run(draft=draft, extra_cards=extra, relics=relics)
     return {"wall": wall, "ceiling": ceiling}
 
@@ -162,6 +215,23 @@ def check() -> list:
             failures.append(
                 f"{name} forge-reach{FORGE_REACH_FLOOR}: ОБВАЛ ДВИЖКА {cur_reach}% vs "
                 f"эталон {base_reach}% (просадка {drop} > допуск {BASELINE_FORGE_MAX_DROP})")
+
+    # СТАРТЕР-режим (тройка яруса 1): честный день-1. Допуск тот же, что у full-метрик
+    # (DROP узкий — ловим обвал стартера контентом; RISE широкий — буст легитимен).
+    for cls in STARTER_CLASSES:
+        name = cls.__name__
+        cur = measure_starter(cls)
+        base = BASELINE_STARTER[name]
+        for metric in ("wall", "ceiling"):
+            diff = cur[metric] - base[metric]
+            if diff < -BASELINE_MAX_DROP:
+                failures.append(
+                    f"{name} starter-{metric}: ОБВАЛ {cur[metric]:g} vs эталон "
+                    f"{base[metric]:g} (просадка {-diff:g} > допуск {BASELINE_MAX_DROP})")
+            elif diff > BASELINE_MAX_RISE:
+                failures.append(
+                    f"{name} starter-{metric}: ВСПЛЕСК {cur[metric]:g} vs эталон "
+                    f"{base[metric]:g} (рост {diff:g} > допуск {BASELINE_MAX_RISE} — возможен баг)")
     return failures
 
 
@@ -188,6 +258,18 @@ def _regen() -> None:
         print(f'    "{name}": {cur},   # Δ {cur - base:+g}')
     print("}")
 
+    print("\n# Стартер-режим (meta=∅, честный день-1; тройка яруса 1):")
+    print("BASELINE_STARTER = {")
+    for cls in STARTER_CLASSES:
+        name = cls.__name__
+        cur = measure_starter(cls)
+        base = BASELINE_STARTER.get(name, {})
+        dw = cur["wall"]    - base.get("wall",    cur["wall"])
+        dc = cur["ceiling"] - base.get("ceiling", cur["ceiling"])
+        print(f'    "{name}": {{"wall": {cur["wall"]:g}, "ceiling": {cur["ceiling"]:g}}},'
+              f'   # Δwall {dw:+g}, Δceil {dc:+g}')
+    print("}")
+
 
 if __name__ == "__main__":
     if "--check" in sys.argv:
@@ -200,6 +282,8 @@ if __name__ == "__main__":
                   "    python -m managers.balance.baseline")
             sys.exit(1)
         print(f"✅ Регресс-гард баланса: все {len(CLASSES)} классов в допуске "
-              f"(DROP≤{BASELINE_MAX_DROP}, RISE≤{BASELINE_MAX_RISE}).")
+              f"(DROP≤{BASELINE_MAX_DROP}, RISE≤{BASELINE_MAX_RISE}); "
+              f"+ forge-движок ({len(BASELINE_FORGE)}) + стартер-режим "
+              f"({len(BASELINE_STARTER)}, день-1).")
     else:
         _regen()
