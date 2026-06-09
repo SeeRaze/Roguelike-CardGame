@@ -116,3 +116,59 @@ def test_load_битый_файл_none(tmp_path, monkeypatch):
     fake.write_text("{ не json", encoding="utf-8")
     monkeypatch.setattr(RunSave, "get_run_path", lambda: fake)
     assert RunSave.load_run() is None                          # битый → None, не падает
+
+
+# ═══════════════════════════════════════════════════════════
+# UI-флоу: карта «сохранить и выйти» → меню «продолжить»
+# ═══════════════════════════════════════════════════════════
+
+def test_ui_флоу_сохранить_продолжить(run_gm, tmp_path, monkeypatch):
+    import pygame
+    pygame.init()
+    pygame.display.set_mode((1920, 1080))
+    from ui.MainMenu import MainMenu
+    from ui.MapView import MapView
+
+    monkeypatch.setattr(RunSave, "get_run_path", lambda: tmp_path / "run_save.json")
+
+    class _V:
+        screen = pygame.display.get_surface()
+        screen_width, screen_height = 1920, 1080
+        main_font = pygame.font.SysFont("Arial", 20)
+        gm = None
+
+    v = _V(); v.gm = run_gm
+    run_gm.current_state = "MAP"
+
+    # Карта: рисуем → клик «сохранить и выйти»
+    MapView.draw_map(v)
+    MapView.handle_click(v, v.btn_map_menu.center)
+    assert run_gm.current_state == "MAIN_MENU"
+    assert RunSave.has_saved_run() is True
+
+    # Меню (новый gm): кнопка «Продолжить» видна → восстановление в MAP
+    gm2 = GameManager()
+    v.gm = gm2
+    gm2.current_state = "MAIN_MENU"
+    MainMenu.draw_menu(v)
+    assert v.btn_menu_continue is not None
+    MainMenu.handle_clicks(v, v.btn_menu_continue.center)
+    assert gm2.current_state == "MAP"
+    assert gm2.current_floor == run_gm.current_floor
+
+
+def test_ui_меню_без_сейва_нет_продолжить(tmp_path, monkeypatch):
+    import pygame
+    pygame.init()
+    pygame.display.set_mode((1920, 1080))
+    from ui.MainMenu import MainMenu
+    monkeypatch.setattr(RunSave, "get_run_path", lambda: tmp_path / "none.json")
+
+    class _V:
+        screen = pygame.display.get_surface()
+        screen_width, screen_height = 1920, 1080
+        main_font = pygame.font.SysFont("Arial", 20)
+        gm = None
+    v = _V(); v.gm = GameManager(); v.gm.current_state = "MAIN_MENU"
+    MainMenu.draw_menu(v)
+    assert v.btn_menu_continue is None          # нет сейва → нет кнопки

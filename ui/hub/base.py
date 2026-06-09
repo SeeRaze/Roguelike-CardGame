@@ -68,7 +68,22 @@ class HubView:
         self._draw_meta_stats(screen, gm)
         self._draw_stake_toggles(screen, gm)
         self._draw_dev_toggle(screen, gm)
+        self._draw_menu_button(screen, mouse_pos)
         self._draw_start_button(view, screen, mouse_pos)
+
+    def _draw_menu_button(self, screen, mouse_pos):
+        """Кнопка «В главное меню» (левый верх Хаба). Забег ещё не начат → просто
+        смена состояния, ничего сохранять не нужно."""
+        font = pygame.font.SysFont("Arial", 18, bold=True)
+        rect = pygame.Rect(24, 20, 220, 40)
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, (55, 55, 80) if hovered else (38, 38, 58),
+                         rect, border_radius=8)
+        pygame.draw.rect(screen, _BTN_BORDER, rect, 2, border_radius=8)
+        lbl = font.render("← В ГЛАВНОЕ МЕНЮ", True, _TEXT_COLOR)
+        screen.blit(lbl, (rect.centerx - lbl.get_width() // 2,
+                          rect.centery - lbl.get_height() // 2))
+        self.menu_button = rect
 
     def _draw_dev_toggle(self, screen, gm):
         """DEV-тоггл «полный доступ»: открывает ВЕСЬ пул карт/артефактов (минуя анлоки)
@@ -188,6 +203,12 @@ class HubView:
     def handle_click(self, view, mouse_pos):
         gm = view.gm
 
+        # Кнопка «В главное меню» (забег не начат — просто смена состояния).
+        mbtn = getattr(self, "menu_button", None)
+        if mbtn is not None and mbtn.collidepoint(mouse_pos):
+            gm.current_state = "MAIN_MENU"
+            return
+
         for cls_name, rect in self.class_buttons.items():
             if rect.collidepoint(mouse_pos):
                 self._select_class(gm, cls_name)
@@ -216,6 +237,9 @@ class HubView:
         if hasattr(view, 'btn_start_run') and \
                 view.btn_start_run.collidepoint(mouse_pos):
             print(f" >>> СТАРТ ЗАБЕГА | Класс: {type(gm.player).__name__} <<<")
+            # Новый забег обнуляет старый сохранённый снимок.
+            from managers import RunSave
+            RunSave.clear_run()
             self.reset()
             gm.current_floor = 1
             # Ставки применяются ДО хила — Хрупкость должна успеть урезать макс. HP.

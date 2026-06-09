@@ -61,8 +61,26 @@ class MainMenu:
                          (W // 2 - 260, H // 2 - 160),
                          (W // 2 + 260, H // 2 - 160), 1)
 
+        # Есть ли сохранённый забег → показываем «Продолжить» первой кнопкой и сдвигаем
+        # остальные вниз (иначе обычный layout трёх кнопок).
+        from managers import RunSave
+        has_run = RunSave.has_saved_run()
+        view.btn_menu_continue = None
+        y = H // 2 - 130
+        if has_run:
+            view.btn_menu_continue = pygame.Rect(W // 2 - 260, y, 520, 64)
+            cont_hover = view.btn_menu_continue.collidepoint(mouse_pos)
+            pygame.draw.rect(screen, (40, 90, 50) if cont_hover else (28, 64, 36),
+                             view.btn_menu_continue, border_radius=12)
+            pygame.draw.rect(screen, (110, 220, 130), view.btn_menu_continue, 2,
+                             border_radius=12)
+            lbl = btn_font.render("ПРОДОЛЖИТЬ ЗАБЕГ", True, (220, 255, 220))
+            screen.blit(lbl, (view.btn_menu_continue.centerx - lbl.get_width() // 2,
+                               view.btn_menu_continue.centery - lbl.get_height() // 2))
+            y += 84
+
         # Кнопка ВОЙТИ В ЛАГЕРЬ
-        view.btn_menu_play = pygame.Rect(W // 2 - 260, H // 2 - 130, 520, 72)
+        view.btn_menu_play = pygame.Rect(W // 2 - 260, y, 520, 64)
         MainMenu.is_play_hovered = view.btn_menu_play.collidepoint(mouse_pos)
         col = M._BTN_HOVER_COLOR if MainMenu.is_play_hovered else M._BTN_COLOR
         pygame.draw.rect(screen, col, view.btn_menu_play, border_radius=12)
@@ -70,9 +88,10 @@ class MainMenu:
         lbl = btn_font.render("ВОЙТИ В ЛАГЕРЬ", True, (255, 255, 255))
         screen.blit(lbl, (view.btn_menu_play.centerx - lbl.get_width() // 2,
                            view.btn_menu_play.centery - lbl.get_height() // 2))
+        y += 84
 
         # Кнопка КАРТЫ
-        view.btn_menu_cards = pygame.Rect(W // 2 - 260, H // 2 - 30, 520, 72)
+        view.btn_menu_cards = pygame.Rect(W // 2 - 260, y, 520, 64)
         MainMenu.is_cards_hovered = view.btn_menu_cards.collidepoint(mouse_pos)
         col = M._BTN_HOVER_COLOR if MainMenu.is_cards_hovered else M._BTN_COLOR
         pygame.draw.rect(screen, col, view.btn_menu_cards, border_radius=12)
@@ -80,9 +99,10 @@ class MainMenu:
         lbl = btn_font.render("БИБЛИОТЕКА КАРТ", True, (255, 255, 255))
         screen.blit(lbl, (view.btn_menu_cards.centerx - lbl.get_width() // 2,
                            view.btn_menu_cards.centery - lbl.get_height() // 2))
+        y += 84
 
         # Кнопка ВЫХОД
-        view.btn_menu_exit = pygame.Rect(W // 2 - 260, H // 2 + 70, 520, 72)
+        view.btn_menu_exit = pygame.Rect(W // 2 - 260, y, 520, 64)
         MainMenu.is_exit_hovered = view.btn_menu_exit.collidepoint(mouse_pos)
         col = (100, 35, 35) if MainMenu.is_exit_hovered else (60, 20, 20)
         pygame.draw.rect(screen, col, view.btn_menu_exit, border_radius=12)
@@ -98,6 +118,13 @@ class MainMenu:
     @staticmethod
     def handle_clicks(view, mouse_pos):
         if view.gm.current_state == "MAIN_MENU":
+            cont = getattr(view, 'btn_menu_continue', None)
+            if cont is not None and cont.collidepoint(mouse_pos):
+                from managers import RunSave
+                data = RunSave.load_run()
+                if data is not None and RunSave.restore_run(view.gm, data):
+                    print("[МЕНЮ] Забег восстановлен → MAP")
+                return
             if hasattr(view, 'btn_menu_play') and view.btn_menu_play.collidepoint(mouse_pos):
                 view.gm.current_state = "HUB"
             elif hasattr(view, 'btn_menu_cards') and view.btn_menu_cards.collidepoint(mouse_pos):

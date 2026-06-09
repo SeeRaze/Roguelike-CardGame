@@ -222,10 +222,31 @@ class MapView:
         ks = info_font.render(f"Ключи: {keys}", True, (255, 215, 0))
         screen.blit(ks, (px + 24, ky - 2))
 
+        # Кнопка «Сохранить и выйти» — под панелью карты. Сохраняет забег (точка MAP =
+        # чистое состояние) и уводит в главное меню, откуда можно «Продолжить».
+        mbtn = pygame.Rect(panel.x, panel.bottom + 12, panel.width, 44)
+        hovered = mbtn.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(screen, (60, 50, 30) if hovered else (40, 34, 22),
+                         mbtn, border_radius=10)
+        pygame.draw.rect(screen, (210, 180, 90), mbtn, 2, border_radius=10)
+        mlbl = info_font.render("СОХРАНИТЬ И ВЫЙТИ В МЕНЮ", True, (240, 220, 150))
+        screen.blit(mlbl, (mbtn.centerx - mlbl.get_width() // 2,
+                           mbtn.centery - mlbl.get_height() // 2))
+        view.btn_map_menu = mbtn
+
     @staticmethod
     def handle_click(view, mouse_pos):
         gm = view.gm
         if not gm.map_grid:
+            return
+
+        # «Сохранить и выйти»: снапшот забега → главное меню (проверяем ДО узлов карты).
+        mbtn = getattr(view, "btn_map_menu", None)
+        if mbtn is not None and mbtn.collidepoint(mouse_pos):
+            from managers import RunSave
+            RunSave.save_run(gm)
+            gm.current_state = "MAIN_MENU"
+            print("[КАРТА] Забег сохранён → главное меню")
             return
         total_rows      = len(gm.map_grid)
         available_nodes = gm.get_available_nodes()

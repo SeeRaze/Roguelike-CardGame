@@ -51,6 +51,10 @@ class DefeatMixin:
             max_damage=max_dmg, player_class=player_class,
         )
 
+        # Забег окончен — сохранённый снимок (если был) больше не валиден.
+        from managers import RunSave
+        RunSave.clear_run()
+
         if self.gm:
             from ui.LeaderboardView import LeaderboardView
             LeaderboardView.load_data()
