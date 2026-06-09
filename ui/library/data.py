@@ -1,72 +1,36 @@
 # ui/library/data.py
-# Библиотека карт: списки карт по классам, вкладки, геометрия сетки.
-# Растёт с контентом: новая карта класса -> строка в соответствующий список.
-from core.cards import (
-    create_strike, create_defend, create_heavy_blade, create_iron_wall,
-    create_ignite, create_fire_breath, create_splash, create_rain_cloud,
-    create_poison_stab, create_toxic_cloud, create_acid_shield,
-    create_bash, create_neutralize, create_intimidate,
-    create_flex, create_battle_cry, create_thorn_armor,
-    create_bandage, create_second_wind, create_elixir,
-    create_regenerate, create_vitality, create_triage,
-    create_drain, create_blood_feast, create_life_tap,
-    create_lacerate, create_hemorrhage, create_open_wound,
-)
-from core.cards.catalog import get_class_cards
+# Библиотека карт: вкладки и геометрия сетки.
+# ПАРС ВСЕХ КАРТ ИЗ КАТАЛОГА (источник правды core/cards/catalog.py) — список НЕ
+# ведётся вручную, а собирается динамически: новая карта в catalog.py автоматически
+# появляется в библиотеке. Вкладки: «Все» (весь пул) + «Общие» (generic) + по классу
+# (только классовые карты — срез идентичности для ревизии).
+from core.cards.catalog import GENERIC_FACTORIES, RAW_FACTORIES, get_class_cards
 
-WARRIOR_CARDS = [
-    create_strike, create_defend, create_heavy_blade, create_iron_wall,
-    create_flex, create_battle_cry, create_thorn_armor, create_bash,
+# Весь пул (generic + все классовые), в порядке регистрации в каталоге.
+ALL_CARDS = list(RAW_FACTORIES.values())
+
+# Только нейтральные карты (общий пул всех классов).
+GENERIC_CARDS = list(GENERIC_FACTORIES)
+
+# Вкладки. Классовые вкладки = ТОЛЬКО классовые карты (generic вынесены в «Общие»),
+# чтобы наглядно читался срез идентичности класса. Классы без своих карт пропускаются.
+_CLASS_TABS = [
+    ("Воин",        "Warrior"),
+    ("Маг",         "Mage"),
+    ("Берсерк",     "Berserker"),
+    ("Разбойник",   "Rogue"),
+    ("Друид",       "Druid"),
+    ("Призыватель", "Summoner"),
 ]
-
-ROGUE_CARDS = [
-    create_strike, create_defend,
-    create_neutralize, create_intimidate,
-    create_lacerate, create_hemorrhage, create_open_wound,
-    create_drain, create_blood_feast,
-]
-
-MAGE_CARDS = [
-    create_strike, create_defend,
-    create_ignite, create_fire_breath,
-    create_splash, create_rain_cloud,
-    create_bash, create_acid_shield,
-]
-
-DRUID_CARDS = [
-    create_strike, create_defend,
-    create_bandage, create_second_wind, create_elixir,
-    create_regenerate, create_vitality, create_triage,
-    create_poison_stab, create_toxic_cloud,
-]
-
-BERSERKER_CARDS = [
-    create_strike, create_defend,
-    create_heavy_blade, create_iron_wall,
-    create_flex, create_battle_cry,
-    create_life_tap,                    # вампиризм -- балансировать на грани
-    create_lacerate,                    # кровь -- давление
-]
-
-# Призыватель: базовые + классовые карты призыва (из каталога).
-SUMMONER_CARDS = [
-    create_strike, create_defend,
-    create_bandage,
-] + get_class_cards("Summoner")
-
-ALL_CARDS = list({f.__name__: f for f in
-    WARRIOR_CARDS + ROGUE_CARDS + MAGE_CARDS +
-    DRUID_CARDS + BERSERKER_CARDS + SUMMONER_CARDS}.values())
 
 TABS = [
-    ("Все",       ALL_CARDS),
-    ("Воин",      WARRIOR_CARDS),
-    ("Разбойник", ROGUE_CARDS),
-    ("Маг",       MAGE_CARDS),
-    ("Друид",     DRUID_CARDS),
-    ("Берсерк",   BERSERKER_CARDS),
-    ("Призыватель", SUMMONER_CARDS),
+    ("Все",   ALL_CARDS),
+    ("Общие", GENERIC_CARDS),
 ]
+for _label, _cls in _CLASS_TABS:
+    _cards = get_class_cards(_cls)
+    if _cards:
+        TABS.append((_label, _cards))
 
 # Геометрия сетки
 CARD_W, CARD_H = 180, 250
