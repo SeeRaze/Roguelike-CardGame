@@ -3,8 +3,11 @@
 # достижения и пишется в мету, Демиург — маяк (всегда закрыт). Чистый модуль —
 # без боя и pygame, работаем на голом мета-словаре.
 
+import core.progression as prog
 from core.progression import (
     TIER1, class_tier, is_unlocked, newly_unlocked, UNLOCK_CONDITIONS,
+    LOCKED_CARDS, LOCKED_RELICS, card_id_for, relic_id_for,
+    is_card_unlocked, is_relic_unlocked,
 )
 
 
@@ -104,3 +107,44 @@ def test_все_условия_вызываемы_и_булевы():
     m = _meta(best_floor=10, total_bosses=2)
     for cls, cond in UNLOCK_CONDITIONS.items():
         assert isinstance(cond(m), bool), cls
+
+
+# ── анлок карт/артефактов (С57, step 1) ──────────────────────────────────────
+def test_card_id_снимает_префикс_create():
+    def create_strike(): pass
+    def create_fire_breath(): pass
+    assert card_id_for(create_strike) == "strike"
+    assert card_id_for(create_fire_breath) == "fire_breath"
+
+
+def test_relic_id_это_имя_класса():
+    class ТочильныйКамень:
+        pass
+    assert relic_id_for(ТочильныйКамень) == "ТочильныйКамень"
+
+
+def test_К1_инертно_реестры_пусты():
+    # На шаге К1 ничего не заперто → поведение не меняется (baseline зелёный).
+    assert LOCKED_CARDS == set()
+    assert LOCKED_RELICS == set()
+
+
+def test_стартовая_карта_всегда_доступна():
+    # Карта не в LOCKED_CARDS доступна даже без меты.
+    assert is_card_unlocked(None, "strike") is True
+    assert is_card_unlocked(_meta(), "strike") is True
+
+
+def test_locked_карта_требует_анлок_в_мете(monkeypatch):
+    monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
+    assert is_card_unlocked(_meta(), "fire_breath") is False      # не открыта
+    assert is_card_unlocked(None, "fire_breath") is False         # без меты — закрыта
+    assert is_card_unlocked({"unlocks": ["fire_breath"]}, "fire_breath") is True
+    assert is_card_unlocked(_meta(), "strike") is True            # стартовая — мимо
+
+
+def test_locked_артефакт_требует_анлок_в_мете(monkeypatch):
+    monkeypatch.setattr(prog, "LOCKED_RELICS", {"СердцеТитана"})
+    assert is_relic_unlocked(_meta(), "СердцеТитана") is False
+    assert is_relic_unlocked({"unlocks": ["СердцеТитана"]}, "СердцеТитана") is True
+    assert is_relic_unlocked(_meta(), "ТочильныйКамень") is True  # стартовый — мимо
