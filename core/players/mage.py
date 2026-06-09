@@ -66,7 +66,7 @@ class Mage(Player):
             lost = self.lose_hp(cost)
             if lost > 0 and combat_manager:
                 combat_manager.add_log_message(
-                    f" [МАГ] Нестабильность: интерфейс искрит, -{lost} HP "
+                    f" [ВАЙБ-КОДЕР] Нестабильность: интерфейс искрит, -{lost} HP "
                     f"(Мастерство {self.mastery})."
                 )
 
@@ -80,11 +80,11 @@ class Mage(Player):
             drawn = combat_manager.deck_manager.draw_cards(1)
             if drawn > 0:
                 combat_manager.add_log_message(
-                    " [МАГ] Стихийный резонанс: +1 карта из колоды!"
+                    " [ВАЙБ-КОДЕР] Стихийный резонанс: +1 карта из колоды!"
                 )
             healed = self.heal(int(self.max_hp * COMBO_HEAL_PCT), combat_manager)
             if healed > 0:
                 combat_manager.add_log_message(
-                    f" [МАГ] Стихийный резонанс: +{healed} HP, "
+                    f" [ВАЙБ-КОДЕР] Стихийный резонанс: +{healed} HP, "
                     f"Мастерство {self.mastery}!"
                 )

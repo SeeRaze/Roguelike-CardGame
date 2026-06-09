@@ -66,5 +66,5 @@ class Berserker(Player):
             gained = -self.hp
             self.forge_points += gained
             combat_manager.add_log_message(
-                f"[БЕРСЕРК] Отрицание Смерти: {gained} HP-долга → +{gained} FP!")
+                f"[СТАЖЁР] Отрицание Смерти: {gained} HP-долга → +{gained} FP!")
             self.hp = 1

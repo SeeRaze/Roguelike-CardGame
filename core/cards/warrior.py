@@ -131,7 +131,7 @@ class ShieldDamageEffect:
                 combat_manager.add_log_message(
                     f" -> Возмездие: {base} урона всем врагам "
                     f"({len(targets)}) от щита {player.shield}. "
-                    f" [ВОИН] +{heal} HP (Боевой дух)!"
+                    f" [ТЕСТИРОВЩИК] +{heal} HP (Боевой дух)!"
                 )
             else:
                 combat_manager.add_log_message(

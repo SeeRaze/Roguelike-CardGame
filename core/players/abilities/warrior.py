@@ -11,8 +11,9 @@ class WarriorAbility(ClassAbility):
 
     def __init__(self):
         super().__init__(
-            name="Щитовой удар",
-            description="Нанести врагу урон = 50% текущего щита.\nОдин раз за бой.",
+            name="Откат релиза",
+            description="Накопленную защиту — врагу в откат:\n"
+                        "урон = 50% текущего щита.\nОдин раз за бой.",
         )
 
     def activate(self, combat_manager) -> bool:
@@ -39,6 +40,6 @@ class WarriorAbility(ClassAbility):
                             combat_manager=combat_manager)
         self._used = True
         combat_manager.add_log_message(
-            f"[ВОИН] Щитовой удар: {dmg} урона врагу (50% от {shield} щита)!"
+            f"[ТЕСТИРОВЩИК] Откат релиза: {dmg} урона врагу (50% от {shield} щита)!"
         )
         return True

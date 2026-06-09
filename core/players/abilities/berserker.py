@@ -19,10 +19,10 @@ class BerserkerAbility(ClassAbility):
 
     def __init__(self):
         super().__init__(
-            name="Безумие",
-            description="В этот ход карты стоят 0 энергии, но берут HP "
-                        f"(стоимость × {int(MADNESS_HP_PCT_PER_COST * 100)}% макс. HP, "
-                        "сквозь щит).\n"
+            name="Дедлайн",
+            description="Горящий дедлайн: в этот ход карты стоят 0 энергии, "
+                        f"но берут HP (стоимость × {int(MADNESS_HP_PCT_PER_COST * 100)}% "
+                        "макс. HP, сквозь щит).\n"
                         "Нырок в красную зону: множитель урона от минуса HP.\n"
                         "Можно использовать каждый ход.",
         )
@@ -44,5 +44,5 @@ class BerserkerAbility(ClassAbility):
         player.madness_active = True
         self._used = True                        # кнопка гаснет до след. хода (как Воин/Маг)
         combat_manager.add_log_message(
-            "[БЕРСЕРК] БЕЗУМИЕ! Карты за 0 энергии — ценой HP.")
+            "[СТАЖЁР] ДЕДЛАЙН! Карты за 0 энергии — ценой HP.")
         return True

@@ -54,13 +54,13 @@ class Creature:
         if key not in _STATUS_KEYS:
             return
 
-        # Блок стихий от способности Мага -- только на врага
+        # Блок стихий от способности Мага (Try-Except) -- только на врага
         if (key in _ELEMENTAL_KEYS
                 and combat_manager is not None
                 and getattr(combat_manager, '_elemental_blocked', False)
                 and self in getattr(combat_manager, 'enemies', [])):
             combat_manager.add_log_message(
-                f"[МАГ] Стихийный барьер: {key} заблокирован!"
+                f"[ВАЙБ-КОДЕР] Try-Except: {key} заблокирован!"
             )
             return
 

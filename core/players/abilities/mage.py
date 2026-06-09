@@ -17,9 +17,10 @@ class MageAbility(ClassAbility):
 
     def __init__(self):
         super().__init__(
-            name="Стихийный барьер",
-            description="Блокировать стихии на врага на 1 ход.\n"
-                        "Щит = сумма стихийных стаков * 3.\n"
+            name="Try-Except",
+            description="Оборачиваешь ход в try-except:\n"
+                        "стихии на врага блокируются на 1 ход,\n"
+                        "щит = сумма стихийных стаков * 3.\n"
                         "Один раз за бой.",
         )
 
@@ -31,7 +32,7 @@ class MageAbility(ClassAbility):
         if getattr(combat_manager, '_elemental_blocked', False):
             combat_manager._elemental_blocked = False
             combat_manager.add_log_message(
-                "[МАГ] Стихийный барьер: блок стихий снят."
+                "[ВАЙБ-КОДЕР] Try-Except: блок стихий снят."
             )
 
     def activate(self, combat_manager) -> bool:
@@ -54,12 +55,12 @@ class MageAbility(ClassAbility):
         if shield_gain > 0:
             combat_manager.player.gain_shield(shield_gain, combat_manager)
             combat_manager.add_log_message(
-                f"[МАГ] Стихийный барьер: +{shield_gain} щита "
+                f"[ВАЙБ-КОДЕР] Try-Except: +{shield_gain} щита "
                 f"(стаки {total} * 3)! Стихии заблокированы на 1 ход."
             )
         else:
             combat_manager.add_log_message(
-                "[МАГ] Стихийный барьер: стихий нет, щит не получен. "
+                "[ВАЙБ-КОДЕР] Try-Except: стихий нет, щит не получен. "
                 "Стихии заблокированы на 1 ход."
             )
         return True

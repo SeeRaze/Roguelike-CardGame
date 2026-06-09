@@ -35,7 +35,7 @@ class Warrior(Player):
         healed = self.heal(3, combat_manager)
         if healed > 0 and combat_manager:
             combat_manager.add_log_message(
-                f" [ВОИН] Боевой дух: +{healed} HP в начале хода."
+                f" [ТЕСТИРОВЩИК] Боевой дух: +{healed} HP в начале хода."
             )
         # ДИСЦИПЛИНА (ступень «Соблюдай»): если Воин начал ход со щитом (держал строй
         # с прошлого хода — этот хук зовётся ДО сброса щита), копит +1 Дисциплины.
@@ -45,11 +45,11 @@ class Warrior(Player):
             self.add_status("discipline", 1, combat_manager)
             if combat_manager:
                 combat_manager.add_log_message(
-                    f" [ВОИН] Дисциплина: строй держится, +1 (всего {self.discipline})."
+                    f" [ТЕСТИРОВЩИК] Дисциплина: строй держится, +1 (всего {self.discipline})."
                 )
         carry = int(self.shield * 0.5)
         self._passive_shield_carry = carry
         if carry > 0 and combat_manager:
             combat_manager.add_log_message(
-                f" [ВОИН] Железный задел: {carry} щита перенесено на новый ход."
+                f" [ТЕСТИРОВЩИК] Железный задел: {carry} щита перенесено на новый ход."
             )
