@@ -54,7 +54,7 @@ BASELINE = {
     "Rogue":     {"wall": 15,   "ceiling": 19},
     "Mage":      {"wall": 18,   "ceiling": 28},
     "Druid":     {"wall": 20,   "ceiling": 28.5},
-    "Berserker": {"wall": 7,    "ceiling": 10.5},
+    "Berserker": {"wall": 7,    "ceiling": 11},
     "Summoner":  {"wall": 63,   "ceiling": 67},
     "Chemist":   {"wall": 20.5, "ceiling": 18.5},
 }
@@ -78,7 +78,7 @@ FORGE_REACH_FLOOR = 50
 BASELINE_FORGE = {
     "Warrior":   42,
     "Mage":      65,
-    "Berserker": 8,
+    "Berserker": 15,   # С57: углубление пола долга (−10→−30) → нырок чаще раскручивает движок
 }
 # Тревожит ТОЛЬКО просадка (движок ковки сломался); рост доходимости всегда легитимен.
 # Допуск широкий: доля по N=40 шумна (каждый забег — бинарный 0/1 «долетел/нет»).

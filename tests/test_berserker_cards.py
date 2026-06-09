@@ -54,9 +54,10 @@ def test_самоурон_уводит_берсерка_в_минус(make_creat
 
 
 def test_самоурон_клампится_на_полу_долга(make_creature):
-    player = _berserker(make_creature, hp=2)       # пол = -HP_DEBT_MAX_OVERDRAFT (-10)
+    from core import debt
+    player = _berserker(make_creature, hp=2)       # пол = -HP_DEBT_MAX_OVERDRAFT
     SelfHarmEffect(99, 99).execute(player, None, None, False)
-    assert player.hp == -10                        # не глубже пола
+    assert player.hp == -debt.HP_DEBT_MAX_OVERDRAFT  # не глубже пола (динамич. к ручке)
 
 
 def test_самоурон_без_овердрафта_не_ниже_нуля(make_creature):

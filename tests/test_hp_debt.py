@@ -87,7 +87,7 @@ def _cm(overdraft=False):
 def test_выживает_в_минусе_не_на_дне():
     """HP-долг: игрок в минусе, но выше пола → НЕ умирает (долг жизни даёт множитель)."""
     cm, p = _cm(overdraft=True)
-    p.hp = -3                                     # минус, но пол = -10
+    p.hp = -3                                     # минус, но выше пола (death line глубже)
     assert cm.check_player_defeat() is False
     assert p.hp == -3                             # не обнулён — продолжает в долге
 
