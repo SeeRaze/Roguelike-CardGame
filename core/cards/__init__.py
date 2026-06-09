@@ -32,7 +32,8 @@ from core.cards.rogue import create_bloodlust, create_serrated_edge
 from core.cards.druid import create_virulent_strain, VirulenceEffect
 from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
-    create_blood_rage, create_reckless_blow, create_blood_thirst,
+    LifestealOnKillEffect,
+    create_blood_rage, create_reckless_blow, create_blood_thirst, create_crunch,
 )
 from core.cards.cleave import (
     SplashDamageEffect, ColumnStrikeEffect, RankStrikeEffect,

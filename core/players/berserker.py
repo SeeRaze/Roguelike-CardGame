@@ -4,22 +4,25 @@ from core.players.abilities.berserker import MADNESS_HP_PCT_PER_COST
 from core.cards import (
     create_strike, create_heavy_blade,
     create_flex, create_battle_cry,
-    create_blood_rage, create_blood_thirst,
+    create_blood_rage, create_blood_thirst, create_crunch,
 )
 
 
 def get_berserker_deck():
     # Стартер РАСКРЫВАЕТ пассив, не запирает билд ([[starter-deck-reveals-passive]]):
-    # 2 сигнатурки-«учителя» граней долга (Кровавая ярость = долг→урон, Жажда крови =
-    # долг→FP) + generic-основа = открытый холст. 3-я сигнатурка (Безрассудный удар) —
-    # в драфт-пул, не в стартер. Замкнутого комбо-лупа нет.
+    # 3 сигнатурки-«учителя» граней долга (Кровавая ярость = долг→урон, Жажда крови =
+    # долг→FP, Кранч = добил-в-долге→второе дыхание/сустейн) + generic-основа = открытый
+    # холст. 4-я сигнатурка (Безрассудный удар) — в драфт-пул, не в стартер. Один strike
+    # уступил место Кранчу: цепочка «нырнул→добил→откачался» видна с 1-го боя (закрывает
+    # дыру аутопсии «нырок не окупается в бою»). Замкнутого комбо-лупа нет.
     return [
-        create_strike(), create_strike(), create_strike(),
+        create_strike(), create_strike(),
         create_heavy_blade(), create_heavy_blade(),
         create_flex(),
         create_battle_cry(),
         create_blood_rage(),
         create_blood_thirst(),
+        create_crunch(),
     ]
 
 

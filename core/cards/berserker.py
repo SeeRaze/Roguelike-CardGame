@@ -98,6 +98,32 @@ class DebtToForgeOnKillEffect:
             )
 
 
+class LifestealOnKillEffect:
+    """Если ЭТОЙ картой ДОБИТ враг → игрок лечится на heal_pct × MAX HP. Для Берсерка в
+    долге это CLIMB-OUT: heal поднимает hp от минуса к 0 (и выше). НЕМЕДЛЕННОЕ поощрение
+    за добивание В БОЮ («закрыл тикет → второе дыхание») — окупает нырок СРАЗУ, не дожидаясь
+    ковки, и НЕ ломает строгую расплату (надо именно ДОБИТЬ, не турель). Грань «добивание →
+    сустейн», отлична от blood_thirst (та даёт FP). Ставится ПОСЛЕ атакующего кирпича.
+    Хил в % max HP → масштаб-инвариантно (растёт с пулом, [[balance-curve-framework]])."""
+
+    def __init__(self, heal_pct, upgrade_pct):
+        self.heal_pct = heal_pct
+        self.upgrade_pct = upgrade_pct
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if enemy is None or enemy.hp > 0:
+            return                              # враг жив → не добили
+        pct = self.upgrade_pct if is_upgraded else self.heal_pct
+        amount = int(pct * getattr(player, "max_hp", 0))
+        if amount <= 0:
+            return
+        healed = player.heal(amount, combat_manager)
+        if combat_manager and healed:
+            combat_manager.add_log_message(
+                f" -> Добивание! Второе дыхание: +{healed} HP."
+            )
+
+
 # ─── Фабрики сигнатурных карт ────────────────────────────────────────────────
 # Числа = ЗАГЛУШКИ под калибровку (подзадача 4 / капстоун). Каждая карта учит ОДНУ
 # грань движка, ни одна не закрывает билд сама ([[starter-deck-reveals-passive]]).
@@ -144,4 +170,21 @@ def create_blood_thirst():
         effects=[SelfHarmEffect(0.07, 0.05), DamageEffect(8, 11),
                  DebtToForgeOnKillEffect(0.5, 0.5)],
         rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_crunch():
+    """«Кранч» (рабочее имя — трек имён юзера) — атака-финишер. Грань движка «добил в
+    долге → второе дыхание»: при ДОБИВАНИИ возвращает кровь (хил % max HP), окупая нырок
+    В БОЮ сразу (а не отложенной ковкой) и НЕ ломая строгую расплату. Пара к «Жажде крови»
+    (та → FP, эта → HP-сустейн): кормит ЦЕПОЧКУ нырков (добил → откачался → нырнул снова).
+    Бьёт и без добивания → учит грань, не запирает. COMMON."""
+    return Card(
+        name="Кранч",
+        cost=1,
+        card_type="attack",
+        description="Наносите 7(10) урона. При добивании: восстановите 20%(25%) макс. HP "
+                    "(второе дыхание — выход из долга).",
+        effects=[DamageEffect(7, 10), LifestealOnKillEffect(0.20, 0.25)],
+        rarity=Rarity.COMMON,
     )

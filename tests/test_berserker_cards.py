@@ -4,6 +4,7 @@
 from core.cards.base import Card, DamageEffect
 from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
+    LifestealOnKillEffect,
 )
 from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class, get_class_cards
 
@@ -116,17 +117,44 @@ def test_жажда_крови_композиция_нырок_удар_банк
 
 
 # ═══════════════════════════════════════════════════════════
+# LifestealOnKillEffect — добил в долге → второе дыхание (сустейн)
+# ═══════════════════════════════════════════════════════════
+
+def test_добивание_лечит_процентом_max_hp(make_creature):
+    player = _berserker(make_creature)             # max 60
+    player.hp = -20                                # в долге
+    enemy = make_creature("Труп", 0, 50)           # уже добит
+    LifestealOnKillEffect(0.20, 0.25).execute(player, enemy, None, False)
+    assert player.hp == -20 + int(0.20 * 60)       # +12 → climb-out до −8
+
+
+def test_лайфстил_живой_враг_не_лечит(make_creature):
+    player = _berserker(make_creature)
+    player.hp = -20
+    enemy = make_creature("Живой", 5, 50)
+    LifestealOnKillEffect(0.20, 0.25).execute(player, enemy, None, False)
+    assert player.hp == -20                        # враг жив → нет хила
+
+
+def test_лайфстил_не_превышает_max_hp(make_creature):
+    player = _berserker(make_creature, hp=55)      # почти полный
+    enemy = make_creature("Труп", 0, 50)
+    LifestealOnKillEffect(0.20, 0.25).execute(player, enemy, None, False)
+    assert player.hp == 60                         # хил клампится на max_hp
+
+
+# ═══════════════════════════════════════════════════════════
 # Регистрация: карты достижимы в пуле своего класса (StS-инфра)
 # ═══════════════════════════════════════════════════════════
 
 def test_берсерк_карты_зарегистрированы():
     names = {f().name for f in CLASS_FACTORIES["Berserker"]}
-    assert names == {"Кровавая ярость", "Безрассудный удар", "Жажда крови"}
+    assert names == {"Кровавая ярость", "Безрассудный удар", "Жажда крови", "Кранч"}
 
 
 def test_берсерк_карты_в_пуле_класса():
     pool_names = {f().name for f in get_pool_for_class("Berserker")}
-    assert {"Кровавая ярость", "Безрассудный удар", "Жажда крови"} <= pool_names
+    assert {"Кровавая ярость", "Безрассудный удар", "Жажда крови", "Кранч"} <= pool_names
 
 
 def test_берсерк_карты_тегированы_классом():
@@ -138,7 +166,7 @@ def test_берсерк_карты_тегированы_классом():
 def test_берсерк_карты_не_в_generic():
     from core.cards.catalog import GENERIC_FACTORIES
     generic_names = {f().name for f in GENERIC_FACTORIES}
-    for n in ("Кровавая ярость", "Безрассудный удар", "Жажда крови"):
+    for n in ("Кровавая ярость", "Безрассудный удар", "Жажда крови", "Кранч"):
         assert n not in generic_names
 
 
