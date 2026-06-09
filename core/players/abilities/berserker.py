@@ -23,22 +23,26 @@ class BerserkerAbility(ClassAbility):
             description="В этот ход карты стоят 0 энергии, но берут HP "
                         f"(стоимость × {int(MADNESS_HP_PCT_PER_COST * 100)}% макс. HP, "
                         "сквозь щит).\n"
-                        "Нырок в красную зону: множитель урона от минуса HP.",
+                        "Нырок в красную зону: множитель урона от минуса HP.\n"
+                        "Можно использовать каждый ход.",
         )
-
-    def is_ready(self) -> bool:
-        # Повторяема каждый ход — лимитирует сам HP (а не заряд). Гейт «уже в безумии».
-        return True
 
     def on_combat_start(self, combat_manager) -> None:
         super().on_combat_start(combat_manager)
         combat_manager.player.madness_active = False
+
+    def on_turn_start(self, combat_manager) -> None:
+        # Безумие повторяемо КАЖДЫЙ ход (один раз за ход). Снимаем пометку
+        # «использовано в этот ход» → кнопка честно загорается снова на новом ходу.
+        # Единый _used-цикл с Воином/Магом: статус слота не врёт после активации.
+        self._used = False
 
     def activate(self, combat_manager) -> bool:
         player = combat_manager.player
         if getattr(player, "madness_active", False):
             return False                         # уже в безумии в этот ход
         player.madness_active = True
+        self._used = True                        # кнопка гаснет до след. хода (как Воин/Маг)
         combat_manager.add_log_message(
             "[БЕРСЕРК] БЕЗУМИЕ! Карты за 0 энергии — ценой HP.")
         return True
