@@ -9,6 +9,7 @@ from ui.LeaderboardView import LeaderboardView
 from ui.chest import Chest
 from ui.victory import VictoryScreen
 from ui.library import CardLibraryView
+from ui.relic_library import RelicLibraryView
 from ui.combat import CombatInterface
 from ui.cards import CardRenderer
 
@@ -21,6 +22,7 @@ def _draw_shop(view):         Shop.draw_screen(view)
 def _draw_leaderboard(view):  LeaderboardView.draw_screen(view)
 def _draw_chest(view):        Chest.draw_screen(view)
 def _draw_card_library(view): CardLibraryView.draw_screen(view)
+def _draw_relic_library(view): RelicLibraryView.draw_screen(view)
 
 
 def _draw_victory(view):
@@ -74,4 +76,5 @@ DRAW_HANDLERS = {
     "EVENT":        _draw_event,
     "VICTORY":      _draw_victory,
     "CARD_LIBRARY": _draw_card_library,
+    "RELIC_LIBRARY": _draw_relic_library,
 }

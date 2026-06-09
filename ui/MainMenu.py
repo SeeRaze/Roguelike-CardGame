@@ -101,6 +101,17 @@ class MainMenu:
                            view.btn_menu_cards.centery - lbl.get_height() // 2))
         y += 84
 
+        # Небольшая угловая кнопка БИБЛИОТЕКА АРТЕФАКТОВ (верх-право, инструмент ревизии).
+        small_font = pygame.font.SysFont("Arial", 18, bold=True)
+        view.btn_menu_relics = pygame.Rect(W - 236, 24, 212, 46)
+        rel_hover = view.btn_menu_relics.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, M._BTN_HOVER_COLOR if rel_hover else M._BTN_COLOR,
+                         view.btn_menu_relics, border_radius=10)
+        pygame.draw.rect(screen, M._BTN_BORDER, view.btn_menu_relics, 2, border_radius=10)
+        rlbl = small_font.render("АРТЕФАКТЫ", True, (235, 235, 255))
+        screen.blit(rlbl, (view.btn_menu_relics.centerx - rlbl.get_width() // 2,
+                           view.btn_menu_relics.centery - rlbl.get_height() // 2))
+
         # Кнопка ВЫХОД
         view.btn_menu_exit = pygame.Rect(W // 2 - 260, y, 520, 64)
         MainMenu.is_exit_hovered = view.btn_menu_exit.collidepoint(mouse_pos)
@@ -131,6 +142,10 @@ class MainMenu:
                 from ui.library import CardLibraryView
                 CardLibraryView.reset()
                 view.gm.current_state = "CARD_LIBRARY"
+            elif hasattr(view, 'btn_menu_relics') and view.btn_menu_relics.collidepoint(mouse_pos):
+                from ui.relic_library import RelicLibraryView
+                RelicLibraryView.reset()
+                view.gm.current_state = "RELIC_LIBRARY"
             elif hasattr(view, 'btn_menu_exit') and view.btn_menu_exit.collidepoint(mouse_pos):
                 pygame.quit()
                 sys.exit()

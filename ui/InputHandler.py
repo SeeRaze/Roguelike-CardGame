@@ -119,6 +119,11 @@ def _handle_card_library(view, mouse_pos):
     CardLibraryView.handle_click(view, mouse_pos)
 
 
+def _handle_relic_library(view, mouse_pos):
+    from ui.relic_library import RelicLibraryView
+    RelicLibraryView.handle_click(view, mouse_pos)
+
+
 def _handle_leaderboard(view, mouse_pos):
     from ui.LeaderboardView import LeaderboardView
     from ui.MainMenu import MainMenu
@@ -144,6 +149,7 @@ STATE_HANDLERS = {
     "LEADERBOARD":  _handle_leaderboard,
     "VICTORY":      _handle_victory,
     "CARD_LIBRARY": _handle_card_library,
+    "RELIC_LIBRARY": _handle_relic_library,
 }
 
 
@@ -170,6 +176,10 @@ class InputHandler:
             from ui.library import CardLibraryView
             cards = CardLibraryView._get_cards()
             CardLibraryView.handle_scroll(direction, len(cards))
+
+        elif state == "RELIC_LIBRARY":
+            from ui.relic_library import RelicLibraryView
+            RelicLibraryView.handle_scroll(direction)
 
         elif state in ("CAMPFIRE", "SHOP"):
             view.scroll_y = max(0, view.scroll_y + direction * 60)
