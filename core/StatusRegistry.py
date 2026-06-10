@@ -227,6 +227,15 @@ STATUSES = {
         "keyword":     ("Декомпиляция", "Генерация щита заглушена.\nРеакции по цели +50% урона.\nДлится N ход(а)."),
         "is_duration": True,
         "is_stack":    False,
+    },
+        "stunned": {
+        "abbr":        "CRASH",
+        "badge_bg":    (200, 200, 60),
+        "badge_fg":    (40, 30, 0),
+        "tooltip":     "Crash: цель пропускает ход (стан).\nОсталось ходов: N",
+        "keyword":     ("Crash (стан)", "Цель пропускает ход.\nДлится N ход(а)."),
+        "is_duration": True,
+        "is_stack":    False,
     }
 }
 

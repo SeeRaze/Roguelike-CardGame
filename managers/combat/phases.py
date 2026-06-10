@@ -4,6 +4,7 @@ start_turn_phase — намерения врагов, пассив/щит/эне
 end_turn_phase — сброс руки, гашение долга, on_turn_end реликвий, действия врагов
 и союзников (всё под предохранителем глубины), проверка победы/поражения.
 """
+from core.DetonationRegistry import detonate, SHORTCIRCUIT_THRESHOLD
 
 
 class TurnPhaseMixin:
@@ -186,14 +187,28 @@ class TurnPhaseMixin:
             if e.hp <= 0:
                 continue
             e.shield = 0
-            self._guarded_action(
-                f"намерение {getattr(e, 'name', '?')}",
-                lambda e=e: e.execute_intent(self.player, self),
-            )
+            # НЕЙРОТОКСИН (С58): оглушённый враг пропускает намерение, но статусы тикают
+            # (стан спадает в его тик ниже). Видимый фидбэк — часть механики CC.
+            if e.get_status("stunned") > 0:
+                self.add_log_message(
+                    f" [CRASH] {getattr(e, 'name', '?')} оглушён — пропускает ход."
+                )
+            else:
+                self._guarded_action(
+                    f"намерение {getattr(e, 'name', '?')}",
+                    lambda e=e: e.execute_intent(self.player, self),
+                )
             self._guarded_action(
                 f"тик {getattr(e, 'name', '?')}",
                 lambda e=e: e.tick_statuses(self),
             )
+            # Авто-детонация Замыкания при достижении порога (после тика — заряды
+            # за ход уже накоплены). Под гардом (анти-каскад).
+            if e.get_status("shortcircuit") >= SHORTCIRCUIT_THRESHOLD:
+                self._guarded_action(
+                    f"авто-детонация {getattr(e, 'name', '?')}",
+                    lambda e=e: detonate(e, self),
+                )
             self._check_enemy_death(e)
             # Если игрок ПОГИБ от действий врага — прерываем. Порог = пол HP (овердрафт-
             # класс в минусе ещё жив; обычный класс — пол 0, байт-в-байт).

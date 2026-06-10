@@ -1,153 +1,97 @@
 # core/DetonationRegistry.py
-# Data-driven реестр ДЕТОНАЦИОННЫХ комбо — второй архетип комбо рядом с
-# ComboRegistry (множительные ×N к текущей атаке).
+# ЗАМЫКАНИЕ-ПОЗВОНОЧНИК (С58). Короткое замыкание (`shortcircuit`) = универсальный
+# ДЕТОНАТОР. Со-присутствующий элемент решает, ВО ЧТО детонирует («вкус»). Вместо N
+# независимых записей — ОДИН путь detonate(), ветка по присутствующим статусам.
 #
-# Отличие архетипов:
-#   ComboRegistry      — МНОЖИТ урон текущей атаки (×N), напр. ПАР. Срабатывает
-#                        в EffectCalculator.calculate_damage при ударе.
-#   DetonationRegistry — мгновенный ЭФФЕКТ (бурст/AoE/распространение/обнуление
-#                        щита), не привязанный к урону текущей карты. Срабатывает
-#                        через эффект-кирпич DetonateEffect (карты-детонаторы).
+# БАЗА (всегда при детонации): снос щита + бурст = заряды × DMG_PER_CHARGE по цели.
+# ВКУСЫ (каждый, если со-элемент present на цели):
+#   Кофе   → ЭЛЕКТРОЛИЗ        — бурст ещё и сплэшит по ВСЕМ прочим врагам (AoE).
+#   Legacy → ЦИКЛИЧНЫЙ ПОВТОР  — детонирует накопленный Legacy-DoT (×CYCLIC), сжигает.
+#   Токс   → НЕЙРОТОКСИН       — стан на 1 ход («Crash»).
+#   Утечка → АППАРАТНЫЙ СБОЙ   — стаки Утечки → энергия игрока (кап +HARDFAULT/ход).
 #
-# Каждая детонация = одна запись: requires (какие статусы должны быть на цели > 0)
-# + handler(target, combat_manager) (что сделать; сам снимает потраченные статусы)
-# + log. Будущее меж-стихийное комбо = одна запись здесь (+ опц. карта-детонатор).
+# Триггеры детонации: (1) карта-детонатор через DetonateEffect; (2) авто при достижении
+# порога SHORTCIRCUIT_THRESHOLD (см. end_turn_phase). Все числа — СТАРТОВЫЕ (Блок 4).
 
-# ─── Константы тюнинга детонаций ─────────────────────────────────────────────
-ELECTRO_DAMAGE_PER_SHOCK = 6     # Электро-взрыв: урон за стак Шока
-LAVA_DAMAGE_PER_IGNITE   = 4     # Лава: урон за стак Горения
-THERMO_DAMAGE_MULT       = 3     # Термовзрыв: множитель (Горение+Шок)
-
-
-def _deal_raw(target, amount, combat_manager, aoe=False):
-    """Нанести RAW-урон (через take_damage, БЕЗ EffectCalculator — детонация не
-    рекурсит Шок/комбо). aoe=True бьёт всех живых врагов, иначе только цель."""
-    player = getattr(combat_manager, "player", None)
-    if aoe:
-        victims = [e for e in getattr(combat_manager, "enemies", []) if e.hp > 0]
-    else:
-        victims = [target]
-    for v in victims:
-        v.take_damage(amount, attacker=player, combat_manager=combat_manager)
+SHORTCIRCUIT_THRESHOLD   = 5     # порог авто-детонации (зарядов)
+DMG_PER_CHARGE           = 2     # базовый бурст за стак заряда
+ELECTROLYSIS_SPLASH      = 1     # AoE-сплэш по прочим врагам за стак (вкус Кофе)
+CYCLIC_LEGACY_MULT       = 2     # детонация накопленного Legacy (вкус Legacy)
+HARDFAULT_ENERGY_CAP     = 3     # кап конверсии Утечки → энергия за детонацию
 
 
-def _electro_blast(target, combat_manager):
-    """Электро-взрыв (Мокрый + Шок): мокрая цель проводит разряд — урон
-    = Шок × ELECTRO_DAMAGE_PER_SHOCK по ВСЕМ живым врагам. Снять Мокрый и Шок."""
-    burst = target.get_status("shock") * ELECTRO_DAMAGE_PER_SHOCK
-    _deal_raw(target, burst, combat_manager, aoe=True)
-    target.set_status("wet", 0)
-    target.set_status("shock", 0)
-    combat_manager.add_log_message(
-        f" -> Электро-взрыв: {burst} урона по всем врагам!"
-    )
-    return burst
+def _deal_raw(victim, amount, player, combat_manager):
+    """RAW-урон через take_damage (без EffectCalculator — детонация не рекурсит
+    реакции). Уважает щит цели (если он ещё есть)."""
+    if amount > 0:
+        victim.take_damage(amount, attacker=player, combat_manager=combat_manager)
 
 
-def _lava(target, combat_manager):
-    """Лава (Раскол + Горение): мгновенный урон = Горение × LAVA_DAMAGE_PER_IGNITE
-    по цели + снижение её намерения атаки вдвое (расплавленная не может бить в
-    полную силу). Снять Раскол и Горение."""
-    burst = target.get_status("ignited") * LAVA_DAMAGE_PER_IGNITE
-    _deal_raw(target, burst, combat_manager)
+def detonate(target, combat_manager):
+    """Подорвать Короткое замыкание на цели. Возвращает суммарный мгнов. урон.
+    Инертно (0), если на цели нет заряда `shortcircuit`."""
+    if combat_manager is None:
+        return 0
+    sc = target.get_status("shortcircuit")
+    if sc <= 0:
+        return 0
+    player  = getattr(combat_manager, "player", None)
+    enemies = getattr(combat_manager, "enemies", [target])
+    target.set_status("shortcircuit", 0)          # заряд потрачен
+    combat_manager.add_log_message("[!!! ДЕТОНАЦИЯ: КОРОТКОЕ ЗАМЫКАНИЕ !!!]")
 
-    intent = getattr(target, "intent", None)
-    if intent is not None and getattr(intent, "type", None) == "attack":
-        intent.value = intent.value // 2
+    # БАЗА: снос щита + бурст по цели.
+    target.shield = 0
+    base = sc * DMG_PER_CHARGE
+    _deal_raw(target, base, player, combat_manager)
+    total = base
+    combat_manager.add_log_message(f" -> Снос щита + {base} урона по цели.")
+
+    # ВКУС: Кофе → ЭЛЕКТРОЛИЗ (AoE-сплэш по прочим врагам). Кофе тратится.
+    if target.get_status("coffee") > 0:
+        splash = sc * ELECTROLYSIS_SPLASH
+        for o in list(enemies):
+            if o is not target and o.hp > 0:
+                _deal_raw(o, splash, player, combat_manager)
+                total += splash
+        target.set_status("coffee", 0)
         combat_manager.add_log_message(
-            f" -> Лава: намерение атаки {target.name} ослаблено до {intent.value}."
+            f" -> ЭЛЕКТРОЛИЗ: {splash} урона по всем прочим врагам."
         )
 
-    target.set_status("shatter", 0)
-    target.set_status("ignited", 0)
-    combat_manager.add_log_message(f" -> Лава: {burst} урона!")
-    return burst
+    # ВКУС: Legacy → ЦИКЛИЧНЫЙ ПОВТОР (детонация накопленного DoT, ×CYCLIC). Legacy сожжён.
+    leg = target.get_status("legacy")
+    if leg > 0:
+        burst = leg * CYCLIC_LEGACY_MULT
+        _deal_raw(target, burst, player, combat_manager)
+        target.set_status("legacy", 0)
+        total += burst
+        combat_manager.add_log_message(
+            f" -> ЦИКЛИЧНЫЙ ПОВТОР: {burst} урона (Legacy-код сожжён)."
+        )
 
+    # ВКУС: Токс → НЕЙРОТОКСИН (стан 1 ход). Токс остаётся саботировать урон.
+    if target.get_status("tox") > 0:
+        target.set_status("stunned", 1)
+        combat_manager.add_log_message(
+            f" -> НЕЙРОТОКСИН: {target.name} оглушён (Crash)."
+        )
 
-def _thermo_blast(target, combat_manager):
-    """Термодинамический взрыв (Горение + Шок): мгновенный урон
-    = (Горение + Шок) × THERMO_DAMAGE_MULT по цели. Снять Горение и Шок."""
-    burst = (target.get_status("ignited")
-             + target.get_status("shock")) * THERMO_DAMAGE_MULT
-    _deal_raw(target, burst, combat_manager)
-    target.set_status("ignited", 0)
-    target.set_status("shock", 0)
-    combat_manager.add_log_message(f" -> Термовзрыв: {burst} урона!")
-    return burst
+    # ВКУС: Утечка → АППАРАТНЫЙ СБОЙ (Утечка → энергия, кап +HARDFAULT/ход). Частично сжигает.
+    leak = target.get_status("leak")
+    if leak > 0 and player is not None:
+        gain = min(HARDFAULT_ENERGY_CAP, leak)
+        player.gain_energy(gain)
+        target.set_status("leak", leak - gain)
+        combat_manager.add_log_message(
+            f" -> АППАРАТНЫЙ СБОЙ: Утечка → +{gain} энергии."
+        )
 
-
-def _acid(target, combat_manager):
-    """Кислота (Мокрый + Яд): растворяет броню — щит цели в ноль. Снять Мокрый
-    (катализатор потрачен); Яд ОСТАЁТСЯ тикать сквозь обнулённый щит."""
-    target.shield = 0
-    target.set_status("wet", 0)
-    combat_manager.add_log_message(f" -> Кислота: щит {target.name} растворён!")
-    return 0
-
-
-def _poison_blast(target, combat_manager):
-    """Ядовзрыв (Яд + Горение): детонирует ВЕСЬ яд мгновенно СКВОЗЬ щит
-    (= стаки Яда уроном прямо в HP, как тик яда), снимает Яд и УДВАИВАЕТ Горение
-    (пламя раздувает токсичные пары)."""
-    burst = target.get_status("poison")
-    target.hp = max(0, target.hp - burst)          # сквозь щит (прямо в HP)
-    target.set_status("poison", 0)
-    target.set_status("ignited", target.get_status("ignited") * 2)
-    combat_manager.add_log_message(
-        f" -> Ядовзрыв: {burst} урона сквозь щит, Горение удвоено!"
-    )
-    return burst
-
-
-DETONATIONS = {
-    # Порядок = ПРИОРИТЕТ при общих статусах: детонация, потратившая общий статус,
-    # гасит зависящие от него последующие (requires проверяется заново в DetonateEffect).
-    # Поле "priority" задаёт этот порядок ЯВНО (данные, не позиция в dict) — обход
-    # идёт через ReactionOrder.order_keyed по (priority, key). Меньше = раньше.
-    # Зазоры по 10 оставлены под вставку будущих детонаций между существующими.
-    "electro_blast": {
-        "name":     "ЭЛЕКТРО-ВЗРЫВ",
-        "priority": 10,
-        "requires": ("wet", "shock"),
-        "handler":  _electro_blast,
-        "log":      "[!!! ДЕТОНАЦИЯ: ЭЛЕКТРО-ВЗРЫВ !!!]",
-    },
-    "thermo_blast": {
-        "name":     "ТЕРМОВЗРЫВ",
-        "priority": 20,
-        "requires": ("ignited", "shock"),
-        "handler":  _thermo_blast,
-        "log":      "[!!! ДЕТОНАЦИЯ: ТЕРМОВЗРЫВ !!!]",
-    },
-    "lava": {
-        "name":     "ЛАВА",
-        "priority": 30,
-        "requires": ("shatter", "ignited"),
-        "handler":  _lava,
-        "log":      "[!!! ДЕТОНАЦИЯ: ЛАВА !!!]",
-    },
-    "acid": {
-        "name":     "КИСЛОТА",
-        "priority": 40,
-        "requires": ("wet", "poison"),
-        "handler":  _acid,
-        "log":      "[!!! ДЕТОНАЦИЯ: КИСЛОТА !!!]",
-    },
-    "poison_blast": {
-        "name":     "ЯДОВЗРЫВ",
-        "priority": 50,
-        "requires": ("poison", "ignited"),
-        "handler":  _poison_blast,
-        "log":      "[!!! ДЕТОНАЦИЯ: ЯДОВЗРЫВ !!!]",
-    },
-}
+    return total
 
 
 def all_detonations() -> dict:
-    """Все зарегистрированные детонации (для обхода в DetonateEffect)."""
-    return DETONATIONS
-
-
-def get_detonation(key: str) -> dict:
-    """Детонация по ключу. KeyError если не найдена."""
-    return DETONATIONS[key]
+    """DEPRECATED (С58): data-driven реестр заменён функцией-позвоночником detonate().
+    Пустой dict — совместимость с бот-политикой (managers/balance/policy.py) до её
+    re-bless в G1. Не использовать в новом коде."""
+    return {}

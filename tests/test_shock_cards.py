@@ -119,18 +119,6 @@ def test_перегрузка_по_голой_цели_только_урон(mak
     assert enemy.hp == 47          # урон 3
 
 
-def test_перегрузка_детонирует_мокрый_шок(make_combat, make_creature):
-    # Удар 3 (+3 от Шока, заряд 3→2) = 6, затем Электро-взрыв 2×6 = 12.
-    player = make_creature("Игрок", 50, 50)
-    enemy  = make_creature("Враг", 50, 50)
-    enemy.wet = 2
-    enemy.shock = 3
-    cm = make_combat(player=player, enemy=enemy)
-    create_overload().apply(player, enemy, cm)
-    assert enemy.hp == 32          # 50 - 6 - 12
-    assert enemy.wet == 0 and enemy.shock == 0
-
-
 def test_перегрузка_классифицируется_как_shock():
     assert classify_card(create_overload()) == "shock"
 

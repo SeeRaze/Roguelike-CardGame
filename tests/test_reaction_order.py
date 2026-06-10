@@ -65,22 +65,9 @@ def test_order_keyed_принимает_функцию_приоритета():
 # ═══════════════════════════════════════════════════════════
 # R1 — реестры завязаны на единый порядок
 # ═══════════════════════════════════════════════════════════
-
-def test_детонации_обходятся_по_явному_priority_а_не_по_алфавиту():
-    # Замысел: electro_blast (wet+shock) раньше acid (wet+poison) при общем wet.
-    # Алфавит дал бы acid < electro_blast и сломал бы приоритет — поэтому порядок
-    # задаётся полем priority, не позицией в dict и не именем ключа.
-    from core.DetonationRegistry import all_detonations
-    keys = [k for k, _ in order_keyed(all_detonations(),
-                                      lambda rec: rec["priority"])]
-    assert keys.index("electro_blast") < keys.index("acid")
-    assert keys.index("thermo_blast") < keys.index("poison_blast")
-
-
-def test_каждая_детонация_имеет_числовой_priority():
-    from core.DetonationRegistry import all_detonations
-    for key, rec in all_detonations().items():
-        assert isinstance(rec.get("priority"), int), key
+# NB (С58): старые priority-тесты детонаций удалены — DetonationRegistry стал
+# функцией-позвоночником detonate() без data-driven priority-dict. Покрытие
+# детонаций — в test_detonations.py (спина + вкусы по со-элементу).
 
 
 # ═══════════════════════════════════════════════════════════

@@ -72,7 +72,7 @@ class Player(Creature):
         "echo", "barrier", "mastery", "frenzy", "virulence", "discipline",
         "instability",
         # Новые стихии-дебаффы (С58) — внутрибоевые, сбрасываются между боями.
-        "legacy", "coffee", "shortcircuit", "tox", "leak", "decomp",
+        "legacy", "coffee", "shortcircuit", "tox", "leak", "decomp", "stunned",
     )
 
     def reset_combat_statuses(self) -> None:

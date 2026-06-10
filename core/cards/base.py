@@ -156,34 +156,21 @@ class BarrierEffect:
 
 
 class DetonateEffect:
-    """Подрывает все ГОТОВЫЕ детонации на цели (см. core/DetonationRegistry.py):
-    для каждой записи, чьи requires-статусы все > 0, вызывает handler. Карта с
-    этим кирпичом — «детонатор» (напр. «Перегрузка»). Статусы тратит handler.
-
-    requires проверяется заново перед каждым handler — детонация, потратившая
-    статусы, корректно гасит зависящие от них последующие."""
+    """Карта-детонатор: подрывает Короткое замыкание на цели (ЗАМЫКАНИЕ-ПОЗВОНОЧНИК,
+    core/DetonationRegistry.detonate). Со-присутствующий элемент задаёт вкус детонации.
+    Инертно, если на цели нет заряда. Под предохранителем глубины (анти-каскад)."""
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         if combat_manager is None:
             return
-        from core.DetonationRegistry import all_detonations
-        from core.ReactionOrder import order_keyed
-        # Предохранитель глубины (§10.2): каждый сработавший handler — событие
-        # триггера, считается суммарно с Эхо за розыгрыш; на потолке цепочка рвётся.
+        from core.DetonationRegistry import detonate
         guard = getattr(combat_manager, "_trigger_guard", None)
-        # Порядок детонаций — по ЯВНОМУ полю priority записи (данные, не позиция в
-        # dict), через единый ReactionOrder.order_keyed. requires перепроверяется
-        # перед каждым handler → потратившая общий статус детонация гасит зависимые.
-        for det_key, det in order_keyed(all_detonations(),
-                                        lambda rec: rec["priority"]):
-            if all(enemy.get_status(req) > 0 for req in det["requires"]):
-                if guard is not None and not guard.enter():
-                    combat_manager.add_log_message(
-                        "[ПРЕДОХРАНИТЕЛЬ] Каскад детонаций оборван (глубина)."
-                    )
-                    break
-                combat_manager.add_log_message(det["log"])
-                det["handler"](enemy, combat_manager)
+        if guard is not None and not guard.enter():
+            combat_manager.add_log_message(
+                "[ПРЕДОХРАНИТЕЛЬ] Детонация оборвана (глубина)."
+            )
+            return
+        detonate(enemy, combat_manager)
 
 
 class TacticalMoveEffect:
