@@ -233,17 +233,23 @@ class Creature:
                 if s['poison'] == 0:
                     print(f" [Статус] Яд в теле {self.name} рассеялся.")
 
-        # Legacy-код (DoT, С58): УВАЖАЕТ щит (в отличие от Яда — пробитие сквозь щит =
-        # заработок в реакции «Кислотный дождь»). Декей-триангуляр: −1 стак/ход.
+        # Legacy-код (DoT, С58): УВАЖАЕТ щит. КИСЛОТНЫЙ ДОЖДЬ (Legacy+Токс): Токс
+        # делает Legacy ПРОБИВАЮЩИМ щит (кислота ест броню) — дом «пробития»
+        # поглощённого Яда, заработок за сетап. Декей-триангуляр: −1 стак/ход.
         if s.get('legacy', 0) > 0:
             dmg = s['legacy']
-            absorbed = min(self.shield, dmg)
-            self.shield -= absorbed
-            rem = dmg - absorbed
-            if rem > 0:
-                self.hp = max(self.hp - rem, 0)
-            print(f" [LEGACY] {self.name} получает {dmg} урона "
-                  f"(щит впитал {absorbed}).")
+            if s.get('tox', 0) > 0:
+                # Кислотный дождь: напрямую в HP, сквозь щит.
+                self.hp = max(self.hp - dmg, 0)
+                print(f" [КИСЛОТНЫЙ ДОЖДЬ] {self.name}: {dmg} урона СКВОЗЬ щит.")
+            else:
+                absorbed = min(self.shield, dmg)
+                self.shield -= absorbed
+                rem = dmg - absorbed
+                if rem > 0:
+                    self.hp = max(self.hp - rem, 0)
+                print(f" [LEGACY] {self.name} получает {dmg} урона "
+                      f"(щит впитал {absorbed}).")
             s['legacy'] -= 1
             if s['legacy'] == 0:
                 print(f" [Статус] Legacy-код в {self.name} дочитан.")
