@@ -12,6 +12,30 @@ class TurnPhaseMixin:
     _check_ally_death/_check_victory/_apply_positioning/start_turn_phase/
     check_player_defeat)."""
 
+    def apply_leak_on_draw(self):
+        """Утечка памяти (С58): на АКТ ДОБОРА каждый враг с `leak` получает
+        leak × размер руки урона (ось «рука = Контекстное Окно», семя Демиурга).
+        Раз на батч (не на карту). Урон УВАЖАЕТ щит (take_damage). Гард глубины
+        для добор-петель (Гидродинамика) добавляется в R2 — здесь петли ещё нет."""
+        hand_size = len(self.deck_manager.hand)
+        if hand_size == 0:
+            return
+        for e in list(self.enemies):
+            if e.hp <= 0:
+                continue
+            stacks = e.get_status("leak")
+            if stacks <= 0:
+                continue
+            dmg = stacks * hand_size
+            self.add_log_message(
+                f" [УТЕЧКА] {e.name}: {stacks} × рука {hand_size} = {dmg} урона."
+            )
+            e.take_damage(dmg, combat_manager=self)
+        # Утечка может добить врага — проверяем смерти.
+        for e in list(self.enemies):
+            if e.hp <= 0:
+                self._check_enemy_death(e)
+
     def start_turn_phase(self):
         # Новый ход — обнуляем счётчик сыгранных карт (предикаты first/nth card).
         self.cards_played_this_turn = 0
@@ -47,6 +71,8 @@ class TurnPhaseMixin:
 
         bonus = getattr(self.player, "bonus_draw", 0)
         self.deck_manager.draw_cards(5 + bonus)
+        # Утечка памяти (С58): на акт добора враги с leak теряют leak × размер руки.
+        self.apply_leak_on_draw()
 
         if type(self.player).__name__ == "Rogue" and self.deck_manager.hand:
             import random
