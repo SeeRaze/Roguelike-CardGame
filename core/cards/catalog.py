@@ -12,12 +12,6 @@ from core.cards import (
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
     create_catalyst,
     create_steel_barricade, create_bastion,
-    create_ignite, create_fire_breath,
-    create_splash, create_rain_cloud,
-    create_shock_bolt, create_chain_lightning, create_thunder_strike, create_overload,
-    create_rockfall, create_crush, create_tectonic_strike,
-    create_gust, create_updraft, create_whirlwind, create_sirocco,
-    create_poison_stab, create_toxic_cloud, create_acid_shield,
     create_bash, create_neutralize, create_intimidate,
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
@@ -34,17 +28,28 @@ from core.cards import (
     create_blood_rage, create_reckless_blow, create_blood_thirst, create_crunch,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
 )
+# Новые стихии (С58, айти-передел) — PAYLOAD-семья, импорт из модулей напрямую.
+from core.cards.legacy import create_legacy_patch, create_tech_debt
+from core.cards.coffee import create_coffee_spill, create_coffee_flood
+from core.cards.shortcircuit import (
+    create_voltage_spike, create_overload, create_mass_short,
+)
+from core.cards.tox import create_micromanage, create_overtime
+from core.cards.leak import create_memory_leak, create_infinite_loop
+from core.cards.decomp import create_disassembler, create_reverse_engineer
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
 GENERIC_FACTORIES = [
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
     create_catalyst,
-    create_ignite, create_fire_breath,
-    create_splash, create_rain_cloud,
-    create_shock_bolt, create_chain_lightning, create_thunder_strike, create_overload,
-    create_rockfall, create_crush, create_tectonic_strike,
-    create_gust, create_updraft, create_whirlwind, create_sirocco,
-    create_poison_stab, create_toxic_cloud, create_acid_shield,
+    # ── НОВЫЕ СТИХИИ (С58) — PAYLOAD: наложи Кофе/Legacy/Замыкание, детонируй ──
+    create_legacy_patch, create_tech_debt,
+    create_coffee_spill, create_coffee_flood,
+    create_voltage_spike, create_overload, create_mass_short,
+    create_micromanage, create_overtime,
+    create_memory_leak, create_infinite_loop,
+    create_disassembler, create_reverse_engineer,
+    # ── Буфф/хил/утилити/эхо/клив (отдельный слой, рескин позже) ──
     create_bash, create_neutralize, create_intimidate,
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
@@ -53,13 +58,9 @@ GENERIC_FACTORIES = [
     create_lacerate, create_hemorrhage, create_open_wound,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
-    # Барьер (несгораемый щит) — переехал из классового пула Воина (С57, чистка под
-    # Дисциплину): универсальная защита, доступна всем. У Воина косвенно питает пассив
-    # (держишь щит → +Дисциплина). LOCKED (за прогресс, не в узком стартере).
+    # Барьер (несгораемый щит) — универсальная защита (С57). LOCKED (за прогресс).
     create_steel_barricade, create_bastion,
-    # «Закипание» — переехало из классового пула Мага (С57, чистка под Нестабильность):
-    # чистый ПАР-сетап (Мокрый+Горение), 0 Мастерства → дублировало generic-стихии.
-    # Стихийный сетап = универсален, доступен всем. LOCKED (за прогресс).
+    # «Закипание» — Мага ПАР-сетап (мигрирует в C4 вместе с Магом). LOCKED.
     create_boil,
 ]
 

@@ -23,23 +23,23 @@ def test_meta_none_возвращает_весь_пул():
 
 def test_meta_none_не_фильтрует_даже_при_locked(monkeypatch):
     # Даже если карта locked, meta=None отдаёт её (сим обязан остаться full-access).
-    monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
+    monkeypatch.setattr(prog, "LOCKED_CARDS", {"tech_debt"})
     names = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=None)}
-    assert "fire_breath" in names
+    assert "tech_debt" in names
 
 
 def test_meta_фильтрует_locked_карту(monkeypatch):
-    monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
-    # Новый игрок (пустые unlocks) — fire_breath отфильтрован, strike остался.
+    monkeypatch.setattr(prog, "LOCKED_CARDS", {"tech_debt"})
+    # Новый игрок (пустые unlocks) — tech_debt отфильтрован, strike остался.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
-    assert "fire_breath" not in ids
+    assert "tech_debt" not in ids
     assert "strike" in ids
 
 
 def test_анлок_возвращает_карту_в_пул(monkeypatch):
-    monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
-    ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta("fire_breath"))}
-    assert "fire_breath" in ids
+    monkeypatch.setattr(prog, "LOCKED_CARDS", {"tech_debt"})
+    ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta("tech_debt"))}
+    assert "tech_debt" in ids
 
 
 def test_пустой_locked_пул_не_меняется(monkeypatch):
@@ -69,7 +69,7 @@ def test_стартовый_generic_пул_ровно_13_карт():
     generic_ids = ids & {card_id_for(f) for f in GENERIC_FACTORIES}
     assert len(generic_ids) == 13
     assert "strike" in generic_ids
-    assert "fire_breath" not in generic_ids   # locked
+    assert "tech_debt" not in generic_ids   # locked
 
 
 def test_классовые_сигнатурки_остаются_у_нового_игрока():

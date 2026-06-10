@@ -191,6 +191,64 @@ class TacticalMoveEffect:
             flip()
 
 
+class AoEStatusEffect:
+    """Накладывает статус на ВСЕХ живых врагов (площадь). Для AoE-стихий (напр.
+    «Разлив в опенспейсе» — Кофе по всем)."""
+    def __init__(self, status_type, base_val, upgrade_val):
+        self.status_type = status_type
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        val = self.upgrade_val if is_upgraded else self.base_val
+        if self.status_type not in STATUSES:
+            return
+        if combat_manager is not None:
+            targets = [e for e in getattr(combat_manager, "enemies", [enemy])
+                       if e.hp > 0]
+        else:
+            targets = [enemy]
+        for t in targets:
+            t.add_status(self.status_type, val, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> {self.status_type} {val} всем врагам."
+            )
+
+
+class DrawEffect:
+    """Игрок добирает N карт (топливо/синергия Утечки). Тихо инертен без боя."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        n = self.upgrade_val if is_upgraded else self.base_val
+        if combat_manager is not None and hasattr(combat_manager, "deck_manager"):
+            drew = combat_manager.deck_manager.draw_cards(n)
+            combat_manager.add_log_message(f" -> Добор {drew} карт(ы).")
+
+
+class DecompEffect:
+    """Накладывает Декомпиляцию на врага: глушит генерацию щита N ходов (gain_shield-
+    гейт, см. Creature) + СРАЗУ −50% текущего щита. «Окно эксплойта»: пока висит —
+    реакции по цели бьют сильнее (см. реакц.слой)."""
+    def __init__(self, base_turns, upgrade_turns):
+        self.base_turns = base_turns
+        self.upgrade_turns = upgrade_turns
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        turns = self.upgrade_turns if is_upgraded else self.base_turns
+        enemy.add_status("decomp", turns, combat_manager)
+        if enemy.shield > 0:
+            enemy.shield = enemy.shield // 2
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Декомпиляция {turns} х.: генерация щита заглушена, "
+                f"текущий щит −50%."
+            )
+
+
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
                  rarity=Rarity.COMMON, exile=False, card_class=None):

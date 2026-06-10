@@ -125,7 +125,7 @@ def test_relic_id_это_имя_класса():
 
 def test_реестры_locked_наполнены_разметкой():
     # К3: разметка страманом — узкий стартовый пул (часть заперта за мета-прогрессию).
-    assert len(LOCKED_CARDS) == 37      # 37 из 50 generic заперты (+Барьер Воина +ПАР Мага, С57)
+    assert len(LOCKED_CARDS) == 32      # 32 из 45 generic заперты (С58: новые стихии, пол=COMMON)
     assert len(LOCKED_RELICS) == 27     # 27 из 33 артефактов заперты
     # Базовые карты НЕ заперты (стартовые).
     for starter in ("strike", "defend", "heavy_blade", "iron_wall"):

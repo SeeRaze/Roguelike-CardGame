@@ -127,8 +127,9 @@ def newly_unlocked(meta: dict) -> list:
 #
 # РАЗМЕТКА (К3, страman `_starter_pool_design.md`, согласовано юзером):
 #   СТАРТОВЫЕ generic (13, НЕ заперты): базовые strike/defend/heavy_blade/iron_wall +
-#     по 1 «вкусу» стихии (ignite/splash/shock_bolt/rockfall/gust/poison_stab) +
-#     bandage (сустейн) + intimidate (дебафф) + cleaving_strike (позиц-вкус).
+#     по 1 простейшей COMMON-карте новых стихий (legacy_patch/coffee_spill/voltage_spike/
+#     micromanage/memory_leak/disassembler) + bandage (сустейн) + intimidate (дебафф) +
+#     cleaving_strike (позиц-вкус).
 #   СТАРТОВЫЕ артефакты (6): ТочильныйКамень(FP)/ЗаточенныйОсколок(+урон)/Заплатка(HP)/
 #     СчастливаяМонетка(золото)/ЗасохшийКлевер(удача)/ТотемЯрости — разные механики
 #     ВИДНЫ и ОЩУТИМЫ, но слабы; мощь (UNCOMMON+) за достижениями.
@@ -136,17 +137,20 @@ def newly_unlocked(meta: dict) -> list:
 #     блокировкой КЛАССА у тир-2). Стартдеки не трогаем.
 # Карта/артефакт здесь = LOCKED (вливается за мета-прогрессию). Остальное — стартовое.
 
-# card_id'ы карт, требующие анлока (37 из 50 generic = синергия/RARE/вампир/эхо/AoE/Барьер/ПАР).
+# card_id'ы карт, требующие анлока (32 из 45 generic). С58: старые стихии убраны из пула;
+# новые стихии — пол (6 COMMON-applier'ов) стартовый, UNCOMMON/RARE заперты.
 LOCKED_CARDS: set = {
-    "catalyst", "fire_breath", "rain_cloud", "chain_lightning", "thunder_strike",
-    "overload", "crush", "tectonic_strike", "updraft", "whirlwind", "sirocco",
-    "toxic_cloud", "acid_shield", "bash", "neutralize", "flex", "battle_cry",
+    "catalyst",
+    # Новые стихии (С58): UNCOMMON/RARE заперты (пол = простейшие COMMON-карты семей).
+    "tech_debt", "coffee_flood", "overload", "mass_short", "overtime",
+    "infinite_loop", "reverse_engineer",
+    "bash", "neutralize", "flex", "battle_cry",
     "thorn_armor", "second_wind", "elixir", "regenerate", "vitality", "triage",
     "drain", "blood_feast", "life_tap", "lacerate", "hemorrhage", "open_wound",
     "echo_resonance", "echo_strike", "echo_cascade", "piercing_thrust", "wide_swing",
     # Барьер: переехал из классового пула Воина (С57); мощный (несгораемый щит) → за прогресс.
     "steel_barricade", "bastion",
-    # Закипание: переехало из классового пула Мага (С57, ПАР-сетап) → за прогресс.
+    # Закипание: ПАР-сетап Мага (мигрирует в C4) → за прогресс.
     "boil",
 }
 # relic_id'ы (имена классов), требующие анлока (27 из 33 = весь UNCOMMON+ и часть COMMON).
