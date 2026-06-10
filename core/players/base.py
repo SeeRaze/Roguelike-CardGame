@@ -63,6 +63,8 @@ class Player(Creature):
         "strength", "thorns", "regen", "bleed", "vampire",
         "echo", "barrier", "mastery", "frenzy", "virulence", "discipline",
         "instability",
+        # Новые стихии-дебаффы (С58) — внутрибоевые, сбрасываются между боями.
+        "legacy", "coffee", "shortcircuit", "tox", "leak", "decomp",
     )
 
     def reset_combat_statuses(self) -> None:
