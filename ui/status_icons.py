@@ -170,22 +170,6 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
                 (fx + int(r * 0.18), cy),
                 (fx, cy + r)])
 
-    elif key == "shock":
-        _bolt(screen, cx, cy, r, color)
-
-    elif key == "shatter":
-        # Трещина-зигзаг с ответвлением.
-        main = [
-            (cx - int(r * 0.1), cy - r),
-            (cx + int(r * 0.3), cy - int(r * 0.2)),
-            (cx - int(r * 0.2), cy + int(r * 0.2)),
-            (cx + int(r * 0.15), cy + r),
-        ]
-        pygame.draw.lines(screen, color, False, main, lw)
-        pygame.draw.line(screen, color,
-                         (cx + int(r * 0.3), cy - int(r * 0.2)),
-                         (cx + r, cy - int(r * 0.5)), max(1, lw - 1))
-
     elif key == "echo":
         # Звуковые дуги-эхо (рябь вправо).
         for i, rad in enumerate((int(r * 0.45), int(r * 0.75), r)):

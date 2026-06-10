@@ -57,16 +57,6 @@ def test_тик_яда_наносит_урон_и_уменьшает_стак():
     assert c.hp == 47 and c.poison == 2
 
 
-def test_тик_раскола_убывает_по_ходам_и_истекает():
-    # Раскол — длительность: −1 за ход, без урона, истекает в ноль.
-    c = Creature("Цель", 50, 50)
-    c.shatter = 2
-    c.tick_statuses()
-    assert c.shatter == 1 and c.hp == 50    # урона от тика нет
-    c.tick_statuses()
-    assert c.shatter == 0
-
-
 def test_тик_горения_наносит_три_урона():
     c = Creature("Цель", 50, 50)
     c.ignited = 2

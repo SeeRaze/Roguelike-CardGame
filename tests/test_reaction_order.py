@@ -11,8 +11,7 @@ from core.ReactionOrder import ReactionPriority, order_keyed
 def test_приоритеты_строго_возрастают_в_порядке_цепочки():
     # Комбо раньше детонаций, детонации раньше эха, эхо раньше тиков статусов,
     # тики раньше хуков реликвий/врагов — порядок розыгрыша карты → фазы врага.
-    assert ReactionPriority.COMBO < ReactionPriority.SHOCK
-    assert ReactionPriority.SHOCK < ReactionPriority.FORGE_TAG
+    assert ReactionPriority.COMBO < ReactionPriority.FORGE_TAG
     assert ReactionPriority.FORGE_TAG < ReactionPriority.DETONATION
     assert ReactionPriority.DETONATION < ReactionPriority.ECHO
     assert ReactionPriority.ECHO < ReactionPriority.STATUS_TICK

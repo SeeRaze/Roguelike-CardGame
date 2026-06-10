@@ -54,8 +54,8 @@ _THEME_BONUS = 3.0   # надбавка кандидату за совпаден
 
 # Профильные статусы и их «ценность» для эвристики драфта (масштабируемость).
 _STATUS_VALUE = {
-    "vulnerable": 4, "poison": 3, "shock": 3, "ignited": 3,
-    "wet": 3, "shatter": 3, "bleed": 3, "weak": 2, "strength": 4,
+    "vulnerable": 4, "poison": 3, "ignited": 3,
+    "wet": 3, "bleed": 3, "weak": 2, "strength": 4,
 }
 
 # ─── Ядра билдов: фабрики карт в стартовую колоду + профильные реликвии ───────

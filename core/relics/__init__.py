@@ -3,7 +3,7 @@ from core.relics.base import Relic
 from core.relics.starter import LuckyClover, SpikedBracelet, ТочильныйКамень
 from core.relics.elemental import (
     ЭнергоЯдро, ДревнееОгниво, НамокшаяРукавица,
-    ГрозоваяБатарея, ФлаконКатализатора,
+    ФлаконКатализатора,
 )
 from core.relics.advanced import (
     ОкровавленныйШприц, СердцеТитана, ГнилойКлык,
@@ -29,7 +29,6 @@ RELIC_POOL = {
         Заплатка,
         ЗаточенныйОсколок,
         ПанцирьДикобраза,
-        ГрозоваяБатарея,
         МеткаОхотника,
         ТотемЯрости,
         ФлаконКатализатора,

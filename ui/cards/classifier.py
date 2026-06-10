@@ -2,7 +2,7 @@
 # Классификация карты по составу эффектов -> ключ палитры (см. data._C).
 from core.cards.base import (
     StatusEffect, PoisonEffect, RegenEffect, HealEffect,
-    VampireDamageEffect, DamageEffect, ShieldEffect, DetonateEffect,
+    VampireDamageEffect, DamageEffect, ShieldEffect,
     BarrierEffect,
 )
 from core.cards.debuff.bleed import BleedEffect
@@ -29,15 +29,12 @@ def classify_card(card) -> str:
     has_regen    = any(isinstance(e, RegenEffect) for e in effects)
     has_buff     = any(isinstance(e, BuffEffect) for e in effects)
     has_flow     = any(isinstance(e, FlowEffect) for e in effects)
-    has_detonate = any(isinstance(e, DetonateEffect) for e in effects)
     has_echo     = any(isinstance(e, EchoEffect) for e in effects)
     has_barrier  = any(isinstance(e, BarrierEffect) for e in effects)
     has_mastery  = any(isinstance(e, (MasteryEffect, OverclockEffect)) for e in effects)
 
     has_ignited  = any(isinstance(e, StatusEffect) and e.status_type == "ignited" for e in effects)
     has_wet      = any(isinstance(e, StatusEffect) and e.status_type == "wet"     for e in effects)
-    has_shock    = any(isinstance(e, StatusEffect) and e.status_type == "shock"   for e in effects)
-    has_shatter  = any(isinstance(e, StatusEffect) and e.status_type == "shatter" for e in effects)
     has_debuff   = any(
         isinstance(e, StatusEffect) and e.status_type in ("vulnerable", "weak")
         for e in effects
@@ -53,10 +50,6 @@ def classify_card(card) -> str:
         return "fire"
     if has_wet:
         return "water"
-    if has_shock or has_detonate:
-        return "shock"
-    if has_shatter:
-        return "earth"
     if has_flow:
         return "air"
     if has_echo:

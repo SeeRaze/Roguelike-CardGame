@@ -202,7 +202,7 @@ class Creature:
     def tick_statuses(self, combat_manager=None):
         s = self.statuses
 
-        for key in ('vulnerable', 'weak', 'wet', 'shatter', 'decomp', 'stunned',
+        for key in ('vulnerable', 'weak', 'wet', 'decomp', 'stunned',
                     'heal_block'):
             if s.get(key, 0) > 0:
                 s[key] -= 1

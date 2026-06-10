@@ -1,11 +1,5 @@
 class EffectCalculator:
 
-    # Бонус урона за один заряд Шока, расходуемый при ударе (см. шаг 6).
-    SHOCK_DAMAGE_PER_STACK = 3
-
-    # Множитель урона по цели с Расколом, ПОКА у неё есть щит (см. шаг 4b).
-    SHATTER_MULT = 3.0
-
     # НЕСТАБИЛЬНОСТЬ Мага (ступень «Гни»): при Мастерстве ≥ порога «контекст
     # переполняется» — урон ВСЕХ атак умножается на ЭСКАЛИРУЮЩИЙ множитель, растущий
     # с перегрузом (С57: был флат ×1.5 к бонусу Мастерства → не масштабировался против
@@ -139,19 +133,7 @@ class EffectCalculator:
             final_damage = int(final_damage * coffee_mult)
             _rec("Кофе", "×", coffee_mult)
 
-        # 4b. РАСКОЛ цели — контра броне: пока у цели есть щит, урон ×SHATTER_MULT.
-        # Множитель-ЧТЕНИЕ (заряды не тратятся, статус тикает по ходам). Условие
-        # на щит проверяется в момент удара: при мульти-хите как только щит сбит,
-        # последующие удары идут без бонуса.
-        if target.shatter > 0 and target.shield > 0:
-            final_damage = int(final_damage * EffectCalculator.SHATTER_MULT)
-            _rec("Раскол", "×", EffectCalculator.SHATTER_MULT)
-            if not dry_run and combat_manager:
-                combat_manager.add_log_message(
-                    f"[РАСКОЛ] Броня крошится: урон ×{EffectCalculator.SHATTER_MULT}!"
-                )
-
-        # 4c. НЕСТАБИЛЬНОСТЬ Мага (перегруз) — ЭСКАЛИРУЮЩИЙ множитель на ВСЕ атаки при
+        # 4b. НЕСТАБИЛЬНОСТЬ Мага (перегруз) — ЭСКАЛИРУЮЩИЙ множитель на ВСЕ атаки при
         # Мастерстве ≥ порога. Растёт с глубиной перегруза, СИММЕТРИЧНО эскалирующей HP-цене
         # (instability_cost): дальше гнёшь → больнее глитчит И сильнее бьёшь. Множитель (не
         # аддитив) → масштаб-инвариант против экспоненты врага. Чистый → считается в превью.
@@ -189,21 +171,6 @@ class EffectCalculator:
                         if combat_manager:
                             combat_manager.add_log_message(combo["log"])
                             combat_manager._combo_triggered = True
-
-        # 6. ШОК цели — флатовый разряд: +SHOCK_DAMAGE_PER_STACK за удар, −1 заряд.
-        # Добавляется ПОСЛЕ множителей (уязвимость/комбо), чтобы оставаться плоским
-        # и предсказуемым. Каждый отдельный удар (каждый DamageEffect карты) дренит
-        # один заряд — отсюда синергия с мульти-хит/микро-атаками.
-        if target.shock > 0:
-            final_damage += EffectCalculator.SHOCK_DAMAGE_PER_STACK
-            _rec("Шок", "+", EffectCalculator.SHOCK_DAMAGE_PER_STACK)
-            if not dry_run:
-                target.shock = max(0, target.shock - 1)
-                if combat_manager:
-                    combat_manager.add_log_message(
-                        f"[ШОК] Разряд: +{EffectCalculator.SHOCK_DAMAGE_PER_STACK} "
-                        f"урона (зарядов осталось: {target.shock})."
-                    )
 
         # 7. УСЛОВНЫЕ ТЕГИ ПРОКАЧКИ (Сессия 39, _upgrade_design.md §4-5).
         # Локальный компаунд кат.4: множитель карты от её тегов, читаемых по СНИМКУ

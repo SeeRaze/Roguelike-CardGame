@@ -33,21 +33,6 @@ class НамокшаяРукавица(Relic):
         combat_manager.add_log_message(f"[Реликвия] '{self.name}': +4 Щита!")
 
 
-class ГрозоваяБатарея(Relic):
-    """В начале боя враг получает Шок 2 (энейблер билда на молнию)."""
-
-    def __init__(self):
-        super().__init__(
-            "Грозовая Батарея",
-            "В начале каждого боя враг получает Шок 2.",
-            Rarity.COMMON,
-        )
-
-    def on_combat_start(self, combat_manager):
-        combat_manager.enemy.add_status("shock", 2, combat_manager)
-        combat_manager.add_log_message(f"[Реликвия] '{self.name}': Шок 2 на врага!")
-
-
 class ФлаконКатализатора(Relic):
     """В начале боя случайный живой враг становится Мокрым (2 хода).
 

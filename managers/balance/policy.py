@@ -97,7 +97,7 @@ class BotPolicy:
     def _synergy_pick(self, playable, combat):
         """Осмысленная игра синергийных карт из generic-пула. Возвращает карту
         или None (тогда выбор делает `_class_pick`). Приоритет — по «отдаче»:
-        детонация (мгновенный бурст) → сетап Раскола/Шока → темпо Потока."""
+        детонация (мгновенный бурст) → темпо Потока."""
         target = combat.get_target_enemy()
         if target is None:
             return None
@@ -108,21 +108,7 @@ class BotPolicy:
             if detonators:
                 return detonators[0]
 
-        # 2) Сетап Раскола: только пока у цели есть щит (Раскол множит урон ×3,
-        #    лишь пока щит > 0) и Раскол ещё не наложен.
-        if target.shield > 0 and target.get_status("shatter") == 0:
-            enablers = [c for c in playable if _is_pure_enabler(c, "shatter")]
-            if enablers:
-                return enablers[0]
-
-        # 3) Сетап Шока: Шок не тикает и копится — любой последующий удар дренит
-        #    +3 урона/заряд. Вешаем, пока на цели нет заряда.
-        if target.get_status("shock") == 0:
-            enablers = [c for c in playable if _is_pure_enabler(c, "shock")]
-            if enablers:
-                return enablers[0]
-
-        # 4) Темпо Потока: чистый энейблер Потока удешевляет остаток руки —
+        # 2) Темпо Потока: чистый энейблер Потока удешевляет остаток руки —
         #    играем рано, если есть что удешевлять (ещё ≥1 карта в playable).
         if len(playable) > 1:
             flow = [c for c in playable
