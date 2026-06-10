@@ -118,12 +118,26 @@ class EffectCalculator:
             base_damage = int(base_damage * 0.75)
             _rec("Слабость", "×", 0.75)
 
+        # 3b. ТОКСИЧНЫЙ МЕНЕДЖМЕНТ атакующего (С58) — мультипл. слабость: ×0.9 за стак,
+        # пол 20% (анти-полный-ноль). Саботаж урона врага. Читается, не тратится.
+        if attacker.tox > 0:
+            tox_mult = max(0.2, 0.9 ** attacker.tox)
+            base_damage = int(base_damage * tox_mult)
+            _rec("Токсичность", "×", tox_mult)
+
         final_damage = base_damage
 
         # 4. Уязвимость цели
         if target.vulnerable > 0:
             final_damage = int(final_damage * 1.5)
             _rec("Уязвимость", "×", 1.5)
+
+        # 4a. РАЗЛИТЫЙ КОФЕ цели (С58) — Уязвимость АДДИТИВНАЯ: +20% вход. урона за стак
+        # (×(1 + 0.2·N)), без мультипл. взрыва. Усилитель/катализатор. Персист (не тратится).
+        if target.coffee > 0:
+            coffee_mult = 1.0 + 0.20 * target.coffee
+            final_damage = int(final_damage * coffee_mult)
+            _rec("Кофе", "×", coffee_mult)
 
         # 4b. РАСКОЛ цели — контра броне: пока у цели есть щит, урон ×SHATTER_MULT.
         # Множитель-ЧТЕНИЕ (заряды не тратятся, статус тикает по ходам). Условие

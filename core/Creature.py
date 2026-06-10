@@ -124,6 +124,15 @@ class Creature:
         return int((max_hp - hp) * Creature.REST_HEAL_PCT)
 
     def gain_shield(self, amount, combat_manager=None):
+        # Декомпиляция (С58): пока висит — генерация щита заглушена (анти-щит «окно
+        # эксплойта»). Гейт ДО прибавления → ноль щита, пока decomp активна.
+        if amount > 0 and self.statuses.get('decomp', 0) > 0:
+            print(f"[{self.name}] генерация щита заглушена (Декомпиляция).")
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f" [ДЕКОМП] Генерация щита {self.name} заглушена."
+                )
+            return
         self.shield += amount
         print(f"[{self.name}] получает +{amount} к щиту. "
               f"Текущий щит: {self.shield}")
@@ -189,7 +198,7 @@ class Creature:
     def tick_statuses(self, combat_manager=None):
         s = self.statuses
 
-        for key in ('vulnerable', 'weak', 'wet', 'shatter'):
+        for key in ('vulnerable', 'weak', 'wet', 'shatter', 'decomp'):
             if s.get(key, 0) > 0:
                 s[key] -= 1
                 if s[key] == 0:
@@ -223,6 +232,21 @@ class Creature:
                 s['poison'] -= 1
                 if s['poison'] == 0:
                     print(f" [Статус] Яд в теле {self.name} рассеялся.")
+
+        # Legacy-код (DoT, С58): УВАЖАЕТ щит (в отличие от Яда — пробитие сквозь щит =
+        # заработок в реакции «Кислотный дождь»). Декей-триангуляр: −1 стак/ход.
+        if s.get('legacy', 0) > 0:
+            dmg = s['legacy']
+            absorbed = min(self.shield, dmg)
+            self.shield -= absorbed
+            rem = dmg - absorbed
+            if rem > 0:
+                self.hp = max(self.hp - rem, 0)
+            print(f" [LEGACY] {self.name} получает {dmg} урона "
+                  f"(щит впитал {absorbed}).")
+            s['legacy'] -= 1
+            if s['legacy'] == 0:
+                print(f" [Статус] Legacy-код в {self.name} дочитан.")
 
         if s.get('regen', 0) > 0:
             # Потолок лечения от регена за один тик: высокие стаки регена
