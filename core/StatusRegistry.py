@@ -236,6 +236,15 @@ STATUSES = {
         "keyword":     ("Crash (стан)", "Цель пропускает ход.\nДлится N ход(а)."),
         "is_duration": True,
         "is_stack":    False,
+    },
+        "heal_block": {
+        "abbr":        "REBOOT",
+        "badge_bg":    (180, 90, 40),
+        "badge_fg":    (255, 235, 215),
+        "tooltip":     "Перезагрузка: восстановление HP и реген заблокированы.\nОсталось ходов: N",
+        "keyword":     ("Перезагрузка", "Восстановление HP и реген\nзаблокированы.\nДлится N ход(а)."),
+        "is_duration": True,
+        "is_stack":    False,
     }
 }
 

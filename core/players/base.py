@@ -73,6 +73,7 @@ class Player(Creature):
         "instability",
         # Новые стихии-дебаффы (С58) — внутрибоевые, сбрасываются между боями.
         "legacy", "coffee", "shortcircuit", "tox", "leak", "decomp", "stunned",
+        "heal_block",
     )
 
     def reset_combat_statuses(self) -> None:

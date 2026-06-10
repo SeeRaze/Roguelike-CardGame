@@ -76,6 +76,10 @@ class Creature:
     # Боевые методы
     # ------------------------------------------------------------------
     def heal(self, amount: int, combat_manager=None):
+        # CRASH REBOOT (С58): «Перезагрузка» блокирует восстановление HP/реген.
+        if self.get_status('heal_block') > 0:
+            print(f"[{self.name}] восстановление заблокировано (Перезагрузка).")
+            return 0
         healed = min(amount, self.max_hp - self.hp)
         self.hp += healed
         print(f"[{self.name}] восстанавливает {healed} HP. "
@@ -198,7 +202,8 @@ class Creature:
     def tick_statuses(self, combat_manager=None):
         s = self.statuses
 
-        for key in ('vulnerable', 'weak', 'wet', 'shatter', 'decomp', 'stunned'):
+        for key in ('vulnerable', 'weak', 'wet', 'shatter', 'decomp', 'stunned',
+                    'heal_block'):
             if s.get(key, 0) > 0:
                 s[key] -= 1
                 if s[key] == 0:

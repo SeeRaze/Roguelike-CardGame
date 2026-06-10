@@ -97,6 +97,16 @@ class Enemy(Creature):
 
     def execute_intent(self, player, combat_manager=None):
         self.turn_count += 1
+        # ДИЛЮЦИЯ (Кофе+Токс, С58): обезвреживание — враг не может СПЕЦ-намерения
+        # (debuff/heal), только базовая атака/защита. Осознанно ситуативна (против
+        # элиток/боссов со спец-намерениями = техника; на трэше = no-op).
+        if (self.get_status("coffee") > 0 and self.get_status("tox") > 0
+                and self.intent.type in ("debuff", "heal")):
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f" [ДИЛЮЦИЯ] {self.name}: спец-намерение обезврежено."
+                )
+            return
         if combat_manager:
             combat_manager.add_log_message(f"Ход существа [{self.name}]:")
 
