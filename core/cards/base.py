@@ -249,6 +249,88 @@ class DecompEffect:
             )
 
 
+class EnergyEffect:
+    """+N энергии в этот ход (рамп/бурст). Карта «Перерыв» (Кофе-брейк). Кап источника
+    здесь (карта даёт фикс N); player.gain_energy допускает временный выход за max."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        n = self.upgrade_val if is_upgraded else self.base_val
+        if hasattr(player, "gain_energy"):
+            player.gain_energy(n)
+            if combat_manager:
+                combat_manager.add_log_message(f" -> +{n} энергии в этот ход.")
+
+
+class DiscardRedrawEffect:
+    """«Переключить окно» (Alt+Tab): сбросить руку, добрать столько же (КАЧЕСТВО —
+    перетасовать неподходящее). Карта-носитель ещё в руке (изымётся cardplay после),
+    поэтому её ИСКЛЮЧАЕМ из сброса/счёта."""
+    def __init__(self, *_):
+        pass
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None or not hasattr(combat_manager, "deck_manager"):
+            return
+        dm = combat_manager.deck_manager
+        playing = getattr(combat_manager, "_card_being_played", None)
+        others = [c for c in dm.hand if c is not playing]
+        n = len(others)
+        dm.discard_pile.extend(others)
+        dm.hand[:] = [c for c in dm.hand if c is playing]
+        dm.draw_cards(n)
+        if combat_manager:
+            combat_manager.add_log_message(f" -> Сброс руки, добор {n} карт(ы).")
+
+
+class ExileFromHandEffect:
+    """«Удалить безвозвратно» (Shift+Delete): изгнать карту из руки — DEBUG-инструмент
+    слоя багов (прореживание). Без UI-выбора берёт первую НЕ-себя карту (в игре выбор =
+    UI-слой). Сама карта exile=True (не возвращается в круговорот боя)."""
+    def __init__(self, *_):
+        pass
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None or not hasattr(combat_manager, "deck_manager"):
+            return
+        dm = combat_manager.deck_manager
+        playing = getattr(combat_manager, "_card_being_played", None)
+        victim = next((c for c in dm.hand if c is not playing), None)
+        if victim is not None:
+            dm.hand.remove(victim)
+            dm.exile_pile.append(victim)
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f" -> {victim.name} удалена безвозвратно (изгнана)."
+                )
+
+
+class ScryEffect:
+    """«Просмотр стека» (Stack Trace): заглянуть в верх колоды (ИНФО/консистентность).
+    Без UI-выбора авто-фильтрует: самую ДОРОГУЮ из верхних N карт — в сброс (прочистка к
+    играбельному). Полноценный выбор «любые в сброс» — UI-слой (G2)."""
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None or not hasattr(combat_manager, "deck_manager"):
+            return
+        n = self.upgrade_val if is_upgraded else self.base_val
+        dm = combat_manager.deck_manager
+        top = dm.draw_pile[-n:] if dm.draw_pile else []
+        if top:
+            worst = max(top, key=lambda c: getattr(c, "cost", 0))
+            dm.draw_pile.remove(worst)
+            dm.discard_pile.append(worst)
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f" -> Просмотр стека: {worst.name} отправлена в сброс."
+                )
+
+
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
                  rarity=Rarity.COMMON, exile=False, card_class=None):

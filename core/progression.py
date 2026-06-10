@@ -152,6 +152,8 @@ LOCKED_CARDS: set = {
     "steel_barricade", "bastion",
     # Закипание: ПАР-сетап Мага (мигрирует в C4) → за прогресс.
     "boil",
+    # ENGINE-карты (С58): шорткаты-движок = награда за прогресс, не стартдек.
+    "window_swap", "refresh", "coffee_break", "hard_delete", "stack_trace",
 }
 # relic_id'ы (имена классов), требующие анлока (27 из 33 = весь UNCOMMON+ и часть COMMON).
 LOCKED_RELICS: set = {
