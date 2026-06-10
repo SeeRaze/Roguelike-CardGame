@@ -144,15 +144,6 @@ STATUSES = {
         "is_duration": False,
         "is_stack":    True,
     },
-        "virulence": {
-        "abbr":        "ВИРУЛ",
-        "badge_bg":    (110, 200, 50),
-        "badge_fg":    (20, 50, 10),
-        "tooltip":     "Вирулентность: +N к накладываемому Яду. Растёт за каждый сыгранный скилл. Заряды: N.",
-        "keyword":     ("Вирулентность", "+N к накладываемому Яду.\nРастёт за каждый сыгранный скилл."),
-        "is_duration": False,
-        "is_stack":    True,
-    },
         "discipline": {
         "abbr":        "ДИСЦ",
         "badge_bg":    (70, 110, 160),

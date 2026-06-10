@@ -113,11 +113,11 @@ def test_default_meta_has_empty_unlocks():
 
 
 def test_record_run_grants_and_persists_unlock(isolated_save):
-    # Этаж 6 выполняет условие Rogue(≥5)+Summoner(≥6); Druid (боссов≥1) тоже.
-    fresh = SM.record_run(_run(floor=6, bosses=1))
-    assert set(fresh) == {"Rogue", "Druid", "Summoner"}    # возвращены новооткрытые
+    # Этаж 8 выполняет условие Rogue(≥5)+Summoner(≥6)+Chemist(≥8).
+    fresh = SM.record_run(_run(floor=8, bosses=1))
+    assert set(fresh) == {"Rogue", "Summoner", "Chemist"}  # возвращены новооткрытые
     SM.reset_cache()                                       # имитируем перезапуск
-    assert set(SM.get_meta()["unlocks"]) == {"Rogue", "Druid", "Summoner"}
+    assert set(SM.get_meta()["unlocks"]) == {"Rogue", "Summoner", "Chemist"}
 
 
 def test_record_run_no_unlock_returns_empty(isolated_save):
@@ -147,13 +147,13 @@ def test_leaderboard_sorts_by_floor_then_kills():
 
 def test_leaderboard_merges_network_with_class():
     meta = SM._default_meta()
-    SM._apply_run(meta, _run(name="local", cls="Druid", floor=4))
+    SM._apply_run(meta, _run(name="local", cls="Mage", floor=4))
     net = [{"username": "cloud", "max_floor": 12, "kills": 5, "max_damage": 7}]
     rows = SM.leaderboard_rows(meta, network_rows=net)
     top = rows[0]
     assert top["username"] == "cloud" and top["max_floor"] == 12
     assert top["class"] == "—"                    # сетевая строка без класса
-    assert any(r["username"] == "local" and r["class"] == "Druid" for r in rows)
+    assert any(r["username"] == "local" and r["class"] == "Mage" for r in rows)
 
 
 def test_leaderboard_dedup_and_cap():

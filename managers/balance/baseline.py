@@ -27,13 +27,13 @@ import random
 import statistics
 import sys
 
-from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner, Chemist
+from core.players import Warrior, Rogue, Mage, Berserker, Summoner, Chemist
 from managers.balance.builds import get_ceiling_build
 from managers.balance.economy import EconomyPolicy
 from managers.balance.forge import ForgePolicy
 from managers.balance.runner import run_single_run
 
-CLASSES = [Warrior, Rogue, Mage, Druid, Berserker, Summoner, Chemist]
+CLASSES = [Warrior, Rogue, Mage, Berserker, Summoner, Chemist]
 
 # Параметры замера. Seed фиксирован → медиана детерминирована на неизменном коде.
 # N=40 — компромисс стабильность медианы ↔ скорость (~15с на все 6 классов).
@@ -53,7 +53,6 @@ BASELINE = {
     "Warrior":   {"wall": 29.5, "ceiling": 44},
     "Rogue":     {"wall": 15,   "ceiling": 19},
     "Mage":      {"wall": 15.5, "ceiling": 28},
-    "Druid":     {"wall": 21,   "ceiling": 27},
     "Berserker": {"wall": 8,    "ceiling": 12},
     "Summoner":  {"wall": 63.5, "ceiling": 70},
     "Chemist":   {"wall": 25,   "ceiling": 18},

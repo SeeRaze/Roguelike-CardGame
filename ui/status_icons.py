@@ -225,18 +225,6 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
                              (cx + off - int(r * 0.3), cy - r),
                              (cx + off + int(r * 0.3), cy + r), lw)
 
-    elif key == "virulence":
-        # «Молекула»: три узла-круга в треугольнике + центр (рост заражения).
-        rr = max(2, int(r * 0.28))
-        nodes = [(cx, cy - int(r * 0.6)),
-                 (cx - int(r * 0.6), cy + int(r * 0.45)),
-                 (cx + int(r * 0.6), cy + int(r * 0.45))]
-        for nx, ny in nodes:
-            pygame.draw.line(screen, color, (cx, cy), (nx, ny), max(1, lw - 1))
-        for nx, ny in nodes:
-            pygame.draw.circle(screen, color, (nx, ny), rr)
-        pygame.draw.circle(screen, color, (cx, cy), max(2, int(r * 0.22)))
-
     elif key == "heal":
         # Зелёный крест-аптечка (псевдо-ключ карт лечения).
         _plus(screen, cx, cy, r, color)

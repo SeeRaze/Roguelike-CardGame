@@ -14,11 +14,10 @@ from core.cards import (
     create_punishing_formation, create_warrior_stance,
     create_arcane_focus, create_ignite,
     create_overclock, create_resonant_discharge,
-    create_splash, create_toxic_cloud, create_poison_stab, create_lacerate,
+    create_splash, create_lacerate,
     create_open_wound, create_hemorrhage, create_battle_cry,
     create_bloodlust, create_serrated_edge,
     create_summon_wolf, create_summon_golem,
-    create_virulent_strain,
 )
 from core.cards.base import (
     DamageEffect, ShieldEffect, StatusEffect, PoisonEffect,
@@ -36,13 +35,12 @@ from core.cards.mage import (
     MasteryEffect, OverclockEffect, MasteryScalingDamageEffect,
 )
 from core.cards.rogue import FrenzyEffect
-from core.cards.druid import VirulenceEffect
 from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
 )
 from core.relics import (
     ЭнергоЯдро, ТочильныйКамень, ЖелезнаяВоля, ШипастаяБроня,
-    ДревнееОгниво, ФлаконСЖелчью, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
+    ДревнееОгниво, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
     ТрофейныйКлык, ТехническийДолг,
 )
 
@@ -77,11 +75,6 @@ CLASS_CORES = {
          create_ignite, create_splash],
         [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень],
     ),
-    "Druid": (
-        [create_virulent_strain, create_toxic_cloud, create_poison_stab,
-         create_toxic_cloud, create_toxic_cloud],
-        [ФлаконСЖелчью, СердцеТитана, ЭнергоЯдро],
-    ),
     "Rogue": (
         [create_bloodlust, create_lacerate, create_serrated_edge,
          create_open_wound, create_hemorrhage],
@@ -104,7 +97,7 @@ def _card_themes(card) -> set:
     «больше урона»). Сустейн-колода ценит хил/щит, ядовитая — яд и т.д."""
     t = set()
     for e in card.effects:
-        if isinstance(e, (PoisonEffect, VirulenceEffect)):
+        if isinstance(e, PoisonEffect):
             t.add("poison")
         elif isinstance(e, StatusEffect):
             t.add(e.status_type)
@@ -188,8 +181,6 @@ def _card_score(card) -> float:
             value += e.base_val * 2.5           # несгораемый щит (компаунд)
         elif isinstance(e, FrenzyEffect):
             value += e.base_val * 2             # усиливает все будущие bleed
-        elif isinstance(e, VirulenceEffect):
-            value += e.base_val * 2             # усиливает все будущие наложения яда
         elif isinstance(e, DebtScalingDamageEffect):
             value += e.base_val + e.per_depth * 5  # база + оценка глубины долга (~серед.)
         elif isinstance(e, DebtToForgeOnKillEffect):

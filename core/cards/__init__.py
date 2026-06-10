@@ -29,7 +29,6 @@ from core.cards.mage import (
 )
 from core.cards.echo import create_echo_resonance, create_echo_strike, create_echo_cascade
 from core.cards.rogue import create_bloodlust, create_serrated_edge
-from core.cards.druid import create_virulent_strain, VirulenceEffect
 from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
     LifestealOnKillEffect,

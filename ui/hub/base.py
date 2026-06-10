@@ -250,13 +250,12 @@ class HubView:
     @staticmethod
     def _select_class(gm, cls_name: str):
         from core.players import (
-            Warrior, Rogue, Mage, Druid, Berserker, Summoner, Chemist,
+            Warrior, Rogue, Mage, Berserker, Summoner, Chemist,
         )
         CLASS_MAP = {
             "Warrior":   Warrior,
             "Rogue":     Rogue,
             "Mage":      Mage,
-            "Druid":     Druid,
             "Berserker": Berserker,
             "Summoner":  Summoner,
             "Chemist":   Chemist,

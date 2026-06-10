@@ -16,7 +16,7 @@
 #
 # ЗАПУСК:
 #   python -m managers.balance.sweep                  # дефолт: Берсерк, краткий грид
-#   python -m managers.balance.sweep --class Druid --n 30
+#   python -m managers.balance.sweep --class Mage --n 30
 #   python -m managers.balance.sweep --full           # все 6 классов (медленно)
 import argparse
 import contextlib
@@ -25,7 +25,7 @@ import random
 import statistics
 import sys
 
-from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner
+from core.players import Warrior, Rogue, Mage, Berserker, Summoner
 from managers.balance import events as events_mod
 from managers.balance import forge as forge_mod   # noqa: F401 (бот-политика)
 from core import forge as core_forge              # источник правды ручек ковки (мутируем ТУТ)
@@ -36,7 +36,7 @@ from managers.balance.forge import ForgePolicy
 from managers.balance.runner import run_single_run
 
 CLASSES = {c.__name__: c for c in
-           (Warrior, Rogue, Mage, Druid, Berserker, Summoner)}
+           (Warrior, Rogue, Mage, Berserker, Summoner)}
 
 # ─── ГРИД СВИПА (оси калибровки триединства) ──────────────────────────────────
 # Закалка зафиксирована около найденного оптимума (этап А: проактивный порог 0.6

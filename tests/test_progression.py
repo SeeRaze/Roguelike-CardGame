@@ -26,8 +26,8 @@ def test_ярус_1_это_воин_маг_берсерк():
 
 def test_ярус_2_и_демиург():
     assert class_tier("Rogue") == 2
-    assert class_tier("Druid") == 2
     assert class_tier("Summoner") == 2
+    assert class_tier("Chemist") == 2
     assert class_tier("Demiurge") == 3
 
 
@@ -46,15 +46,15 @@ def test_ярус_1_всегда_открыт_даже_без_меты():
 def test_ярус_2_закрыт_у_нового_игрока():
     m = _meta()
     assert is_unlocked(m, "Rogue") is False
-    assert is_unlocked(m, "Druid") is False
     assert is_unlocked(m, "Summoner") is False
+    assert is_unlocked(m, "Chemist") is False
 
 
 def test_записанный_анлок_открывает_класс():
     m = _meta()
     m["unlocks"].append("Rogue")
     assert is_unlocked(m, "Rogue") is True
-    assert is_unlocked(m, "Druid") is False   # другой класс не задет
+    assert is_unlocked(m, "Summoner") is False   # другой класс не задет
 
 
 def test_демиург_всегда_закрыт_маяк():
@@ -80,19 +80,12 @@ def test_этаж_открывает_разбойника():
     assert is_unlocked(m, "Rogue") is True
 
 
-def test_босс_открывает_друида():
-    m = _meta(total_bosses=1)          # Druid: боссов >= 1
-    fresh = newly_unlocked(m)
-    assert "Druid" in fresh
-    assert "Summoner" not in fresh     # этаж недостаточный
-
-
 def test_идемпотентность_повтор_без_прогресса_пуст():
-    m = _meta(best_floor=6, total_bosses=1)   # откроет Rogue+Druid+Summoner
+    m = _meta(best_floor=8)                    # откроет Rogue+Summoner+Chemist
     first = newly_unlocked(m)
-    assert set(first) == {"Rogue", "Druid", "Summoner"}
+    assert set(first) == {"Rogue", "Summoner", "Chemist"}
     assert newly_unlocked(m) == []            # второй раз — нечего открывать
-    assert set(m["unlocks"]) == {"Rogue", "Druid", "Summoner"}
+    assert set(m["unlocks"]) == {"Rogue", "Summoner", "Chemist"}
 
 
 def test_newly_unlocked_создаёт_ключ_unlocks_если_нет():
@@ -184,7 +177,7 @@ def test_дев_флаг_открывает_всё(monkeypatch):
     monkeypatch.setenv("ROGUELIKE_DEV_UNLOCK", "1")
     monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
     monkeypatch.setattr(prog, "LOCKED_RELICS", {"СердцеТитана"})
-    assert is_unlocked(_meta(), "Druid") is True          # тир-2 без анлока
+    assert is_unlocked(_meta(), "Rogue") is True          # тир-2 без анлока
     assert is_card_unlocked(_meta(), "fire_breath") is True
     assert is_relic_unlocked(_meta(), "СердцеТитана") is True
 

@@ -24,7 +24,6 @@ from core.cards import (
     create_overclock, create_resonant_discharge,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
     create_bloodlust, create_serrated_edge,
-    create_virulent_strain,
     create_blood_rage, create_reckless_blow, create_blood_thirst, create_crunch,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
 )
@@ -86,7 +85,6 @@ CLASS_FACTORIES = {
     "Mage":      [create_overclock, create_resonant_discharge,
                   create_arcane_focus, create_elemental_surge],
     "Rogue":     [create_bloodlust, create_serrated_edge],
-    "Druid":     [create_virulent_strain],
     "Berserker": [create_blood_rage, create_reckless_blow, create_blood_thirst,
                   create_crunch],
 }

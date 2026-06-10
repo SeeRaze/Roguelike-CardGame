@@ -224,19 +224,9 @@ class Creature:
         if s.get('poison', 0) > 0:
             print(f" [ЯД] {self.name} получает {s['poison']} урона от яда!")
             self.hp = max(self.hp - s['poison'], 0)
-            # Яд Друида ЗАГНИВАЕТ: на враге не убывает (накапливается → движок
-            # кат.4). Чек класса игрока, как is_rogue для bleed. Условие
-            # `self is not player` важно: яд, наложенный врагом на самого Друида,
-            # по-прежнему убывает (иначе вечный яд на игроке).
-            player = getattr(combat_manager, 'player', None) if combat_manager else None
-            is_druid = type(player).__name__ == "Druid" if player else False
-            if is_druid and self is not player:
-                if s['poison'] == 0:
-                    print(f" [Статус] Яд в теле {self.name} рассеялся.")
-            else:
-                s['poison'] -= 1
-                if s['poison'] == 0:
-                    print(f" [Статус] Яд в теле {self.name} рассеялся.")
+            s['poison'] -= 1
+            if s['poison'] == 0:
+                print(f" [Статус] Яд в теле {self.name} рассеялся.")
 
         # Legacy-код (DoT, С58): УВАЖАЕТ щит. КИСЛОТНЫЙ ДОЖДЬ (Legacy+Токс): Токс
         # делает Legacy ПРОБИВАЮЩИМ щит (кислота ест броню) — дом «пробития»

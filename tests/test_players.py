@@ -1,10 +1,9 @@
 # tests/test_players.py
 # Проверяем игроков: базовый Player (статы, энергия, колода)
-# и классовые пассивы (Warrior, Mage, Druid).
+# и классовые пассивы (Warrior, Mage).
 from core.players.base import Player
 from core.players.warrior import Warrior
 from core.players.mage import Mage
-from core.players.druid import Druid
 from core.players.rogue import Rogue
 from core.players.berserker import Berserker
 from core.cards import create_strike, create_boil
@@ -90,15 +89,6 @@ def test_маг_имеет_правильные_статы():
     assert m.max_energy == 3
     assert m.gold == 90
     assert m.active_ability is not None
-
-
-def test_друид_имеет_правильные_статы():
-    d = Druid()
-    assert d.name == "Друид"
-    assert d.max_hp == 65
-    assert d.max_energy == 3
-    assert d.gold == 100
-    assert d.active_ability is not None
 
 
 def test_разбойник_имеет_3_энергии_и_40_hp():
@@ -195,53 +185,6 @@ def test_маг_без_комбо_не_добирает(make_combat):
     m.on_card_played_passive(None, cm)
     after = len(cm.deck_manager.hand)
     assert after == before                    # ничего не изменилось
-
-
-# ═══════════════════════════════════════════════════════════
-# Druid — пассив «Токсичный круговорот» (хил → яд на врага)
-# ═══════════════════════════════════════════════════════════
-
-def test_друид_при_хиле_травит_врага(make_combat):
-    d = Druid()
-    cm = make_combat(player=d)
-    d.on_turn_start_passive(cm)            # сброс бюджета яда на ход
-    cm.enemy.poison = 1
-    d.on_heal_passive(5, cm)
-    # Яд = доля хила (30%): int(5*0.3) = 1. Было 1 + 1 = 2.
-    assert cm.enemy.poison == 2
-
-
-def test_друид_не_травит_при_нулевом_хиле(make_combat):
-    d = Druid()
-    cm = make_combat(player=d)
-    cm.enemy.poison = 1
-    d.on_heal_passive(0, cm)
-    assert cm.enemy.poison == 1            # без изменений
-
-
-def test_друид_не_травит_мёртвого_врага(make_combat):
-    d = Druid()
-    cm = make_combat(player=d)
-    cm.enemy.hp = 0                        # враг мёртв
-    cm.enemy.poison = 1
-    d.on_heal_passive(5, cm)
-    assert cm.enemy.poison == 1            # без изменений
-
-
-def test_друид_потолок_яда_за_ход(make_combat):
-    # Несколько хилов за один ход не превышают POISON_CAP_PER_TURN.
-    d = Druid()
-    cm = make_combat(player=d)
-    d.on_turn_start_passive(cm)            # бюджет = 4
-    cm.enemy.poison = 0
-    d.on_heal_passive(100, cm)             # доля огромна, но обрезается до бюджета
-    assert cm.enemy.poison == Druid.POISON_CAP_PER_TURN   # = 4
-    d.on_heal_passive(100, cm)             # бюджет исчерпан -> +0
-    assert cm.enemy.poison == Druid.POISON_CAP_PER_TURN
-    # Новый ход -> бюджет снова доступен
-    d.on_turn_start_passive(cm)
-    d.on_heal_passive(100, cm)
-    assert cm.enemy.poison == Druid.POISON_CAP_PER_TURN * 2
 
 
 # ═══════════════════════════════════════════════════════════

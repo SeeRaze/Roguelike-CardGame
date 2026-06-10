@@ -28,7 +28,6 @@ EARLY_ADD          = 0.5    # ранний тег: +0.5 к множителю п
 LEG_EMPTY_HAND     = 2.0    # легендарный флаг «из пустой руки»: ×2.0
 # Легендарные масштабируемые (×(1 + scale·стат)) — компаунд растёт с движком класса.
 LEG_PER_MINION     = 0.20   # за миньона (Призыватель, резонанс со Сворой N²)
-LEG_PER_POISON     = 0.015  # за стак яда (Друид, Вирулентность)
 LEG_PER_BLEED      = 0.04   # за стак кровотечения (Разбойник, Кровожадность)
 LEG_PER_SHIELD     = 0.01   # за единицу щита/барьера (Воин, Барьер) — канал damage
 LEG_PER_COMBO      = 0.08   # за накопленное Мастерство (Маг, комбо)
@@ -37,7 +36,6 @@ LEG_MISSING_HP     = 1.00   # ×(1 + доля недостающего HP) (Бе
 # ── ОБОРОННЫЕ / СУСТЕЙН ручки (Развилка №1) ──────────────────────────────────
 LEG_PER_BARRIER    = 0.04   # ×ЩИТ за стак Барьера (Воин: барьер растит сам себя)
 LEG_LAST_STAND     = 2.0    # ×ЩИТ на грани (HP<порога) — контр-ваншот
-LEG_VENOM_WARD     = 0.04   # ×ИСЦЕЛЕНИЕ за стак яда на цели (Друид: яд→сустейн)
 LEG_LIFEBLOOM      = 1.00   # ×ИСЦЕЛЕНИЕ по доле недостающего HP (мощнее когда ранен)
 LOW_HP_THRESHOLD   = 0.5    # порог «низкого HP» для low_hp / last_stand
 
@@ -67,9 +65,6 @@ TAGS = {
     "shielded":   {"kind": "add", "tier": "early", "channel": "damage", "klass": "Warrior",
                    "label": "Под щитом: +урон",
                    "fn": lambda s: EARLY_ADD if (_s(s, "shield") + _s(s, "barrier")) > 0 else 0.0},
-    "poisoned":   {"kind": "add", "tier": "early", "channel": "damage", "klass": "Druid",
-                   "label": "По отравленной цели: +урон",
-                   "fn": lambda s: EARLY_ADD if _s(s, "tgt_poison") > 0 else 0.0},
     "low_hp":     {"kind": "add", "tier": "early", "channel": "damage", "klass": "Berserker",
                    "label": "На низком HP: +урон",
                    "fn": lambda s: EARLY_ADD if _s(s, "hp_frac", 1.0) < LOW_HP_THRESHOLD else 0.0},
@@ -98,9 +93,6 @@ TAGS = {
     "per_minion": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Summoner",
                    "label": "×урон за каждого миньона",
                    "fn": lambda s: 1.0 + LEG_PER_MINION * _s(s, "minions")},
-    "per_poison": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Druid",
-                   "label": "×урон по стакам яда",
-                   "fn": lambda s: 1.0 + LEG_PER_POISON * _s(s, "tgt_poison")},
     "per_bleed":  {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Rogue",
                    "label": "×урон по стакам кровотечения",
                    "fn": lambda s: 1.0 + LEG_PER_BLEED * _s(s, "tgt_bleed")},
@@ -124,9 +116,6 @@ TAGS = {
     "last_stand":  {"kind": "mult", "tier": "legendary", "channel": "shield", "klass": "Berserker",
                     "label": "На грани: ×щит",
                     "fn": lambda s: LEG_LAST_STAND if _s(s, "hp_frac", 1.0) < LOW_HP_THRESHOLD else 1.0},
-    "venomous_ward": {"kind": "mult", "tier": "legendary", "channel": "heal", "klass": "Druid",
-                      "label": "×исцеление по стакам яда",
-                      "fn": lambda s: 1.0 + LEG_VENOM_WARD * _s(s, "tgt_poison")},
     "lifebloom":   {"kind": "mult", "tier": "legendary", "channel": "heal", "klass": None,
                     "label": "×исцеление по недостающему HP",
                     "fn": lambda s: 1.0 + LEG_LIFEBLOOM * (1.0 - _s(s, "hp_frac", 1.0))},
@@ -139,7 +128,6 @@ TAGS = {
 # выживаемости = ПОЛ потолка для всех, _upgrade_design.md §5).
 CLASS_TAGS = {
     "Warrior":   {"early": "shielded", "legendary": "per_shield"},
-    "Druid":     {"early": "poisoned", "legendary": "per_poison"},
     "Berserker": {"early": "low_hp",   "legendary": "missing_hp"},
     "Summoner":  {"early": "minions",  "legendary": "per_minion"},
     "Rogue":     {"early": "bleed",    "legendary": "per_bleed"},
@@ -152,7 +140,6 @@ _HEAL_TAGS   = {"early": "mending",   "legendary": "lifebloom"}
 # Класс-специфичные оборонные легендарки (резонанс там, где он усиливает движок).
 _CLASS_DEFENSE_LEG = {
     "Berserker": "last_stand",       # щит на грани крови
-    "Druid":     "venomous_ward",    # сустейн от яда
 }
 
 

@@ -32,7 +32,6 @@ CLASS_TIERS = {
     "Mage":      1,
     "Berserker": 1,
     "Rogue":     2,
-    "Druid":     2,
     "Summoner":  2,
     "Chemist":   2,
     "Demiurge":  3,
@@ -69,7 +68,6 @@ def _killed_bosses(n):
 # Ярус 1 здесь не нужен (всегда открыт). Демиург — всегда False (маяк).
 UNLOCK_CONDITIONS = {
     "Rogue":    _reached_floor(5),
-    "Druid":    _killed_bosses(1),
     "Summoner": _reached_floor(6),
     "Chemist":  _reached_floor(8),
     "Demiurge": lambda meta: False,   # «Идеальный аудит» — контент финала, позже

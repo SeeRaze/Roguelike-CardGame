@@ -30,7 +30,6 @@ _WARRIOR_SHIELD_MIN     = 8   # «Щитовой удар»: удар = 50% щи
 _WARRIOR_RETRIBUTION_MIN = 10 # «Возмездие»: придержать, пока щит не накоплен
 _WARRIOR_DISCIPLINE_MIN = 4   # спендер Дисциплины окупается, когда накоплено ≥ стаков
 _ROGUE_BLEED_MIN        = 8   # «Вскрытие»: удвоить кровотечение (ценой -1 энергии)
-_DRUID_POISON_MIN       = 10  # «Токсичный взрыв»: снять весь яд разом
 _MAGE_ELEMENTAL_MIN     = 4   # «Стихийный барьер»: щит = стихийные стаки * 3
 _MAGE_OVERCLOCK_HP_FRAC = 0.5 # «Разгон»: гэмблить HP→Мастерство только при HP ≥ доли max
 # Берсерк «Безумие» = ставка дисперсии: дамп руки за 0 энергии ценой HP (нырок в
@@ -250,15 +249,6 @@ class RoguePolicy(BotPolicy):
             ab.activate(combat)
 
 
-class DruidPolicy(BotPolicy):
-    """«Токсичный взрыв» — когда яд накопился до осмысленного бурста."""
-
-    def on_turn_end(self, combat) -> None:
-        ab = _ability(combat)
-        if ab and getattr(combat.enemy, "poison", 0) >= _DRUID_POISON_MIN:
-            ab.activate(combat)
-
-
 class MagePolicy(BotPolicy):
     """Ядро Мага (С56) — «Гни»: Мастерство-перегруз + HP-гамбл. ПАР больше НЕ пред-собран
     (де-рельс): бот СОБИРАЕТ его из раздельных стихий (Всплеск=Мокрый + Поджог=Горение →
@@ -376,7 +366,6 @@ CLASS_POLICIES = {
     "Berserker": BerserkerPolicy(),
     "Warrior":   WarriorPolicy(),
     "Rogue":     RoguePolicy(),
-    "Druid":     DruidPolicy(),
     "Mage":      MagePolicy(),
     "Chemist":   ChemistPolicy(),
 }

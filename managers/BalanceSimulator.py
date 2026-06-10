@@ -11,13 +11,13 @@
 # Запуск:  python -m managers.BalanceSimulator
 import builtins
 
-from core.players import Warrior, Rogue, Mage, Druid, Berserker, Summoner
+from core.players import Warrior, Rogue, Mage, Berserker, Summoner
 from managers.balance import (
     run_single_run, get_ceiling_build, summarize, format_dual_report,
     EconomyPolicy,
 )
 
-ALL_CLASSES = [Warrior, Rogue, Mage, Druid, Berserker, Summoner]
+ALL_CLASSES = [Warrior, Rogue, Mage, Berserker, Summoner]
 
 
 def _silently(fn, *args, **kwargs):

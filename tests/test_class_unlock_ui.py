@@ -16,8 +16,8 @@ class _FakeGM:
 
 
 def test_залоченный_тир2_не_выбирается():
-    gm = _FakeGM()                       # пустые анлоки → Druid закрыт
-    HubView._select_class(gm, "Druid")
+    gm = _FakeGM()                       # пустые анлоки → Summoner закрыт
+    HubView._select_class(gm, "Summoner")
     assert type(gm.player).__name__ == "Warrior"   # игрок не сменился
 
 
