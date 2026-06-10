@@ -62,6 +62,9 @@ class CardPlayMixin:
         # Сброс предохранителя на новый розыгрыш: детонации/Эхо этой карты считаются
         # с нуля (§10.2). Первичный apply — не триггер, бюджет не тратит.
         self._trigger_guard.depth = 0
+        # ENGINE: «Диспетчер задач» — следующая карта ×2. Флаг захватываем ДО apply
+        # (карта-Диспетчер ставит его в своём apply → сама себя не дублирует).
+        double_pending = getattr(self, "_dispatcher_pending", False)
         selected_card.apply(self.player, target, self)
 
         # Эхо (ретриггер): каждый заряд эха на игроке заставляет карту
@@ -82,6 +85,15 @@ class CardPlayMixin:
                 self.add_log_message(
                     f"[ЭХО] {selected_card.name} срабатывает повторно "
                     f"({i + 1}/{echo_stacks})!"
+                )
+
+        # ENGINE: «Диспетчер задач» ×2 — повтор карты под гардом (как Эхо).
+        if double_pending:
+            self._dispatcher_pending = False
+            if self._trigger_guard.enter():
+                selected_card.apply(self.player, target, self)
+                self.add_log_message(
+                    f"[ДИСПЕТЧЕР] {selected_card.name} срабатывает ×2!"
                 )
 
         self._card_being_played = None

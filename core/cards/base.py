@@ -331,6 +331,72 @@ class ScryEffect:
                 )
 
 
+class DispatcherEffect:
+    """«Диспетчер задач» (Task Manager) — ПРЕД-коммит: следующая сыгранная в этот ход
+    карта срабатывает ×2 (повторно). Ставит флаг на CM; срабатывание — в play_card_by_index
+    (мост к PAYLOAD, гнездо петель → под гардом)."""
+    def __init__(self, *_):
+        pass
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is not None:
+            combat_manager._dispatcher_pending = True
+            combat_manager.add_log_message(
+                " -> Диспетчер: следующая карта сработает ×2."
+            )
+
+
+class UndoEffect:
+    """«Отменить» (Ctrl+Z) — РЕТРОАКТИВ: вернуть последнюю сыгранную карту из сброса в
+    руку (переиграть). Берёт верх discard (на момент розыгрыша = ПРЕДЫДУЩАЯ карта)."""
+    def __init__(self, *_):
+        pass
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None or not hasattr(combat_manager, "deck_manager"):
+            return
+        dm = combat_manager.deck_manager
+        if dm.discard_pile:
+            card = dm.discard_pile.pop()
+            dm.hand.append(card)
+            combat_manager.add_log_message(
+                f" -> Отменить: {card.name} возвращена в руку."
+            )
+
+
+class CopyEffect:
+    """«Копировать» (Ctrl+C) — сохранить ПОСЛЕДНЮЮ сыгранную карту в Буфер (ПЕРЕЗАТИРАЕТ
+    прошлый). Буфер живёт между ходами. Источник = верх discard (предыдущая карта)."""
+    def __init__(self, *_):
+        pass
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None or not hasattr(combat_manager, "deck_manager"):
+            return
+        dm = combat_manager.deck_manager
+        if dm.discard_pile:
+            combat_manager._clipboard = dm.discard_pile[-1]
+            combat_manager.add_log_message(
+                f" -> Копировать: {dm.discard_pile[-1].name} → Буфер."
+            )
+
+
+class PasteEffect:
+    """«Вставить» (Ctrl+V) — заново исполнить содержимое Буфера. НЕ очищает (перефайр-
+    движок; тормоз = энергия за Ctrl+V + единственный слот)."""
+    def __init__(self, *_):
+        pass
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if combat_manager is None:
+            return
+        card = getattr(combat_manager, "_clipboard", None)
+        if card is not None:
+            combat_manager.add_log_message(f" -> Вставить: перефайр {card.name}.")
+            for eff in getattr(card, "effects", []):
+                eff.execute(player, enemy, combat_manager, getattr(card, "upgraded", False))
+
+
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
                  rarity=Rarity.COMMON, exile=False, card_class=None):

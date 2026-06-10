@@ -154,6 +154,7 @@ LOCKED_CARDS: set = {
     "boil",
     # ENGINE-карты (С58): шорткаты-движок = награда за прогресс, не стартдек.
     "window_swap", "refresh", "coffee_break", "hard_delete", "stack_trace",
+    "task_manager", "undo", "copy", "paste",
 }
 # relic_id'ы (имена классов), требующие анлока (27 из 33 = весь UNCOMMON+ и часть COMMON).
 LOCKED_RELICS: set = {

@@ -9,6 +9,7 @@
 from core.cards.base import (
     Card, DrawEffect, EnergyEffect, DiscardRedrawEffect,
     ExileFromHandEffect, ScryEffect,
+    DispatcherEffect, UndoEffect, CopyEffect, PasteEffect,
 )
 from core.rarity import Rarity
 
@@ -70,4 +71,53 @@ def create_stack_trace():
         card_type="skill",
         description="Посмотрите верх 3(5) колоды; лишнее — в сброс.",
         effects=[ScryEffect(3, 5)],
+    )
+
+
+# ─── ✖️ МНОЖИТЕЛИ (мало, под гардом — мост к PAYLOAD + гнездо петель) ─────────
+def create_task_manager():
+    """«Диспетчер задач» (Task Manager) — ПРЕД-коммит: следующая карта ×2."""
+    return Card(
+        name="Диспетчер задач",
+        cost=1,
+        card_type="skill",
+        description="Следующая сыгранная в этот ход карта срабатывает ×2.",
+        effects=[DispatcherEffect()],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_undo():
+    """«Отменить» (Ctrl+Z) — РЕТРОАКТИВ: вернуть последнюю сыгранную карту в руку."""
+    return Card(
+        name="Отменить",
+        cost=0,
+        card_type="skill",
+        description="Верните последнюю сыгранную карту из сброса в руку.",
+        effects=[UndoEffect()],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_copy():
+    """«Копировать» (Ctrl+C) — сохранить последнюю сыгранную карту в Буфер."""
+    return Card(
+        name="Копировать",
+        cost=0,
+        card_type="skill",
+        description="Сохраните последнюю сыгранную карту в Буфер (перезатир).",
+        effects=[CopyEffect()],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_paste():
+    """«Вставить» (Ctrl+V) — заново исполнить содержимое Буфера (НЕ очищает)."""
+    return Card(
+        name="Вставить",
+        cost=1,
+        card_type="skill",
+        description="Заново исполните карту из Буфера (Буфер не очищается).",
+        effects=[PasteEffect()],
+        rarity=Rarity.UNCOMMON,
     )

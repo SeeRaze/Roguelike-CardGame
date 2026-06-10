@@ -40,6 +40,7 @@ from core.cards.decomp import create_disassembler, create_reverse_engineer
 from core.cards.shortcuts import (
     create_window_swap, create_refresh, create_coffee_break,
     create_hard_delete, create_stack_trace,
+    create_task_manager, create_undo, create_copy, create_paste,
 )
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
@@ -56,6 +57,7 @@ GENERIC_FACTORIES = [
     # ── ENGINE (С58): шорткаты-движок (манипуляция своими ресурсами). LOCKED. ──
     create_window_swap, create_refresh, create_coffee_break,
     create_hard_delete, create_stack_trace,
+    create_task_manager, create_undo, create_copy, create_paste,
     # ── Буфф/хил/утилити/эхо/клив (отдельный слой, рескин позже) ──
     create_bash, create_neutralize, create_intimidate,
     create_flex, create_battle_cry, create_thorn_armor,
