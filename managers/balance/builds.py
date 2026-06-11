@@ -25,7 +25,6 @@ from core.cards.warrior import (
     ShieldDamageEffect, DisciplineBurstDamageEffect, DisciplineToShieldEffect,
     DisciplineGainEffect,
 )
-from core.cards.debuff.bleed import BleedEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import (
     MasteryEffect, OverclockEffect, MasteryScalingDamageEffect,
@@ -50,7 +49,7 @@ _THEME_BONUS = 3.0   # надбавка кандидату за совпаден
 # Профильные статусы и их «ценность» для эвристики драфта (масштабируемость).
 _STATUS_VALUE = {
     "coffee": 4, "legacy": 3,
-    "bleed": 3, "tox": 2, "strength": 4,
+    "tox": 2, "strength": 4,
 }
 
 # ─── Ядра билдов: фабрики карт в стартовую колоду + профильные реликвии ───────
@@ -93,8 +92,6 @@ def _card_themes(card) -> set:
             t.add("attack")
         elif isinstance(e, (DetonateEffect, FlowEffect)):
             t.add("synergy")
-        elif isinstance(e, BleedEffect):
-            t.add("bleed")
         elif isinstance(e, (MasteryEffect, OverclockEffect)):
             t.add("mastery")                    # копит Мастерство (Разгон — гамблом)
         elif isinstance(e, MasteryScalingDamageEffect):
@@ -143,8 +140,6 @@ def _card_score(card) -> float:
             value += e.base_val * 0.5
         elif isinstance(e, ShieldDamageEffect):
             value += 6                          # AoE по щиту
-        elif isinstance(e, BleedEffect):
-            value += e.base_val * 1.5           # dot, масштабируется по ходам
         elif isinstance(e, (DetonateEffect, FlowEffect)):
             value += 4                          # синергия/темпо
         elif isinstance(e, (EchoEffect, EchoPayoffEffect)):

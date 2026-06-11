@@ -53,10 +53,10 @@ def test_старая_пиявка_добавляет_к_хилу():
     assert c.hp == 42           # бонус +2 (ограничен нехваткой HP)
 
 
-def test_шипастая_броня_вешает_кровотечение_при_получении_щита(make_combat):
+def test_санитайзер_вешает_legacy_при_получении_щита(make_combat):
     cm = make_combat()
     Санитайзер().on_shield_gained(5, cm.player, cm)
-    assert cm.enemy.bleed == 1
+    assert cm.enemy.legacy == 1
 
 
 def test_окровавленный_шприц_на_карте_изгнания(make_combat):
@@ -115,8 +115,8 @@ def test_шипастая_броня_кровит_живого_а_не_труп(
     живой = make_creature("Живой", 50, 50)
     cm.enemies.append(живой)
     Санитайзер().on_shield_gained(5, cm.player, cm)
-    assert живой.bleed == 1
-    assert труп.bleed == 0
+    assert живой.legacy == 1
+    assert труп.legacy == 0
 
 
 def test_реликвии_без_живых_врагов_не_падают(make_combat):

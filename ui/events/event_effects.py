@@ -40,7 +40,6 @@ def _get_card_factory(name: str):
     from core.cards.heal   import create_bandage, create_second_wind, create_elixir
     from core.cards.buff.regen     import create_regenerate, create_vitality, create_triage
     from core.cards.buff.vampirism import create_drain, create_blood_feast, create_life_tap
-    from core.cards.debuff.bleed   import create_lacerate, create_hemorrhage, create_open_wound
     registry = {
         "create_strike":       create_strike,
         "create_defend":       create_defend,
@@ -61,9 +60,6 @@ def _get_card_factory(name: str):
         "create_drain":        create_drain,
         "create_blood_feast":  create_blood_feast,
         "create_life_tap":     create_life_tap,
-        "create_lacerate":     create_lacerate,
-        "create_hemorrhage":   create_hemorrhage,
-        "create_open_wound":   create_open_wound,
     }
     return registry[name]
 

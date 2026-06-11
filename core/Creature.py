@@ -181,24 +181,6 @@ class Creature:
                         f"Вампиризм: {vamp} → {decayed}."
                     )
 
-        bleed = self.statuses.get('bleed', 0)
-        if bleed > 0 and amount > 0:
-            bleed_dmg = bleed
-            if combat_manager:
-                gm = getattr(combat_manager, 'gm', None)
-                if gm:
-                    for relic in gm.relics:
-                        bleed_dmg = relic.on_bleed_tick(
-                            bleed_dmg, self, combat_manager
-                        )
-            print(f" [КРОВЬ] {self.name} истекает кровью: +{bleed_dmg} урона!")
-            self.hp = max(self.hp - bleed_dmg, self._hp_floor())
-            if combat_manager:
-                combat_manager.add_log_message(
-                    f" [КРОВЬ] {self.name} получает +{bleed_dmg} "
-                    f"от кровотечения!"
-                )
-
     def tick_statuses(self, combat_manager=None):
         s = self.statuses
 
@@ -230,9 +212,14 @@ class Creature:
                     self.hp = max(self.hp - rem, 0)
                 print(f" [LEGACY] {self.name} получает {dmg} урона "
                       f"(щит впитал {absorbed}).")
-            s['legacy'] -= 1
-            if s['legacy'] == 0:
-                print(f" [Статус] Legacy-код в {self.name} дочитан.")
+            # Реликвия «Зомби-процесс»: Legacy-код НЕ убывает (процесс не умирает →
+            # DoT держится и копится). Иначе обычный триангуляр-декей −1/ход.
+            gm = getattr(combat_manager, 'gm', None) if combat_manager else None
+            zombie = gm and any(r.name == "Зомби-процесс" for r in gm.relics)
+            if not zombie:
+                s['legacy'] -= 1
+                if s['legacy'] == 0:
+                    print(f" [Статус] Legacy-код в {self.name} дочитан.")
 
         if s.get('regen', 0) > 0:
             # Потолок лечения от регена за один тик: высокие стаки регена
@@ -246,18 +233,3 @@ class Creature:
             s['regen'] -= 1
             if s['regen'] == 0:
                 print(f" [Статус] Регенерация на {self.name} иссякла.")
-
-        if s.get('bleed', 0) > 0:
-            gm = getattr(combat_manager, 'gm', None) if combat_manager else None
-            has_gniloy_klyk = gm and any(
-                r.name == "Зомби-процесс" for r in gm.relics
-            )
-            # Реликвия «Зомби-процесс» «бередит раны»: Кровотечение убывает вдвое,
-            # а не в ноль — наложения накапливаются дольше.
-            if has_gniloy_klyk:
-                s['bleed'] = s['bleed'] // 2
-                print(f" [Статус] Кровотечение на {self.name} "
-                      f"уменьшилось до {s['bleed']}.")
-            else:
-                s['bleed'] = 0
-                print(f" [Статус] Кровотечение на {self.name} остановилось.")

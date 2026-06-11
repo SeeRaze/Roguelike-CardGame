@@ -20,7 +20,6 @@ from core.cards.base import (
     DamageEffect, ShieldEffect, BarrierEffect, HealEffect, RegenEffect,
     StatusEffect,
 )
-from core.cards.debuff.bleed import BleedEffect
 
 # ─── ЭКОНОМИКА FP (ручка скорости c, _upgrade_design.md §3,6) ──────────────────
 # Приток FP за выжитый бой растёт по акту (этаж//20+1), кап на последнем элементе.
@@ -307,10 +306,10 @@ def card_is_defensive(card) -> bool:
     for e in card.effects:
         if isinstance(e, (ShieldEffect, BarrierEffect, HealEffect, RegenEffect)):
             has_def = True
-        elif isinstance(e, (DamageEffect, BleedEffect)):
+        elif isinstance(e, DamageEffect):
             has_off = True
         elif isinstance(e, StatusEffect) and e.status_type == "legacy":
-            has_off = True   # Legacy-код — DoT (офенс), как поглощённый им Яд
+            has_off = True   # Legacy-код — DoT (офенс), как поглощённые им Яд/Кровь
     return has_def and not has_off
 
 

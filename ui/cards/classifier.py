@@ -6,7 +6,6 @@ from core.cards.base import (
     BarrierEffect,
 )
 from ui.cards.data import _ELEMENTAL_CARD_KEYS
-from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect
@@ -35,7 +34,6 @@ def classify_card(card) -> str:
     effects = card.effects
     has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
-    has_bleed    = any(isinstance(e, BleedEffect) for e in effects)
     has_shield   = any(isinstance(e, (ShieldEffect, DisciplineToShieldEffect)) for e in effects)
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
     has_regen    = any(isinstance(e, RegenEffect) for e in effects)
@@ -51,8 +49,6 @@ def classify_card(card) -> str:
 
     if has_vampire:
         return "vampire"
-    if has_bleed:
-        return "bleed"
     if elemental:
         return elemental
     if has_flow:

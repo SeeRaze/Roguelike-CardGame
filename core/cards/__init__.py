@@ -16,7 +16,6 @@ from core.cards.shortcircuit import (
 )
 from core.cards.buff.regen import create_regenerate, create_vitality, create_triage
 from core.cards.buff.vampirism import create_drain, create_blood_feast, create_life_tap
-from core.cards.debuff.bleed import create_lacerate, create_hemorrhage, create_open_wound
 from core.cards.warrior import (
     create_retribution, create_steel_barricade, create_bastion,
     create_punishing_formation, create_shield_wall, create_warrior_stance,

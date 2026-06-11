@@ -9,7 +9,6 @@ from core.cards.base import (
 )
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect
-from core.cards.debuff.bleed import BleedEffect
 from core.cards.warrior import ShieldDamageEffect
 from core.rarity import Rarity
 
@@ -179,22 +178,6 @@ def test_buff_effect_улучшенный(make_creature):
     assert player.thorns == 5
 
 
-# ═══════════════════════════════════════════════════════════
-# BleedEffect (кровотечение на врага)
-# ═══════════════════════════════════════════════════════════
-
-def test_bleed_effect_накладывает_кровотечение(make_creature):
-    player = make_creature("Игрок", 50, 50)
-    enemy  = make_creature("Враг", 50, 50)
-    BleedEffect(3, 4).execute(player, enemy, combat_manager=None, is_upgraded=False)
-    assert enemy.bleed == 3
-
-
-def test_bleed_effect_улучшенный(make_creature):
-    player = make_creature("Игрок", 50, 50)
-    enemy  = make_creature("Враг", 50, 50)
-    BleedEffect(3, 4).execute(player, enemy, combat_manager=None, is_upgraded=True)
-    assert enemy.bleed == 4
 
 
 # ═══════════════════════════════════════════════════════════

@@ -131,9 +131,6 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
     elif key == "legacy":
         _skull(screen, cx, cy, r, color)
 
-    elif key == "bleed":
-        _droplet(screen, cx, cy, r, color)
-
     elif key == "regen":
         _plus(screen, cx, cy, r, color)
 

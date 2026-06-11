@@ -140,12 +140,10 @@ class TestCorruptionDevourer:
 
     def test_cap_limits_consumption(self):
         e = CorruptionDevourer("CD", 50, 100)
-        e.legacy = 5
-        e.bleed = 4          # суммарно 9, cap 8
+        e.legacy = 12         # больше DEVOUR_CAP=8
         e.on_turn_start(None, None)
-        # Приоритет legacy→bleed: ест legacy5 + bleed3 = 8.
-        assert e.legacy == 0
-        assert e.bleed == 1
+        # Ест до 8 стаков Legacy, остаток держится.
+        assert e.legacy == 4
         assert e.hp == 58
 
     def test_no_dot_no_heal(self):

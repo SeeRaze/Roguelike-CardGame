@@ -43,11 +43,6 @@ def test_вампиризм_лечит_атакующего_и_гаснет_вт
     assert attacker.vampire == 1
 
 
-def test_кровотечение_наносит_доп_урон_при_получении_удара():
-    c = Creature("Цель", 50, 50)
-    c.bleed = 3
-    c.take_damage(5)            # 5 обычного + 3 от кровотечения
-    assert c.hp == 42
 
 
 def test_тик_legacy_наносит_урон_и_уменьшает_стак():
@@ -82,19 +77,19 @@ def test_временные_статусы_спадают_на_один():
     assert c.decomp == 1 and c.stunned == 1
 
 
-def test_кровотечение_сбрасывается_в_ноль_без_гнилого_клыка():
+def test_legacy_убывает_на_один_без_зомби_процесса():
     c = Creature("Цель", 50, 50)
-    c.bleed = 4
-    c.tick_statuses()           # без реликвии -> обнуляется
-    assert c.bleed == 0
+    c.legacy = 4
+    c.tick_statuses()           # без реликвии -> триангуляр-декей −1
+    assert c.legacy == 3
 
 
-def test_гнилой_клык_уменьшает_кровотечение_вдвое(make_combat):
+def test_зомби_процесс_держит_legacy(make_combat):
     c = Creature("Цель", 50, 50)
-    c.bleed = 4
+    c.legacy = 4
     cm = make_combat(enemy=c, relics=[ЗомбиПроцесс()])
-    c.tick_statuses(cm)         # с «Гнилым Клыком» -> делится пополам
-    assert c.bleed == 2
+    c.tick_statuses(cm)         # с «Зомби-процессом» -> Legacy не убывает
+    assert c.legacy == 4
 
 
 def test_магический_барьер_блокирует_стихию_только_на_враге(make_combat):

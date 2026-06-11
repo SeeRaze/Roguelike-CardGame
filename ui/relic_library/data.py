@@ -32,7 +32,7 @@ def categorize(relic) -> str:
     if _overrides(cls, "on_shield_gained"):
         return "Щит и защита"
     if any(_overrides(cls, h) for h in
-           ("on_tick_legacy", "on_coffee_applied", "on_bleed_tick", "on_heal")):
+           ("on_tick_legacy", "on_coffee_applied", "on_heal")):
         return "Стихии, статусы, лечение"
     if _overrides(cls, "on_card_played"):
         return "При розыгрыше карт"
