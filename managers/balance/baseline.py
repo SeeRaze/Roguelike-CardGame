@@ -27,16 +27,20 @@ import random
 import statistics
 import sys
 
-from core.players import Warrior, Rogue, Mage, Berserker, Summoner, Chemist
+from core.players import Warrior, Mage, Berserker
 from managers.balance.builds import get_ceiling_build
 from managers.balance.economy import EconomyPolicy
 from managers.balance.forge import ForgePolicy
 from managers.balance.runner import run_single_run
 
-CLASSES = [Warrior, Rogue, Mage, Berserker, Summoner, Chemist]
+# ⚠️ ТОЛЬКО ЯРУС-1 (С58). Тир-2 (Разбойник/Призыватель/Химик) НЕ меряем: им ещё не
+# прописаны механики/пассивы под передел классов, их числа = мёртвый груз (сотрутся
+# при переделе) + Разбойник не вписан в концепт (как и удалённый Друид). База баланса
+# и игры в целом строится на тройке яруса-1; тир-2 вернётся в гард при их редизайне.
+CLASSES = [Warrior, Mage, Berserker]
 
 # Параметры замера. Seed фиксирован → медиана детерминирована на неизменном коде.
-# N=40 — компромисс стабильность медианы ↔ скорость (~15с на все 6 классов).
+# N=40 — компромисс стабильность медианы ↔ скорость (~5с на тройку яруса-1).
 BASELINE_N    = 40
 BASELINE_SEED = 99
 
@@ -50,12 +54,9 @@ BASELINE_MAX_RISE = 12
 # архетипы-контры билдам учитываются в сложности.
 # Регенерация: python -m managers.balance.baseline
 BASELINE = {
-    "Warrior":   {"wall": 29.5, "ceiling": 44},
-    "Rogue":     {"wall": 15,   "ceiling": 19},
-    "Mage":      {"wall": 15.5, "ceiling": 28},
-    "Berserker": {"wall": 8,    "ceiling": 12},
-    "Summoner":  {"wall": 63.5, "ceiling": 70},
-    "Chemist":   {"wall": 25,   "ceiling": 18},
+    "Warrior":   {"wall": 32, "ceiling": 47},
+    "Mage":      {"wall": 16, "ceiling": 27},
+    "Berserker": {"wall": 8,  "ceiling": 16},
 }
 
 # ── FORGE-ON ДВИЖОК (С50, доп. метрика тройки яруса 1) ─────────────────────────
@@ -75,11 +76,11 @@ BASELINE = {
 #     единственный РАЗЛИЧАЮЩИЙ сигнал «как часто раскрученный билд долетает».
 FORGE_REACH_FLOOR = 50
 BASELINE_FORGE = {
-    "Warrior":   70,   # С57: Карающий строй стал МУЛЬТИПЛИКАТИВНЫМ (×(1+k·Дисц)) → payoff
+    "Warrior":   60,   # С57: Карающий строй стал МУЛЬТИПЛИКАТИВНЫМ (×(1+k·Дисц)) → payoff
                        # раскручивается ковкой, не тонет (k=0.30/0.40 ЗАГЛУШКА → калибровка капстоуна)
-    "Mage":      75,   # С57: Резонансный разряд + перегруз Нестабильности МУЛЬТИПЛИКАТИВНЫ
+    "Mage":      60,   # С57: Резонансный разряд + перегруз Нестабильности МУЛЬТИПЛИКАТИВНЫ
                        # (эскалир. множитель симметрично HP-цене) → payoff раскручивается ковкой
-    "Berserker": 22,   # С57: %-ось долга + Кранч (сустейн-добивание) → движок чаще раскручивается
+    "Berserker": 20,   # С57: %-ось долга + Кранч (сустейн-добивание) → движок чаще раскручивается
 }
 # Тревожит ТОЛЬКО просадка (движок ковки сломался); рост доходимости всегда легитимен.
 # Допуск широкий: доля по N=40 шумна (каждый забег — бинарный 0/1 «долетел/нет»).
@@ -112,9 +113,9 @@ BASELINE_STARTER = {
     # ([[balance-findings-shock-dilution]]), а залоченный контент = в основном
     # РЕЛИКВИИ → их теряет сильнее всех Воин (потолок 42→29, движок Дисциплины
     # живёт в залоченных реликвиях ЖелезнаяВоля/ШипастаяБроня/ЭнергоЯдро).
-    "Warrior":   {"wall": 29, "ceiling": 30},
-    "Mage":      {"wall": 17, "ceiling": 27},    # потолок ~не зависит от залоченного
-    "Berserker": {"wall": 8.5, "ceiling": 9},    # +Кранч в стартдеке: день-1 сустейн
+    "Warrior":   {"wall": 25.5, "ceiling": 31},
+    "Mage":      {"wall": 16.5, "ceiling": 21},   # потолок ~не зависит от залоченного
+    "Berserker": {"wall": 8, "ceiling": 10},      # +Кранч в стартдеке: день-1 сустейн
 }
 
 

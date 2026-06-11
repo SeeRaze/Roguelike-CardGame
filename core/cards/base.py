@@ -331,7 +331,10 @@ class DispatcherEffect:
 
 class UndoEffect:
     """«Отменить» (Ctrl+Z) — РЕТРОАКТИВ: вернуть последнюю сыгранную карту из сброса в
-    руку (переиграть). Берёт верх discard (на момент розыгрыша = ПРЕДЫДУЩАЯ карта)."""
+    руку (переиграть). Берёт верх discard (на момент розыгрыша = ПРЕДЫДУЩАЯ карта).
+
+    Пропускает карты-Отмены в сбросе: иначе две «Отменить» в руке возвращали бы друг
+    друга бесконечно (cost 0 → энергия не ограничивает → вечный ход / софт-лок)."""
     def __init__(self, *_):
         pass
 
@@ -339,17 +342,24 @@ class UndoEffect:
         if combat_manager is None or not hasattr(combat_manager, "deck_manager"):
             return
         dm = combat_manager.deck_manager
-        if dm.discard_pile:
-            card = dm.discard_pile.pop()
-            dm.hand.append(card)
+        # Ищем сверху первую НЕ-Undo карту (сами Отмены не воскрешаем).
+        for i in range(len(dm.discard_pile) - 1, -1, -1):
+            cand = dm.discard_pile[i]
+            if any(isinstance(e, UndoEffect) for e in cand.effects):
+                continue
+            dm.discard_pile.pop(i)
+            dm.hand.append(cand)
             combat_manager.add_log_message(
-                f" -> Отменить: {card.name} возвращена в руку."
+                f" -> Отменить: {cand.name} возвращена в руку."
             )
+            return
 
 
 class CopyEffect:
     """«Копировать» (Ctrl+C) — сохранить ПОСЛЕДНЮЮ сыгранную карту в Буфер (ПЕРЕЗАТИРАЕТ
-    прошлый). Буфер живёт между ходами. Источник = верх discard (предыдущая карта)."""
+    прошлый). Буфер живёт между ходами. Источник = верх discard (предыдущая карта).
+
+    Не копирует «Вставить»: Буфер, читающий сам себя, — бесконечная рекурсия перефайра."""
     def __init__(self, *_):
         pass
 
@@ -357,7 +367,9 @@ class CopyEffect:
         if combat_manager is None or not hasattr(combat_manager, "deck_manager"):
             return
         dm = combat_manager.deck_manager
-        if dm.discard_pile:
+        if dm.discard_pile and not any(
+            isinstance(e, PasteEffect) for e in dm.discard_pile[-1].effects
+        ):
             combat_manager._clipboard = dm.discard_pile[-1]
             combat_manager.add_log_message(
                 f" -> Копировать: {dm.discard_pile[-1].name} → Буфер."
@@ -366,7 +378,10 @@ class CopyEffect:
 
 class PasteEffect:
     """«Вставить» (Ctrl+V) — заново исполнить содержимое Буфера. НЕ очищает (перефайр-
-    движок; тормоз = энергия за Ctrl+V + единственный слот)."""
+    движок; тормоз = энергия за Ctrl+V + единственный слот).
+
+    Пропускает вложенные PasteEffect — иначе Буфер с «Вставить» рекурсил бы бесконечно
+    (страховка на случай, если Paste попал в Буфер в обход CopyEffect-фильтра)."""
     def __init__(self, *_):
         pass
 
@@ -377,6 +392,8 @@ class PasteEffect:
         if card is not None:
             combat_manager.add_log_message(f" -> Вставить: перефайр {card.name}.")
             for eff in getattr(card, "effects", []):
+                if isinstance(eff, PasteEffect):
+                    continue
                 eff.execute(player, enemy, combat_manager, getattr(card, "upgraded", False))
 
 

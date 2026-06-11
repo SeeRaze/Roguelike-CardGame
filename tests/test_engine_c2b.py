@@ -47,6 +47,27 @@ def test_undo_returns_last_card_to_hand():
     assert last not in cm.deck_manager.discard_pile
 
 
+def test_undo_skips_other_undo_in_discard():
+    # Анти-петля: две «Отменить» не должны воскрешать друг друга (cost 0 → иначе
+    # вечный ход). Undo пропускает Undo-карты в сбросе и берёт обычную под ними.
+    cm = _cm()
+    strike, undo_in_pile = create_strike(), create_undo()
+    cm.deck_manager.discard_pile = [strike, undo_in_pile]  # верх = Undo
+    cm.deck_manager.hand = []
+    create_undo().apply(cm.player, cm.enemies[0], cm)
+    assert strike in cm.deck_manager.hand              # вернулся Удар, не Undo
+    assert undo_in_pile in cm.deck_manager.discard_pile  # Undo остался в сбросе
+
+
+def test_undo_noop_when_only_undo_in_discard():
+    # Если в сбросе ТОЛЬКО Отмены — возвращать нечего, рука не растёт (петля рвётся).
+    cm = _cm()
+    cm.deck_manager.discard_pile = [create_undo(), create_undo()]
+    cm.deck_manager.hand = []
+    create_undo().apply(cm.player, cm.enemies[0], cm)
+    assert cm.deck_manager.hand == []
+
+
 # ─── Копировать/Вставить: Буфер обмена ───────────────────────────────────────
 def test_copy_then_paste_refires_effect():
     cm = _cm()
