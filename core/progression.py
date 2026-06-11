@@ -31,7 +31,6 @@ CLASS_TIERS = {
     "Warrior":   1,
     "Mage":      1,
     "Berserker": 1,
-    "Summoner":  2,
     "Chemist":   2,
     "Demiurge":  3,
 }
@@ -66,7 +65,6 @@ def _killed_bosses(n):
 # Условие открытия → функция от меты, возвращает bool. ВРЕМЕННЫЕ заглушки (С50).
 # Ярус 1 здесь не нужен (всегда открыт). Демиург — всегда False (маяк).
 UNLOCK_CONDITIONS = {
-    "Summoner": _reached_floor(6),
     "Chemist":  _reached_floor(8),
     "Demiurge": lambda meta: False,   # «Идеальный аудит» — контент финала, позже
 }

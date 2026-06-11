@@ -113,11 +113,11 @@ def test_default_meta_has_empty_unlocks():
 
 
 def test_record_run_grants_and_persists_unlock(isolated_save):
-    # Этаж 8 выполняет условие Summoner(≥6)+Chemist(≥8).
+    # Этаж 8 выполняет условие Chemist(≥8).
     fresh = SM.record_run(_run(floor=8, bosses=1))
-    assert set(fresh) == {"Summoner", "Chemist"}          # возвращены новооткрытые
+    assert set(fresh) == {"Chemist"}                      # возвращены новооткрытые
     SM.reset_cache()                                       # имитируем перезапуск
-    assert set(SM.get_meta()["unlocks"]) == {"Summoner", "Chemist"}
+    assert set(SM.get_meta()["unlocks"]) == {"Chemist"}
 
 
 def test_record_run_no_unlock_returns_empty(isolated_save):

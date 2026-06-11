@@ -1,7 +1,7 @@
 # tests/test_tactical_move.py
 # Позиционка §5a — Тактический Манёвр: эффект [Tactical_Move] переворачивает строй,
 # живое включение позиционки, рантайм formation_mirrored (тоггл/сброс между боями).
-from core.players import Warrior, Summoner
+from core.players import Warrior
 from core.enemies.cultist import Cultist
 from core.Summon import Summon
 from core.cards import create_strike, create_defend, create_tactical_reposition
@@ -21,6 +21,13 @@ def _live_cm(player):
     return CombatManager(player, Cultist("Культист", 30, 30), _deck(), game_manager=None)
 
 
+def _mirror_warrior():
+    """Игрок с зеркальным строем (инстанс-флаг; производителя-класса нет с С59)."""
+    p = Warrior()
+    p.mirrored_layout = True
+    return p
+
+
 # ═══════════════════════════════════════════════════════════
 # Строй на старте боя — по классовому дефолту
 # ═══════════════════════════════════════════════════════════
@@ -31,14 +38,14 @@ def test_живой_строй_дефолт_воин_во_фронте():
     assert cm.player.formation_mirrored is False
 
 
-def test_живой_строй_зеркало_призыватель_в_тылу():
-    cm = _live_cm(Summoner())
+def test_живой_строй_зеркало_в_тылу():
+    cm = _live_cm(_mirror_warrior())
     assert cm.player.rank == Rank.BACK
     assert cm.player.formation_mirrored is True
 
 
 def test_зеркало_саммон_встаёт_во_фронт():
-    cm = _live_cm(Summoner())
+    cm = _live_cm(_mirror_warrior())
     wolf = Summon(name="Волк", hp=12, attack_power=4)
     cm.allies.append(wolf)
     cm._apply_positioning()

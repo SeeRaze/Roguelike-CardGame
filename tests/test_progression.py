@@ -25,7 +25,6 @@ def test_ярус_1_это_воин_маг_берсерк():
 
 
 def test_ярус_2_и_демиург():
-    assert class_tier("Summoner") == 2
     assert class_tier("Chemist") == 2
     assert class_tier("Demiurge") == 3
 
@@ -44,7 +43,6 @@ def test_ярус_1_всегда_открыт_даже_без_меты():
 
 def test_ярус_2_закрыт_у_нового_игрока():
     m = _meta()
-    assert is_unlocked(m, "Summoner") is False
     assert is_unlocked(m, "Chemist") is False
 
 
@@ -79,11 +77,11 @@ def test_этаж_открывает_химика():
 
 
 def test_идемпотентность_повтор_без_прогресса_пуст():
-    m = _meta(best_floor=8)                    # откроет Summoner+Chemist
+    m = _meta(best_floor=8)                    # откроет Chemist
     first = newly_unlocked(m)
-    assert set(first) == {"Summoner", "Chemist"}
+    assert set(first) == {"Chemist"}
     assert newly_unlocked(m) == []            # второй раз — нечего открывать
-    assert set(m["unlocks"]) == {"Summoner", "Chemist"}
+    assert set(m["unlocks"]) == {"Chemist"}
 
 
 def test_newly_unlocked_создаёт_ключ_unlocks_если_нет():

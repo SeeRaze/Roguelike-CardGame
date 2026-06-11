@@ -15,14 +15,12 @@ from core.cards import (
     create_arcane_focus, create_coffee_spill,
     create_overclock, create_resonant_discharge,
     create_legacy_patch, create_battle_cry,
-    create_summon_wolf, create_summon_golem,
 )
 from core.cards.base import (
     DamageEffect, ShieldEffect, StatusEffect,
     DetonateEffect, RegenEffect, HealEffect, BarrierEffect,
 )
 from core.cards.air import FlowEffect
-from core.cards.summon import SummonEffect
 from core.cards.warrior import (
     ShieldDamageEffect, DisciplineBurstDamageEffect, DisciplineToShieldEffect,
     DisciplineGainEffect,
@@ -38,7 +36,7 @@ from core.cards.berserker import (
 from core.relics import (
     Оверклокинг, Линтер, Кэш, Санитайзер,
     Дебаггер, ОткатКБэкапу,
-    ЗакрытыйТикет, Овердрафт,
+    Овердрафт,
 )
 
 # Сколько кандидатов семплируется из пула при каждом жадном доборе (берётся
@@ -76,10 +74,6 @@ CLASS_CORES = {
         [create_battle_cry],
         [Оверклокинг, ОткатКБэкапу, Линтер, Овердрафт],
     ),
-    "Summoner": (
-        [create_summon_golem, create_summon_wolf, create_summon_golem],
-        [Оверклокинг, ЗакрытыйТикет, ОткатКБэкапу],
-    ),
 }
 
 
@@ -95,8 +89,6 @@ def _card_themes(card) -> set:
             t.add("sustain")
         elif isinstance(e, (ShieldEffect, ShieldDamageEffect)):
             t.add("shield")
-        elif isinstance(e, SummonEffect):
-            t.add("summon")
         elif isinstance(e, DamageEffect):
             t.add("attack")
         elif isinstance(e, (DetonateEffect, FlowEffect)):
@@ -149,8 +141,6 @@ def _card_score(card) -> float:
             value += e.base_val * 0.7
         elif isinstance(e, (RegenEffect, HealEffect)):
             value += e.base_val * 0.5
-        elif isinstance(e, SummonEffect):
-            value += e.hp * 0.2 + e.attack_power * 2
         elif isinstance(e, ShieldDamageEffect):
             value += 6                          # AoE по щиту
         elif isinstance(e, BleedEffect):

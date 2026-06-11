@@ -10,7 +10,7 @@ from core.EffectCalculator import EffectCalculator
 
 from core.ForgeRegistry import (
     forge_damage_multiplier, pick_tag, resolve_forge_record, _s,
-    EARLY_ADD, LEG_EMPTY_HAND, LEG_PER_MINION, CLASS_TAGS, _GENERIC_TAGS,
+    EARLY_ADD, LEG_EMPTY_HAND, LEG_PER_SHIELD, CLASS_TAGS, _GENERIC_TAGS,
 )
 from managers.balance.forge import (
     ForgePolicy, reward_level_for_floor, MILESTONE_TIER, BOSS_LEVEL_CAPS,
@@ -43,11 +43,11 @@ def test_early_add_off_when_condition_unmet():
 
 
 def test_legendary_mult_product():
-    # Легендарные перемножаются: empty_hand(×2) × per_minion(1+0.2·2=1.4).
-    snap = {"hand_after": 0, "minions": 2}
+    # Легендарные перемножаются: empty_hand(×2) × per_shield(1+0.01·50).
+    snap = {"hand_after": 0, "shield": 50}
     m = forge_damage_multiplier(
-        [{"tag_id": "empty_hand"}, {"tag_id": "per_minion"}], snap)
-    assert m == LEG_EMPTY_HAND * (1.0 + LEG_PER_MINION * 2)
+        [{"tag_id": "empty_hand"}, {"tag_id": "per_shield"}], snap)
+    assert m == LEG_EMPTY_HAND * (1.0 + LEG_PER_SHIELD * 50)
 
 
 def test_add_and_mult_compose():
@@ -96,8 +96,8 @@ def test_s_null_safe():
 def test_multiplier_with_empty_snapshot_safe():
     # Снимок пуст (цель погибла/нет данных) → дефолты, без падения.
     m = forge_damage_multiplier(
-        [{"tag_id": "per_minion"}, {"tag_id": "missing_hp"}], {})
-    assert m == 1.0     # minions=0 и hp_frac=1.0 (полное HP) → нейтрально
+        [{"tag_id": "per_shield"}, {"tag_id": "missing_hp"}], {})
+    assert m == 1.0     # shield=0 и hp_frac=1.0 (полное HP) → нейтрально
 
 
 # ─── Smart-weighted выбор тега (§10.1) ────────────────────────────────────────
@@ -239,10 +239,10 @@ def test_legendary_slot_at_15():
     p.forge_level_cap = 15
     p.forge_points = 9999
     deck = [_atk("Бомба", 12)]
-    pol.forge_between_acts(p, deck, class_name="Summoner")
+    pol.forge_between_acts(p, deck, class_name="Warrior")
     rec = p.deck_forge_state[deck[0]._fuid]
     tags = [s["tag_id"] for s in rec["slots"]]
-    assert CLASS_TAGS["Summoner"]["legendary"] in tags   # per_minion (×mult)
+    assert CLASS_TAGS["Warrior"]["legendary"] in tags   # per_shield (×mult)
 
 
 # ─── Закон минимального тира наград (§10.5) ───────────────────────────────────

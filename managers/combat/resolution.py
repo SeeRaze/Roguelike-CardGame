@@ -101,7 +101,7 @@ class ResolutionMixin:
             self.allies.remove(ally)
 
     def _restore_persistent_allies(self):
-        """Восстановить выживших союзников из прошлого боя (Призыватель).
+        """Восстановить выживших союзников из прошлого боя.
         Транзиентное боевое состояние (щит/статусы) обнуляем — переносим
         только саму единицу с её текущим HP."""
         carried = getattr(self.player, 'persistent_allies', None)

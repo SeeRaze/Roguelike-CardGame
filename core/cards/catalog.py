@@ -18,7 +18,6 @@ from core.cards import (
     create_regenerate, create_vitality, create_triage,
     create_drain, create_blood_feast, create_life_tap,
     create_lacerate, create_hemorrhage, create_open_wound,
-    create_summon_wolf, create_summon_golem,
     create_punishing_formation, create_shield_wall, create_warrior_stance,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
@@ -73,7 +72,6 @@ GENERIC_FACTORIES = [
 
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────
 CLASS_FACTORIES = {
-    "Summoner":  [create_summon_wolf, create_summon_golem],
     # Воин = чисто ось Дисциплины (С57, чистка под единый формат): старая ось «щит=атака»
     # убрана из классового пула. Барьер (Заслон/Бастион) → generic; Возмездие → из выдачи
     # (фабрика жива для совместимости/тестов, но не выдаётся — дублировала Карающий строй).

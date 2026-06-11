@@ -9,7 +9,7 @@
 # позвоночник detonate() — синергия по НОВЫМ стихиям re-bless в G1.
 from core.cards.base import Card, DamageEffect
 from core.cards.air import create_updraft, create_gust
-from managers.balance.policy import BotPolicy, SummonerPolicy, get_policy
+from managers.balance.policy import BotPolicy, WarriorPolicy, get_policy
 
 
 def _vanilla(name="Удар", cost=1):
@@ -64,20 +64,20 @@ def test_pick_card_фолбэк_в_class_pick(make_combat):
 
 def test_class_pick_достижим_у_подкласса(make_combat):
     # Синергия имеет приоритет, но без неё отрабатывает класс-специфика.
-    # SummonerPolicy._class_pick без призывов возвращает случайную карту из руки.
+    # _class_pick подкласса без синергии возвращает случайную карту из руки.
     cm = make_combat()
     hand = [_vanilla("Удар1"), _vanilla("Удар2")]
-    pick = SummonerPolicy().pick_card(hand, cm)
+    pick = WarriorPolicy().pick_card(hand, cm)
     assert pick in hand
 
 
 def test_синергия_приоритетнее_класс_специфики(make_combat, make_creature):
-    # У Summoner в руке чистый энейблер Потока + запасная карта → синергия
+    # В руке чистый энейблер Потока + запасная карта → синергия
     # (удешевление) побеждает random выбор _class_pick.
     enemy = make_creature("Враг", 50, 50)
     cm = make_combat(enemy=enemy)
     hand = [_vanilla(), create_updraft()]
-    pick = SummonerPolicy().pick_card(hand, cm)
+    pick = WarriorPolicy().pick_card(hand, cm)
     assert pick.name == "Восходящий поток"
 
 

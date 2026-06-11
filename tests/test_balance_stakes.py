@@ -7,7 +7,7 @@ import os
 import random
 import statistics
 
-from core.players import Warrior, Summoner
+from core.players import Warrior
 from managers.balance.runner import run_single_run
 
 
@@ -50,19 +50,6 @@ def test_активная_ставка_детерминирована():
     a = _run(99, stakes=["ascetic"])
     b = _run(99, stakes=["ascetic"])
     assert a["death_floor"] == b["death_floor"]
-
-
-def test_аскет_роняет_выживаемость():
-    """Калибровка С46 (true ascension): «Аскет» (≤6 карт, без награды) роняет
-    выживаемость ПРИЗЫВАТЕЛЯ — его снежный ком (стая/призывы) требует широкой колоды,
-    обрезка ≤6 рушит движок (замер С57: Δ−6 медианы, крупнейший устойчивый эффект из
-    7 классов; Маг/Воин на обрезке наоборот стабильны/бустятся — узкая колода = их
-    консистентность, ось «лимит карт» капризна по классам). Доказывает сим-нативность
-    слома: RuleStack измеримо влияет на симуляцию, причём ВНИЗ (опт-ин сложность).
-    Замер на ПУЛЕ seed (устойчив к RNG-сдвигам от нового контента)."""
-    base    = _pooled_median(_TENDENCY_SEEDS, cls=Summoner, stakes=None)
-    ascetic = _pooled_median(_TENDENCY_SEEDS, cls=Summoner, stakes=["ascetic"])
-    assert ascetic < base
 
 
 def test_хрупкость_роняет_выживаемость():

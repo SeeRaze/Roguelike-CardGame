@@ -409,7 +409,7 @@ class Card:
         self.upgraded = False
         self.exile = exile
         # Принадлежность классу: None = нейтральная (generic), иначе имя класса
-        # (напр. "Summoner"). Проставляется централизованно в core/cards/catalog.py.
+        # (напр. "Warrior"). Проставляется централизованно в core/cards/catalog.py.
         self.card_class = card_class
 
     def upgrade(self):

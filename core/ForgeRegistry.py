@@ -27,7 +27,6 @@
 EARLY_ADD          = 0.5    # ранний тег: +0.5 к множителю при выполнении условия
 LEG_EMPTY_HAND     = 2.0    # легендарный флаг «из пустой руки»: ×2.0
 # Легендарные масштабируемые (×(1 + scale·стат)) — компаунд растёт с движком класса.
-LEG_PER_MINION     = 0.20   # за миньона (Призыватель, резонанс со Сворой N²)
 LEG_PER_SHIELD     = 0.01   # за единицу щита/барьера (Воин, Барьер) — канал damage
 LEG_PER_COMBO      = 0.08   # за накопленное Мастерство (Маг, комбо)
 LEG_MISSING_HP     = 1.00   # ×(1 + доля недостающего HP) (Берсерк)
@@ -67,9 +66,6 @@ TAGS = {
     "low_hp":     {"kind": "add", "tier": "early", "channel": "damage", "klass": "Berserker",
                    "label": "На низком HP: +урон",
                    "fn": lambda s: EARLY_ADD if _s(s, "hp_frac", 1.0) < LOW_HP_THRESHOLD else 0.0},
-    "minions":    {"kind": "add", "tier": "early", "channel": "damage", "klass": "Summoner",
-                   "label": "При миньонах: +урон",
-                   "fn": lambda s: EARLY_ADD if _s(s, "minions") > 0 else 0.0},
     "combo":      {"kind": "add", "tier": "early", "channel": "damage", "klass": "Mage",
                    "label": "После комбо: +урон",
                    "fn": lambda s: EARLY_ADD if _s(s, "mastery") > 0 else 0.0},
@@ -86,9 +82,6 @@ TAGS = {
                    "fn": lambda s: EARLY_ADD if _s(s, "hp_frac", 1.0) < 1.0 else 0.0},
 
     # ── Легендарные АТАКУЮЩИЕ (×mult, истинный компаунд, channel=damage) ───────
-    "per_minion": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Summoner",
-                   "label": "×урон за каждого миньона",
-                   "fn": lambda s: 1.0 + LEG_PER_MINION * _s(s, "minions")},
     "per_shield": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Warrior",
                    "label": "×урон по щиту/барьеру",
                    "fn": lambda s: 1.0 + LEG_PER_SHIELD * (_s(s, "shield") + _s(s, "barrier"))},
@@ -122,7 +115,6 @@ TAGS = {
 CLASS_TAGS = {
     "Warrior":   {"early": "shielded", "legendary": "per_shield"},
     "Berserker": {"early": "low_hp",   "legendary": "missing_hp"},
-    "Summoner":  {"early": "minions",  "legendary": "per_minion"},
     "Mage":      {"early": "combo",    "legendary": "per_combo"},
 }
 _GENERIC_TAGS = {"early": "first_card", "legendary": "empty_hand"}

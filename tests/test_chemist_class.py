@@ -4,7 +4,7 @@
 # baseline-эталон НЕ тронут (Химика нет в sim CLASSES → регресс-гард зелёный).
 # Механизм слияния/Нестабильность — следующие этапы.
 
-from core.players import Chemist, Warrior, Summoner
+from core.players import Chemist, Warrior, Berserker
 from core.players.base import Player
 from core.players.chemist import REAGENT_PER_TURN, get_chemist_deck
 from core import progression
@@ -43,7 +43,7 @@ def test_гейт_слияния_включён_только_у_химика():
     assert Chemist().fusion_enabled is True
     # дефолт на базовом Player и у других классов — выключен (механизм инертен)
     assert Warrior().fusion_enabled is False
-    assert Summoner().fusion_enabled is False
+    assert Berserker().fusion_enabled is False
 
 
 def test_реагент_стартует_с_нуля_приток_задан():

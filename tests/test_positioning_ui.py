@@ -5,7 +5,7 @@ import pygame
 import pytest
 from types import SimpleNamespace
 
-from core.players import Summoner
+from core.players import Warrior
 from core.Summon import Summon
 from core.positioning import Rank, Line, assign_party_ranks
 from ui.combat import panels
@@ -34,7 +34,7 @@ def _wolf(name):
 def test_панель_игрока_с_бейджем_ранга_рисуется():
     screen = pygame.Surface((1920, 1080))
     view = _view()
-    player = Summoner()
+    player = Warrior()
     player.rank = Rank.BACK
     panels.draw_player_panel(view, screen, player, 0)   # не падает
     assert hasattr(view, "player_badge_rects")
@@ -67,7 +67,7 @@ def test_союзники_с_рангами_два_ряда():
 def test_зеркало_оба_саммона_во_фронт_ряду():
     screen = pygame.Surface((1920, 1080))
     view = _view()
-    hero = Summoner()
+    hero = Warrior()
     w1, w2 = _wolf("Волк1"), _wolf("Волк2")
     assign_party_ranks(hero, [w1, w2], mirrored=True)   # оба фронт
     panels.draw_ally_panels(view, screen, [w1, w2])
@@ -118,7 +118,7 @@ def test_панели_врагов_с_рангами_рисуются():
         e.set_intent("attack", 5)
     from core.positioning import assign_enemy_ranks
     assign_enemy_ranks(es)                       # 1 фронт / 2 тыл + линии
-    panels.draw_enemy_panels(view, screen, es, Summoner())   # не падает
+    panels.draw_enemy_panels(view, screen, es, Warrior())   # не падает
     assert len(view.enemy_panel_rects) == 3      # rect на каждого врага (таргет-маппинг цел)
 
 
@@ -131,7 +131,7 @@ def test_враги_с_рангами_два_ряда_фронт_выше_тыл
     for e in es:
         e.set_intent("attack", 5)
     assign_enemy_ranks(es)                       # es[0]=фронт, es[1..2]=тыл
-    panels.draw_enemy_panels(view, screen, es, Summoner())
+    panels.draw_enemy_panels(view, screen, es, Warrior())
     front_y = view.enemy_panel_rects[0].y        # фронт
     back_ys = [view.enemy_panel_rects[i].y for i in (1, 2)]  # тыл
     # Два ряда: фронт-ряд выше тыл-ряда.
@@ -151,7 +151,7 @@ def test_враги_index_alignment_таргетинг_цел():
     for e in es:
         e.set_intent("attack", 5)
     assign_enemy_ranks(es)
-    panels.draw_enemy_panels(view, screen, es, Summoner())
+    panels.draw_enemy_panels(view, screen, es, Warrior())
     # Все ячейки заполнены rect'ами (ни одного None — таргетинг по индексу не падает).
     assert all(r is not None for r in view.enemy_panel_rects)
     assert len(view.enemy_panel_rects) == 3
@@ -168,7 +168,7 @@ def test_один_враг_босс_полноразмерная_панель():
     boss = Cultist("Босс", 200, 200)
     boss.set_intent("attack", 20)
     assign_enemy_ranks([boss])                   # 1 враг → фронт, но один ряд
-    panels.draw_enemy_panels(view, screen, [boss], Summoner())
+    panels.draw_enemy_panels(view, screen, [boss], Warrior())
     assert len(view.enemy_panel_rects) == 1
     # n==1 остаётся большой полноразмерной панелью (нулевой регресс для боссов).
     assert view.enemy_panel_rects[0].width == _PANEL_W

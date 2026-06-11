@@ -1,7 +1,7 @@
 # managers/balance/policy.py
 # Политика бота: КАК выбирать карту и КОГДА жать классовую способность.
-# Дефолт-бот играл случайно и не жал способности — из-за этого классы (особенно
-# Призыватель) мерились искусственно слабыми. Политика делает бота КОМПЕТЕНТНЫМ:
+# Дефолт-бот играл случайно и не жал способности — из-за этого классы мерились
+# искусственно слабыми. Политика делает бота КОМПЕТЕНТНЫМ:
 # он играет к ядру своего класса. Цель — честный замер, а не оптимальный ИИ.
 #
 # Синергийный слой (общий для всех классов): синергийные карты (Шок/Раскол/Поток/
@@ -16,7 +16,6 @@ from core.cards.base import (
     ShieldEffect, DamageEffect, StatusEffect, DetonateEffect,
 )
 from core.cards.air import FlowEffect
-from core.cards.summon import SummonEffect
 from core.cards.warrior import (
     ShieldDamageEffect, DisciplineBurstDamageEffect, DisciplineToShieldEffect,
     DisciplineGainEffect,
@@ -122,20 +121,6 @@ class BotPolicy:
 
     def on_turn_end(self, combat) -> None:
         """Реактивные способности (после набора стаков/щита за ход)."""
-
-
-class SummonerPolicy(BotPolicy):
-    """Ядро класса — собрать стаю: призывы в приоритет, «Подкрепление» сразу."""
-
-    def _class_pick(self, playable, combat):
-        summons = [c for c in playable
-                   if any(isinstance(e, SummonEffect) for e in c.effects)]
-        return random.choice(summons) if summons else random.choice(playable)
-
-    def on_turn_begin(self, combat) -> None:
-        ab = _ability(combat)
-        if ab:                      # бесплатный волк — успеет атаковать в этот ход
-            ab.activate(combat)
 
 
 class BerserkerPolicy(BotPolicy):
@@ -338,7 +323,6 @@ class ChemistPolicy(BotPolicy):
 
 # Реестр: имя класса игрока -> политика. Фолбэк — базовая (random, без способности).
 CLASS_POLICIES = {
-    "Summoner":  SummonerPolicy(),
     "Berserker": BerserkerPolicy(),
     "Warrior":   WarriorPolicy(),
     "Mage":      MagePolicy(),
