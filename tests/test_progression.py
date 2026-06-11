@@ -143,9 +143,9 @@ def test_locked_карта_требует_анлок_в_мете(monkeypatch):
 
 
 def test_locked_артефакт_требует_анлок_в_мете(monkeypatch):
-    monkeypatch.setattr(prog, "LOCKED_RELICS", {"СердцеТитана"})
-    assert is_relic_unlocked(_meta(), "СердцеТитана") is False
-    assert is_relic_unlocked({"unlocks": ["СердцеТитана"]}, "СердцеТитана") is True
+    monkeypatch.setattr(prog, "LOCKED_RELICS", {"ОткатКБэкапу"})
+    assert is_relic_unlocked(_meta(), "ОткатКБэкапу") is False
+    assert is_relic_unlocked({"unlocks": ["ОткатКБэкапу"]}, "ОткатКБэкапу") is True
     assert is_relic_unlocked(_meta(), "Линтер") is True  # стартовый — мимо
 
 
@@ -176,10 +176,10 @@ def test_дев_флаг_открывает_всё(monkeypatch):
     # Взведённый флаг открывает залоченные классы/карты/артефакты, минуя unlocks.
     monkeypatch.setenv("ROGUELIKE_DEV_UNLOCK", "1")
     monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
-    monkeypatch.setattr(prog, "LOCKED_RELICS", {"СердцеТитана"})
+    monkeypatch.setattr(prog, "LOCKED_RELICS", {"ОткатКБэкапу"})
     assert is_unlocked(_meta(), "Rogue") is True          # тир-2 без анлока
     assert is_card_unlocked(_meta(), "fire_breath") is True
-    assert is_relic_unlocked(_meta(), "СердцеТитана") is True
+    assert is_relic_unlocked(_meta(), "ОткатКБэкапу") is True
 
 
 def test_дев_флаг_не_трогает_sim_путь(monkeypatch):

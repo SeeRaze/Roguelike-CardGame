@@ -251,7 +251,7 @@ class Creature:
         if s.get('bleed', 0) > 0:
             gm = getattr(combat_manager, 'gm', None) if combat_manager else None
             has_gniloy_klyk = gm and any(
-                r.name == "Гнилой Клык" for r in gm.relics
+                r.name == "Зомби-процесс" for r in gm.relics
             )
             # Разбойник врождённо «бередит раны»: его Кровотечение убывает вдвое,
             # а не в ноль — это даёт frenzy-усиленным наложениям накапливаться

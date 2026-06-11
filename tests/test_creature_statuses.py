@@ -2,7 +2,7 @@
 # Проверяем существо (Creature): получение урона, щит, шипы, вампиризм, кровотечение
 # и «тик» статусов в конце хода (яд/горение/реген/спад временных эффектов).
 from core.Creature import Creature
-from core.relics import ГнилойКлык
+from core.relics import ЗомбиПроцесс
 
 
 def test_щит_поглощает_урон_до_hp():
@@ -92,7 +92,7 @@ def test_кровотечение_сбрасывается_в_ноль_без_г
 def test_гнилой_клык_уменьшает_кровотечение_вдвое(make_combat):
     c = Creature("Цель", 50, 50)
     c.bleed = 4
-    cm = make_combat(enemy=c, relics=[ГнилойКлык()])
+    cm = make_combat(enemy=c, relics=[ЗомбиПроцесс()])
     c.tick_statuses(cm)         # с «Гнилым Клыком» -> делится пополам
     assert c.bleed == 2
 

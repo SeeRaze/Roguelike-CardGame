@@ -3,11 +3,11 @@ import random
 from core.relics.base import Relic
 from core.rarity import Rarity
 
-class ЭнергоЯдро(Relic):
+class Оверклокинг(Relic):
     """В начале первого боя навсегда увеличивает макс. энергию игрока на +1."""
 
     def __init__(self):
-        super().__init__("Энерго-Ядро", "Увеличивает максимальную энергию на +1.", Rarity.RARE)
+        super().__init__("Оверклокинг", "Разгон ядра: +1 к максимальной энергии.", Rarity.RARE)
         self._applied = False
 
     def on_combat_start(self, combat_manager):

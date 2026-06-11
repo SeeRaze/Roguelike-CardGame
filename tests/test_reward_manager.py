@@ -35,7 +35,7 @@ def test_новый_игрок_получает_только_стартовый_
 
 def test_анлок_открывает_locked_артефакт_в_выдаче():
     # Если locked-артефакт записан в meta['unlocks'] — снова доступен в выдаче.
-    gm = SimpleNamespace(relics=[], current_floor=20, meta={"unlocks": ["СердцеТитана"]})
+    gm = SimpleNamespace(relics=[], current_floor=20, meta={"unlocks": ["ОткатКБэкапу"]})
     seen = set()
     for s in range(60):
         random.seed(s)
@@ -44,7 +44,7 @@ def test_анлок_открывает_locked_артефакт_в_выдаче()
         relic = next((r for r in rewards if r["type"] == "relic"), None)
         if relic:
             seen.add(type(relic["value"]).__name__)
-    assert "СердцеТитана" in seen
+    assert "ОткатКБэкапу" in seen
 
 
 def test_проклятая_корона_убирает_золото():

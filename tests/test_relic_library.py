@@ -24,10 +24,10 @@ def test_categorize_uses_dominant_hook():
     by_name = {cls().name: cls() for cls in ALL_RELICS}
     # Линтер — модификатор урона (on_damage_calculated).
     assert categorize(by_name["Линтер"]) == "Модификатор урона"
-    # Сердце Титана — рост/восстановление по забегу (on_combat_end).
-    assert categorize(by_name["Сердце Титана"]) == "Рост по забегу (компаунд)"
-    # Железная Воля — активируемая.
-    assert categorize(by_name["Железная Воля"]) == "Активируемые"
+    # Откат к бэкапу — рост/восстановление по забегу (on_combat_end).
+    assert categorize(by_name["Откат к бэкапу"]) == "Рост по забегу (компаунд)"
+    # Кэш — активируемая.
+    assert categorize(by_name["Кэш"]) == "Активируемые"
 
 
 def test_groups_sorted_by_rarity_inside():
