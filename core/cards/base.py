@@ -92,10 +92,10 @@ class RegenEffect:
         mult = _forge_channel_mult(combat_manager, player, "heal")
         if mult != 1.0:
             amount = int(amount * mult)
-        player.add_status("regen", amount, combat_manager)
+        player.add_status("healthcheck", amount, combat_manager)
         if combat_manager:
             combat_manager.add_log_message(
-                f" -> Вы получаете Регенерацию ({amount})."
+                f" -> Вы получаете Хелсчек ({amount})."
             )
 
 

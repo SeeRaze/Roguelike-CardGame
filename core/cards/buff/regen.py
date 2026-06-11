@@ -12,7 +12,7 @@ def create_regenerate():
         name="Регенерация",
         cost=1,
         card_type="skill",
-        description="Получить Регенерацию (2). Изгнание.",
+        description="Получить Хелсчек (2). Изгнание.",
         effects=[RegenEffect(2, 4)],
         rarity=Rarity.UNCOMMON,
         exile=True,
@@ -25,7 +25,7 @@ def create_vitality():
         name="Живучесть",
         cost=2,
         card_type="skill",
-        description="Получить Регенерацию (3).",
+        description="Получить Хелсчек (3).",
         effects=[RegenEffect(3, 5)],
         rarity=Rarity.RARE,
     )
@@ -37,7 +37,7 @@ def create_triage():
         name="Полевая Медицина",
         cost=1,
         card_type="skill",
-        description="Получить Регенерацию (2) и 4 щита.",
+        description="Получить Хелсчек (2) и 4 щита.",
         effects=[RegenEffect(2, 3), ShieldEffect(4, 6)],
         rarity=Rarity.COMMON,
     )

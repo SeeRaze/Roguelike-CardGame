@@ -7,9 +7,9 @@ _ELEMENTAL_KEYS = frozenset(("coffee", "legacy"))
 
 
 class Creature:
-    # Потолок лечения от статуса «регенерация» за один тик (см. tick_statuses).
-    # Режет перекормленные стаки регена, не трогая одиночные хил-карты.
-    REGEN_HEAL_CAP_PER_TURN = 6
+    # Потолок лечения от статуса «хелсчек» за один тик (см. tick_statuses).
+    # Режет перекормленные стаки хелсчека, не трогая одиночные хил-карты.
+    HEALTHCHECK_HEAL_CAP_PER_TURN = 6
 
     # Доля НЕДОСТАЮЩЕГО HP, восстанавливаемая «Отдыхом» у костра (см. rest_heal_amount).
     REST_HEAL_PCT = 0.30
@@ -221,15 +221,15 @@ class Creature:
                 if s['legacy'] == 0:
                     print(f" [Статус] Legacy-код в {self.name} дочитан.")
 
-        if s.get('regen', 0) > 0:
-            # Потолок лечения от регена за один тик: высокие стаки регена
+        if s.get('healthcheck', 0) > 0:
+            # Потолок лечения от хелсчека за один тик: высокие стаки
             # (несколько хил-карт сразу) больше не возвращают HP «на полную».
-            regen_heal = min(s['regen'], self.REGEN_HEAL_CAP_PER_TURN)
+            regen_heal = min(s['healthcheck'], self.HEALTHCHECK_HEAL_CAP_PER_TURN)
             healed = self.heal(regen_heal, combat_manager)
             if combat_manager:
                 combat_manager.add_log_message(
-                    f" [РЕГЕН] {self.name} восстанавливает {healed} HP."
+                    f" [ХЕЛСЧЕК] {self.name} восстанавливает {healed} HP."
                 )
-            s['regen'] -= 1
-            if s['regen'] == 0:
-                print(f" [Статус] Регенерация на {self.name} иссякла.")
+            s['healthcheck'] -= 1
+            if s['healthcheck'] == 0:
+                print(f" [Статус] Хелсчек на {self.name} иссяк.")

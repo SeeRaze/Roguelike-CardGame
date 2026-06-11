@@ -27,10 +27,10 @@ def test_флакон_с_желчью_травит_врага_в_начале_б
     assert cm.enemy.legacy == 3
 
 
-def test_засохший_клевер_даёт_регенерацию(make_combat):
+def test_фоновое_индексирование_даёт_хелсчек(make_combat):
     cm = make_combat()
     ФоновоеИндексирование().on_combat_start(cm)
-    assert cm.player.regen == 3
+    assert cm.player.healthcheck == 3
 
 
 def test_заточенный_осколок_усиливает_первую_атаку(make_combat):

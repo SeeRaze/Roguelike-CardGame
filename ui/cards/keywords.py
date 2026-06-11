@@ -24,7 +24,7 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
             key = effect.status_type
             val = effect.upgrade_turns if card.upgraded else effect.base_turns
         elif isinstance(effect, RegenEffect):
-            key = "regen"
+            key = "healthcheck"
             val = effect.upgrade_val if card.upgraded else effect.base_val
         elif isinstance(effect, VampireBuffEffect):
             key = "vampire"

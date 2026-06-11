@@ -59,13 +59,13 @@ def test_crash_reboot_strips_and_blocks():
     e = cm.enemies[0]
     e.shield = 10
     e.optimize = 5
-    e.regen = 4
+    e.healthcheck = 4
     e.leak = 1
     e.tox = 1
     cm.apply_copresence_reactions()
     assert e.shield == 0
     assert e.optimize == 0
-    assert e.regen == 0
+    assert e.healthcheck == 0
     assert e.get_status("heal_block") == CRASH_REBOOT_TURNS
 
 

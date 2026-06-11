@@ -53,20 +53,20 @@ def test_тик_legacy_наносит_урон_и_уменьшает_стак():
     assert c.hp == 47 and c.legacy == 2
 
 
-def test_тик_регенерации_лечит():
+def test_тик_хелсчека_лечит():
     c = Creature("Цель", 40, 50)
-    c.regen = 2
+    c.healthcheck = 2
     c.tick_statuses()
-    assert c.hp == 42 and c.regen == 1
+    assert c.hp == 42 and c.healthcheck == 1
 
 
-def test_тик_регенерации_ограничен_потолком_за_ход():
+def test_тик_хелсчека_ограничен_потолком_за_ход():
     c = Creature("Цель", 10, 100)
-    c.regen = 20                       # стак выше потолка
+    c.healthcheck = 20                 # стак выше потолка
     c.tick_statuses()
-    # лечение срезано до REGEN_HEAL_CAP_PER_TURN, стак убывает на 1
-    assert c.hp == 10 + Creature.REGEN_HEAL_CAP_PER_TURN
-    assert c.regen == 19
+    # лечение срезано до HEALTHCHECK_HEAL_CAP_PER_TURN, стак убывает на 1
+    assert c.hp == 10 + Creature.HEALTHCHECK_HEAL_CAP_PER_TURN
+    assert c.healthcheck == 19
 
 
 def test_временные_статусы_спадают_на_один():

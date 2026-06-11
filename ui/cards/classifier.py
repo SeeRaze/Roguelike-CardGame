@@ -36,7 +36,7 @@ def classify_card(card) -> str:
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
     has_shield   = any(isinstance(e, (ShieldEffect, DisciplineToShieldEffect)) for e in effects)
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
-    has_regen    = any(isinstance(e, RegenEffect) for e in effects)
+    has_healthcheck = any(isinstance(e, RegenEffect) for e in effects)
     has_buff     = any(isinstance(e, BuffEffect) for e in effects)
     has_flow     = any(isinstance(e, FlowEffect) for e in effects)
     has_echo     = any(isinstance(e, EchoEffect) for e in effects)
@@ -59,8 +59,8 @@ def classify_card(card) -> str:
         return "barrier"
     if has_mastery:
         return "mastery"
-    if has_regen:
-        return "regen"
+    if has_healthcheck:
+        return "healthcheck"
     if has_heal:
         return "heal"
     if has_buff:
