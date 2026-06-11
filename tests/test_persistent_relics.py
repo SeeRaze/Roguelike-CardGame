@@ -187,12 +187,12 @@ def test_сердце_бездны_компаунд_за_боссов():
 def test_сердце_великана_флэт_max_hp_однократно():
     """UNCOMMON: +25 макс. HP при первом бою, второй бой НЕ дублирует."""
     from types import SimpleNamespace
-    from core.relics import СердцеВеликана
+    from core.relics import ДМСПлатиновый
     p = Berserker()
     p.hp = p.max_hp
     base = p.max_hp
     cm = SimpleNamespace(player=p, add_log_message=lambda m: None)
-    r = СердцеВеликана()
+    r = ДМСПлатиновый()
     r.on_combat_start(cm)
     assert p.max_hp == base + 25
     assert p.hp == base + 25            # хил на дельту
@@ -201,9 +201,9 @@ def test_сердце_великана_флэт_max_hp_однократно():
 
 
 def test_сердце_великана_в_пуле_uncommon():
-    from core.relics import СердцеВеликана, RELIC_POOL
+    from core.relics import ДМСПлатиновый, RELIC_POOL
     from core.rarity import Rarity
-    assert СердцеВеликана in RELIC_POOL[Rarity.UNCOMMON]
+    assert ДМСПлатиновый in RELIC_POOL[Rarity.UNCOMMON]
 
 
 def test_камень_вечной_жизни_растит_каждый_бой():

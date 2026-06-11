@@ -39,9 +39,9 @@ from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
 )
 from core.relics import (
-    ЭнергоЯдро, Линтер, ЖелезнаяВоля, ШипастаяБроня,
-    ДревнееОгниво, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
-    ТрофейныйКлык, ТехническийДолг,
+    ЭнергоЯдро, Линтер, ЖелезнаяВоля, Санитайзер,
+    Дебаггер, СердцеТитана, ГнилойКлык, СборщикМусора,
+    ЗакрытыйТикет, Овердрафт,
 )
 
 # Сколько кандидатов семплируется из пула при каждом жадном доборе (берётся
@@ -66,27 +66,27 @@ CLASS_CORES = {
         # → пассив копит Дисц каждый ход) + билдеры → сжигаем в бурст/стену.
         [create_warrior_stance, create_warrior_stance, create_bastion,
          create_iron_wall, create_punishing_formation],
-        [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро],
+        [ЖелезнаяВоля, Санитайзер, ЭнергоЯдро],
     ),
     "Mage": (
         # Движок Мастерства: гамбл Разгоном + комбо ХОТФИКС (Кофе/Legacy) растят
         # Мастерство → перегруз ×1.5 → Резонансный разряд выжимает глубину. HP-churn.
         [create_overclock, create_resonant_discharge, create_arcane_focus,
          create_coffee_spill, create_legacy_patch],
-        [ДревнееОгниво, ЭнергоЯдро, Линтер],
+        [Дебаггер, ЭнергоЯдро, Линтер],
     ),
     "Rogue": (
         [create_bloodlust, create_lacerate, create_serrated_edge,
          create_open_wound, create_hemorrhage],
-        [ГнилойКлык, ОкровавленныйШприц, ЭнергоЯдро, Линтер],
+        [ГнилойКлык, СборщикМусора, ЭнергоЯдро, Линтер],
     ),
     "Berserker": (
         [create_battle_cry],
-        [ЭнергоЯдро, СердцеТитана, Линтер, ТехническийДолг],
+        [ЭнергоЯдро, СердцеТитана, Линтер, Овердрафт],
     ),
     "Summoner": (
         [create_summon_golem, create_summon_wolf, create_summon_golem],
-        [ЭнергоЯдро, ТрофейныйКлык, СердцеТитана],
+        [ЭнергоЯдро, ЗакрытыйТикет, СердцеТитана],
     ),
 }
 

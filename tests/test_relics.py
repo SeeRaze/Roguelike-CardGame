@@ -4,17 +4,17 @@ from types import SimpleNamespace
 from core.players import Warrior
 from core.relics import (
     ALL_RELICS,
-    ФлаконСЖелчью, ФоновоеИндексирование, УтреннийСозвон, ПроклятаяКорона,
-    СнекБар, ШипастаяБроня, ОкровавленныйШприц, СвинцовыйНабалдашник,
+    GitBlame, ФоновоеИндексирование, УтреннийСозвон, ПроклятаяКорона,
+    СнекБар, Санитайзер, СборщикМусора, Дедлайн,
     Антивирус, БагРепорт, ЛидЗаСпиной,
     Кофемашина,
 )
 
 
 def test_в_пуле_33_уникальные_реликвии():
-    # С57 (1d-pre): −Проклятая Корона (32→31). 2b/2c HP-ось: +Сердце Великана
-    # (UNCOMMON), +Камень Вечной Жизни (EPIC) → 31→33. Срез Берсерка: +Технический
-    # Долг (UNCOMMON, классовый компаунд) → 33→34. C3b: −Грозовая Батарея
+    # С57 (1d-pre): −Проклятая Корона (32→31). 2b/2c HP-ось: +ДМС (платиновый пакет)
+    # (UNCOMMON), +Камень Вечной Жизни (EPIC) → 31→33. Срез Берсерка: +Овердрафт
+    # (UNCOMMON, классовый компаунд) → 33→34. C3b: −Грозовая Батарея
     # (shock удалён) → 34→33.
     assert len(ALL_RELICS) == 33
     имена = [r().name for r in ALL_RELICS]
@@ -23,7 +23,7 @@ def test_в_пуле_33_уникальные_реликвии():
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):
     cm = make_combat()
-    ФлаконСЖелчью().on_combat_start(cm)
+    GitBlame().on_combat_start(cm)
     assert cm.enemy.legacy == 3
 
 
@@ -55,7 +55,7 @@ def test_старая_пиявка_добавляет_к_хилу():
 
 def test_шипастая_броня_вешает_кровотечение_при_получении_щита(make_combat):
     cm = make_combat()
-    ШипастаяБроня().on_shield_gained(5, cm.player, cm)
+    Санитайзер().on_shield_gained(5, cm.player, cm)
     assert cm.enemy.bleed == 1
 
 
@@ -63,14 +63,14 @@ def test_окровавленный_шприц_на_карте_изгнания(
     cm = make_combat(player=Warrior())
     cm.player.energy = 0
     карта = SimpleNamespace(exile=True)
-    ОкровавленныйШприц().on_card_played(карта, cm)
+    СборщикМусора().on_card_played(карта, cm)
     assert cm.player.energy == 1
     assert cm.enemy.legacy == 2
 
 
 def test_свинцовый_набалдашник_слабит_первой_атакой(make_combat):
     cm = make_combat()
-    relic = СвинцовыйНабалдашник()
+    relic = Дедлайн()
     атака = SimpleNamespace(card_type="attack")
     relic.on_card_played(атака, cm)
     assert cm.enemy.weak == 1
@@ -92,7 +92,7 @@ def test_окровавленный_шприц_травит_живого_а_не
     труп.hp = 0
     живой = make_creature("Живой", 50, 50)
     cm.enemies.append(живой)
-    ОкровавленныйШприц().on_card_played(SimpleNamespace(exile=True), cm)
+    СборщикМусора().on_card_played(SimpleNamespace(exile=True), cm)
     assert живой.legacy == 2
     assert труп.legacy == 0
 
@@ -103,7 +103,7 @@ def test_свинцовый_набалдашник_слабит_живого_а_
     труп.hp = 0
     живой = make_creature("Живой", 50, 50)
     cm.enemies.append(живой)
-    СвинцовыйНабалдашник().on_card_played(SimpleNamespace(card_type="attack"), cm)
+    Дедлайн().on_card_played(SimpleNamespace(card_type="attack"), cm)
     assert живой.weak == 1
     assert труп.weak == 0
 
@@ -114,7 +114,7 @@ def test_шипастая_броня_кровит_живого_а_не_труп(
     труп.hp = 0
     живой = make_creature("Живой", 50, 50)
     cm.enemies.append(живой)
-    ШипастаяБроня().on_shield_gained(5, cm.player, cm)
+    Санитайзер().on_shield_gained(5, cm.player, cm)
     assert живой.bleed == 1
     assert труп.bleed == 0
 
@@ -124,9 +124,9 @@ def test_реликвии_без_живых_врагов_не_падают(make_
     cm = make_combat(player=Warrior())
     cm.player.energy = 0
     cm.enemies[0].hp = 0
-    ОкровавленныйШприц().on_card_played(SimpleNamespace(exile=True), cm)
-    СвинцовыйНабалдашник().on_card_played(SimpleNamespace(card_type="attack"), cm)
-    ШипастаяБроня().on_shield_gained(5, cm.player, cm)
+    СборщикМусора().on_card_played(SimpleNamespace(exile=True), cm)
+    Дедлайн().on_card_played(SimpleNamespace(card_type="attack"), cm)
+    Санитайзер().on_shield_gained(5, cm.player, cm)
     # Энергия от Шприца всё равно начисляется (до проверки цели)? Нет — return до лога,
     # но += energy идёт ДО target-проверки → +1 ожидаемо.
     assert cm.player.energy == 1

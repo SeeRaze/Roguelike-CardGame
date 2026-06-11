@@ -181,7 +181,7 @@ _STARTER_META = {"unlocks": []}
 
 def test_ceiling_стартер_отсекает_залоченные_реликвии():
     """День-1: залоченные реликвии-движки выпадают из ядра потолка. У Воина все 3
-    реликвии ядра заперты (ЖелезнаяВоля/ШипастаяБроня/ЭнергоЯдро) → ядро без реликвий."""
+    реликвии ядра заперты (ЖелезнаяВоля/Санитайзер/ЭнергоЯдро) → ядро без реликвий."""
     from core.progression import is_relic_unlocked, relic_id_for
     _, _, full_relics = get_ceiling_build("Warrior")
     _, _, starter_relics = get_ceiling_build("Warrior", meta=_STARTER_META)

@@ -1,10 +1,10 @@
 # tests/test_relic_tech_debt.py
-# «Технический Долг» — классовый КАТ.4-компаунд Берсерка: добил в HP-долге → +1% урона
+# «Овердрафт» — классовый КАТ.4-компаунд Берсерка: добил в HP-долге → +1% урона
 # навсегда (перенос между боями). + классовый резонанс выдачи (только Берсерку).
 from types import SimpleNamespace
 
 from core.rarity import Rarity
-from core.relics import ТехническийДолг, RELIC_POOL
+from core.relics import Овердрафт, RELIC_POOL
 
 
 class _StubCM:
@@ -18,12 +18,12 @@ class _StubCM:
 
 # ── механика компаунда ────────────────────────────────────────────────────────
 def test_в_пуле_uncommon_и_резонанс_берсерка():
-    assert ТехническийДолг in RELIC_POOL[Rarity.UNCOMMON]
-    assert ТехническийДолг().relic_class == "Berserker"
+    assert Овердрафт in RELIC_POOL[Rarity.UNCOMMON]
+    assert Овердрафт().relic_class == "Berserker"
 
 
 def test_добивание_в_долге_копит_стак():
-    r = ТехническийДолг()
+    r = Овердрафт()
     cm = _StubCM(SimpleNamespace(hp=-5))       # в долге
     r.on_kill(None, cm)
     r.on_kill(None, cm)
@@ -31,22 +31,22 @@ def test_добивание_в_долге_копит_стак():
 
 
 def test_добивание_не_в_долге_не_копит():
-    r = ТехническийДолг()
+    r = Овердрафт()
     cm = _StubCM(SimpleNamespace(hp=10))        # не в долге
     r.on_kill(None, cm)
     assert r.stacks == 0
 
 
 def test_стаки_множат_исходящий_урон():
-    r = ТехническийДолг()
+    r = Овердрафт()
     r.stacks = 50                               # +50% (50 × 1%)
     assert r.on_damage_calculated(100, is_player_attack=True) == 150
     assert r.on_damage_calculated(100, is_player_attack=False) == 100  # не на входящий
-    assert ТехническийДолг().on_damage_calculated(100) == 100          # 0 стаков → инертно
+    assert Овердрафт().on_damage_calculated(100) == 100          # 0 стаков → инертно
 
 
 def test_стаки_переносятся_между_боями():
-    r = ТехническийДолг()
+    r = Овердрафт()
     r.stacks = 7
     r.on_combat_start(None)                     # НЕ сбрасывает (кат.4-перенос по забегу)
     assert r.stacks == 7
@@ -65,10 +65,10 @@ def test_резонанс_выдачи_только_берсерку():
     from managers.RewardManager import _pick_relic
     from core.players import Berserker, Warrior
     # Все прочие UNCOMMON помечаем как уже имеющиеся → в этой редкости кандидат один:
-    # Технический Долг (если резонанс пускает).
+    # Овердрафт (если резонанс пускает).
     others = [r().name for r in RELIC_POOL[Rarity.UNCOMMON]
-              if r().name != "Технический Долг"]
+              if r().name != "Овердрафт"]
     bers = _pick_relic(_gm(Berserker, others), Rarity.UNCOMMON)
-    assert bers is not None and bers.name == "Технический Долг"   # Берсерку — выпадает
+    assert bers is not None and bers.name == "Овердрафт"   # Берсерку — выпадает
     war = _pick_relic(_gm(Warrior, others), Rarity.UNCOMMON)
-    assert war is None or war.name != "Технический Долг"          # Воину — никогда
+    assert war is None or war.name != "Овердрафт"          # Воину — никогда

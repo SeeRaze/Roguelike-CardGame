@@ -34,7 +34,7 @@ NEUTRAL_EVENTS = [
             "Он предлагает силу в обмен на испытание."
         ),
         "options": [
-            {"label": "Принять испытание (-25% HP, +реликвия)", "effects": ["lose_hp_pct:0.25", "gain_relic:ДревнееОгниво"]},
+            {"label": "Принять испытание (-25% HP, +реликвия)", "effects": ["lose_hp_pct:0.25", "gain_relic:Дебаггер"]},
             {"label": "Взять Legacy-карту",                      "effects": ["gain_card:create_tech_debt"]},
             {"label": "Отступить",                               "effects": ["skip"]},
         ],

@@ -64,7 +64,7 @@ def make_creature():
 def make_combat(make_creature):
     """Фикстура-фабрика: создать «ненастоящий бой» (FakeCombat).
     Можно передать своих player/enemy/relics, иначе создаются базовые существа.
-    Пример: cm = make_combat(relics=[ФлаконСЖелчью()])"""
+    Пример: cm = make_combat(relics=[GitBlame()])"""
     def _make(player=None, enemy=None, relics=None):
         player = player if player is not None else make_creature("Игрок", 50, 50)
         enemy  = enemy  if enemy  is not None else make_creature("Враг", 50, 50)
