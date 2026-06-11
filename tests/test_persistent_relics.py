@@ -1,9 +1,9 @@
 # tests/test_persistent_relics.py
 # Персистентный слой по забегу (шаг №5 framework): растущие реликвии копят
 # КОМПАУНД через хук on_boss_defeated (босс-этажи 20/40/60/80/100). Проверяем
-# флагман «Корона Вознесения» + проводку в сим-раннере (предусловие boss-filter:
+# флагман «Повышение грейда» + проводку в сим-раннере (предусловие boss-filter:
 # симулятор обязан видеть чекпойнты-ворота).
-from core.relics import КоронаВознесения, ALL_RELICS
+from core.relics import ПовышениеГрейда, ALL_RELICS
 from core.relics.base import Relic
 from core.players import Berserker
 
@@ -20,30 +20,30 @@ def test_базовый_relic_имеет_хук_on_boss_defeated():
 
 def test_корона_в_пуле_реликвий():
     names = [r().name for r in ALL_RELICS]
-    assert "Корона Вознесения" in names
+    assert "Повышение грейда" in names
 
 
 # ─── Рост множителя за боссов ─────────────────────────────────────────────
 
 
 def test_старт_без_боссов_множитель_1():
-    r = КоронаВознесения()
+    r = ПовышениеГрейда()
     assert r._mult == 1.0
     # урон не меняется без побеждённых боссов
     assert r.on_damage_calculated(10, is_player_attack=True) == 10
 
 
 def test_один_босс_растит_множитель():
-    g = КоронаВознесения.GROWTH_PER_BOSS
-    r = КоронаВознесения()
+    g = ПовышениеГрейда.GROWTH_PER_BOSS
+    r = ПовышениеГрейда()
     r.on_boss_defeated(player=None, combat_manager=None)
     assert round(r._mult, 4) == round(g, 4)
 
 
 def test_компаунд_за_пять_боссов():
     """5 боссов забега → ×GROWTH^5 (множительный компаунд, кат.4)."""
-    g = КоронаВознесения.GROWTH_PER_BOSS
-    r = КоронаВознесения()
+    g = ПовышениеГрейда.GROWTH_PER_BOSS
+    r = ПовышениеГрейда()
     for _ in range(5):
         r.on_boss_defeated(player=None, combat_manager=None)
     assert round(r._mult, 4) == round(g ** 5, 4)
@@ -53,8 +53,8 @@ def test_компаунд_за_пять_боссов():
 
 
 def test_урон_усиливается_после_босса():
-    g = КоронаВознесения.GROWTH_PER_BOSS
-    r = КоронаВознесения()
+    g = ПовышениеГрейда.GROWTH_PER_BOSS
+    r = ПовышениеГрейда()
     r.on_boss_defeated(player=None, combat_manager=None)   # ×g
     # база 100 (чистое округление) — урон растёт ровно на множитель
     assert r.on_damage_calculated(100, is_player_attack=True) == int(round(100 * g))
@@ -62,8 +62,8 @@ def test_урон_усиливается_после_босса():
 
 
 def test_урон_компаунд_за_пять_боссов():
-    g = КоронаВознесения.GROWTH_PER_BOSS
-    r = КоронаВознесения()
+    g = ПовышениеГрейда.GROWTH_PER_BOSS
+    r = ПовышениеГрейда()
     for _ in range(5):
         r.on_boss_defeated(player=None, combat_manager=None)
     assert r.on_damage_calculated(100, is_player_attack=True) == int(round(100 * g ** 5))
@@ -71,7 +71,7 @@ def test_урон_компаунд_за_пять_боссов():
 
 def test_вражеские_атаки_не_усиливаются():
     """Бонус только для атак ИГРОКА (как ПроклятаяКорона)."""
-    r = КоронаВознесения()
+    r = ПовышениеГрейда()
     for _ in range(5):
         r.on_boss_defeated(player=None, combat_manager=None)
     assert r.on_damage_calculated(10, is_player_attack=False) == 10
@@ -83,8 +83,8 @@ def test_вражеские_атаки_не_усиливаются():
 def test_лог_при_победе_над_боссом():
     from tests.conftest import FakeCombat
     cm = FakeCombat(Berserker(), Berserker())
-    КоронаВознесения().on_boss_defeated(cm.player, cm)
-    assert any("Корона Вознесения" in m for m in cm.log)
+    ПовышениеГрейда().on_boss_defeated(cm.player, cm)
+    assert any("Повышение грейда" in m for m in cm.log)
 
 
 # ─── Сброс между забегами (свежий инстанс) ────────────────────────────────
@@ -93,11 +93,11 @@ def test_лог_при_победе_над_боссом():
 def test_свежий_инстанс_сбрасывает_компаунд():
     """Состояние живёт на инстансе → новый забег = новый инстанс = mult 1.0.
     (В сим-раннере relic_objs = [r() ...] на каждый забег; в игре — новый забег.)"""
-    r1 = КоронаВознесения()
+    r1 = ПовышениеГрейда()
     for _ in range(5):
         r1.on_boss_defeated(player=None, combat_manager=None)
     assert r1._mult > 1.0
-    r2 = КоронаВознесения()   # «новый забег»
+    r2 = ПовышениеГрейда()   # «новый забег»
     assert r2._mult == 1.0
 
 
@@ -135,45 +135,45 @@ def test_сим_раннер_триггерит_хук_на_этажах_20_40(m
     assert spy_holder[0].boss_floors == [20, 40]
 
 
-# ─── Сердце Бездны (оборонный компаунд: +%макс.HP за босса) ───────────────
+# ─── Стрессоустойчивость (оборонный компаунд: +%макс.HP за босса) ───────────────
 
 
 def test_сердце_бездны_в_пуле():
-    from core.relics import СердцеБездны, RELIC_POOL
+    from core.relics import Стрессоустойчивость, RELIC_POOL
     from core.rarity import Rarity
     names = [r().name for r in ALL_RELICS]
-    assert "Сердце Бездны" in names
-    assert СердцеБездны in RELIC_POOL[Rarity.EPIC]
+    assert "Стрессоустойчивость" in names
+    assert Стрессоустойчивость in RELIC_POOL[Rarity.EPIC]
 
 
 def test_сердце_бездны_растит_макс_хп_и_лечит():
     """Босс: +15% к макс. HP + мгновенный хил на ту же дельту."""
-    from core.relics import СердцеБездны
+    from core.relics import Стрессоустойчивость
     p = Berserker()
     p.hp = p.max_hp           # полное HP
     base = p.max_hp
-    gain = max(1, round(base * СердцеБездны.GROWTH_PCT))
-    СердцеБездны().on_boss_defeated(p)
+    gain = max(1, round(base * Стрессоустойчивость.GROWTH_PCT))
+    Стрессоустойчивость().on_boss_defeated(p)
     assert p.max_hp == base + gain
     assert p.hp == base + gain          # хил на дельту → снова полное
 
 
 def test_сердце_бездны_хил_не_превышает_новый_максимум():
-    from core.relics import СердцеБездны
+    from core.relics import Стрессоустойчивость
     p = Berserker()
     p.hp = 1                  # почти мёртв
     base = p.max_hp
-    gain = max(1, round(base * СердцеБездны.GROWTH_PCT))
-    СердцеБездны().on_boss_defeated(p)
+    gain = max(1, round(base * Стрессоустойчивость.GROWTH_PCT))
+    Стрессоустойчивость().on_boss_defeated(p)
     assert p.hp == 1 + gain
     assert p.hp <= p.max_hp
 
 
 def test_сердце_бездны_компаунд_за_боссов():
     """Несколько боссов компаундят макс. HP (растущая дельта от 15%)."""
-    from core.relics import СердцеБездны
+    from core.relics import Стрессоустойчивость
     p = Berserker()
-    r = СердцеБездны()
+    r = Стрессоустойчивость()
     start = p.max_hp
     for _ in range(3):
         r.on_boss_defeated(p)
@@ -208,25 +208,25 @@ def test_сердце_великана_в_пуле_uncommon():
 
 def test_камень_вечной_жизни_растит_каждый_бой():
     """EPIC: +1% макс. HP в конце КАЖДОГО боя (on_combat_end), с хилом."""
-    from core.relics import КаменьВечнойЖизни
+    from core.relics import Аптайм
     p = Berserker()
     p.hp = p.max_hp
     base = p.max_hp
-    r = КаменьВечнойЖизни()
+    r = Аптайм()
     r.on_combat_end(p)
-    gain = max(1, round(base * КаменьВечнойЖизни.GROWTH_PCT))
+    gain = max(1, round(base * Аптайм.GROWTH_PCT))
     assert p.max_hp == base + gain
     assert p.hp == base + gain
 
 
 def test_камень_вечной_жизни_компаунд_частотой():
     """Много боёв компаундят (частота > редкие боссы). 50 боёв заметно растят."""
-    from core.relics import КаменьВечнойЖизни, RELIC_POOL
+    from core.relics import Аптайм, RELIC_POOL
     from core.rarity import Rarity
     p = Berserker()
     start = p.max_hp
-    r = КаменьВечнойЖизни()
+    r = Аптайм()
     for _ in range(50):
         r.on_combat_end(p)
     assert p.max_hp > start * 1.3       # 1.01^50 ≈ ×1.64 (с округлением вверх)
-    assert КаменьВечнойЖизни in RELIC_POOL[Rarity.EPIC]
+    assert Аптайм in RELIC_POOL[Rarity.EPIC]

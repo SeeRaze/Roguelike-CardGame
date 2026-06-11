@@ -13,7 +13,7 @@ from core.relics import (
 
 def test_в_пуле_33_уникальные_реликвии():
     # С57 (1d-pre): −Проклятая Корона (32→31). 2b/2c HP-ось: +ДМС (платиновый пакет)
-    # (UNCOMMON), +Камень Вечной Жизни (EPIC) → 31→33. Срез Берсерка: +Овердрафт
+    # (UNCOMMON), +Аптайм (EPIC) → 31→33. Срез Берсерка: +Овердрафт
     # (UNCOMMON, классовый компаунд) → 33→34. C3b: −Грозовая Батарея
     # (shock удалён) → 34→33.
     assert len(ALL_RELICS) == 33
@@ -159,35 +159,35 @@ def test_флакон_катализатора_обливает_кофе(make_co
     assert cm.enemy.coffee == 2
 
 
-# --- Высокотировые движки (EPIC): Эхо Вечности / Несокрушимый Бастион ---
+# --- Высокотировые движки (EPIC): Автоматизация / Аутсорс ---
 
 def test_эхо_вечности_даёт_эхо_в_начале_хода(make_combat):
-    from core.relics import ЭхоВечности
+    from core.relics import Автоматизация
     cm = make_combat()
-    ЭхоВечности().on_turn_start(cm)
+    Автоматизация().on_turn_start(cm)
     assert cm.player.echo == 1
 
 
 def test_несокрушимый_бастион_половину_щита_в_барьер(make_combat):
     """Половина полученного щита → несгораемый Барьер (игроку)."""
-    from core.relics import НесокрушимыйБастион
+    from core.relics import Аутсорс
     cm = make_combat()
-    НесокрушимыйБастион().on_shield_gained(8, cm.player, cm)
+    Аутсорс().on_shield_gained(8, cm.player, cm)
     assert cm.player.barrier == 4          # 50% от 8
 
 
 def test_бастион_малый_щит_не_даёт_барьер(make_combat):
-    from core.relics import НесокрушимыйБастион
+    from core.relics import Аутсорс
     cm = make_combat()
-    НесокрушимыйБастион().on_shield_gained(1, cm.player, cm)
+    Аутсорс().on_shield_gained(1, cm.player, cm)
     assert cm.player.barrier == 0          # int(1*0.5)=0
 
 
 def test_бастион_игнорирует_щит_не_игрока(make_combat):
     """Щит получил враг/союзник — Барьер игроку не начисляется."""
-    from core.relics import НесокрушимыйБастион
+    from core.relics import Аутсорс
     cm = make_combat()
-    НесокрушимыйБастион().on_shield_gained(8, cm.enemy, cm)
+    Аутсорс().on_shield_gained(8, cm.enemy, cm)
     assert cm.player.barrier == 0
 
 
