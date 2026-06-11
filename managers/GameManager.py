@@ -79,7 +79,7 @@ class GameManager:
 
     def get_removal_price(self) -> int:
         base = (15 + self.current_floor * 2) + self.removal_count * 25
-        if any(r.name == "Проклятая Корона" for r in self.relics):
+        if any(r.name == "Марш смерти" for r in self.relics):
             base *= 2
         return base
 

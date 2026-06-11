@@ -11,7 +11,7 @@ def _roll_relic_rarity(is_boss: bool, is_elite: bool, floor: int = 0) -> Rarity:
     """Редкость выпадающей реликвии по типу боя.
 
     Боссы — единственный источник EPIC/LEGENDARY (раньше они вообще не выпадали:
-    дроп упирался в RARE, и флагманы `Повышение грейда`/`Проклятая Корона` были
+    дроп упирался в RARE, и флагманы `Повышение грейда`/`Марш смерти` были
     недостижимы вне симулятора). Лестница привязана к этажу босса (20/40/60/80/100):
       floor < 40  → RARE                       (босс акта 1)
       floor ≥ 40  → EPIC (шанс) / иначе RARE    (акт 2+)
@@ -93,7 +93,7 @@ def build_rewards(gm, is_boss: bool, is_elite: bool) -> list:
     rewards = []
 
     # --- Золото ---
-    has_crown = any(r.name == "Проклятая Корона" for r in gm.relics)
+    has_crown = any(r.name == "Марш смерти" for r in gm.relics)
     if not has_crown:
         gold_drop = random.randint(20, 35) + (gm.current_floor * 3)
         if is_elite:

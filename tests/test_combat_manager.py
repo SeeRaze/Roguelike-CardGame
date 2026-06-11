@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from core.players import Warrior, Rogue, Summoner
 from core.enemies.cultist import Cultist
 from core.cards import create_strike, create_defend
-from core.relics import ПроклятаяКорона
+from core.relics import МаршСмерти
 from managers.CombatManager import CombatManager
 
 
@@ -100,7 +100,7 @@ def test_розыгрыш_изгоняемой_карты_попадает_в_и
 
 def test_розыгрыш_не_падает_с_реликвией():
     """Реликвия с on_card_played не мешает розыгрышу."""
-    gm = SimpleNamespace(relics=[ПроклятаяКорона()])
+    gm = SimpleNamespace(relics=[МаршСмерти()])
     cm = _make_cm(gm=gm)
     cm.player.energy = 3
     result = cm.play_card_by_index(0)

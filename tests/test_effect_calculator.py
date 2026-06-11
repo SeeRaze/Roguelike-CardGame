@@ -5,7 +5,7 @@ from core.EffectCalculator import EffectCalculator
 from core.ComboRegistry import COMBOS, all_combos
 from core.Creature import Creature
 from core.players import Berserker
-from core.relics import ПроклятаяКорона
+from core.relics import МаршСмерти
 
 calc = EffectCalculator.calculate_damage
 
@@ -99,7 +99,7 @@ def test_реликвия_проклятая_корона_удваивает_у�
     atk = Creature("Игрок", 50, 50)
     tgt = Creature("Цель", 50, 50)
     cm = make_combat(player=atk, enemy=tgt)
-    cm.gm.relics = [ПроклятаяКорона()]
+    cm.gm.relics = [МаршСмерти()]
     # Корона удваивает урон атаки игрока: 10 -> 20.
     assert calc(atk, tgt, 10, game_manager=cm.gm, combat_manager=cm) == 20
 
@@ -108,7 +108,7 @@ def test_проклятая_корона_не_трогает_урон_врага
     enemy = Creature("Враг", 50, 50)
     player = Creature("Игрок", 50, 50)
     cm = make_combat(player=player, enemy=enemy)
-    cm.gm.relics = [ПроклятаяКорона()]
+    cm.gm.relics = [МаршСмерти()]
     # Атакует враг (не игрок) -> корона не срабатывает.
     assert calc(enemy, player, 10, game_manager=cm.gm, combat_manager=cm) == 10
 

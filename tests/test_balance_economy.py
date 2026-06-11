@@ -28,7 +28,7 @@ class _FakeGM:
 
     def get_removal_price(self):
         base = (15 + self.current_floor * 2) + self.removal_count * 25
-        if any(r.name == "Проклятая Корона" for r in self.relics):
+        if any(r.name == "Марш смерти" for r in self.relics):
             base *= 2
         return base
 
@@ -73,7 +73,7 @@ def test_on_combat_won_копит_золото():
 
 
 def test_on_combat_won_корона_не_даёт_золота():
-    gm = _FakeGM(gold=100, floor=3, relics=[_Relic("Проклятая Корона")])
+    gm = _FakeGM(gold=100, floor=3, relics=[_Relic("Марш смерти")])
     EconomyPolicy().on_combat_won(gm, floor=3)
     assert gm.player_gold == 100
 
@@ -147,13 +147,13 @@ def test_between_acts_корона_удваивает_цену():
     deck = [_atk(f"X{i}", 5, 1) for i in range(6)]
     price_no_crown = _FakeGM(floor=1).get_removal_price()      # 17
     gm = _FakeGM(gold=price_no_crown, floor=1,
-                 relics=[_Relic("Проклятая Корона")])           # цена 34
+                 relics=[_Relic("Марш смерти")])           # цена 34
     EconomyPolicy().between_acts(gm, deck, "Warrior")
     assert gm.removal_count == 0          # не хватило на удвоенную цену
 
 
 def test_has_crown_детект():
-    assert _has_crown(_FakeGM(relics=[_Relic("Проклятая Корона")]))
+    assert _has_crown(_FakeGM(relics=[_Relic("Марш смерти")]))
     assert not _has_crown(_FakeGM(relics=[_Relic("Другое")]))
 
 

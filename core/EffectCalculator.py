@@ -44,7 +44,7 @@ class EffectCalculator:
                 breakdown.append((label, kind, value))
 
         # 1. ТРИГГЕР РЕЛИКВИЙ. dry_run прокидывается — реликвии с одноразовым
-        #    зарядом (Заточенный Осколок) показывают бонус в превью, не тратя его.
+        #    зарядом (Утренний созвон) показывают бонус в превью, не тратя его.
         if game_manager and hasattr(game_manager, 'relics'):
             for relic in game_manager.relics:
                 before = base_damage

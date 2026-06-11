@@ -4,10 +4,10 @@ from core.relics.base import Relic
 from core.rarity import Rarity
 
 
-class ПроклятаяКорона(Relic):
+class МаршСмерти(Relic):
     def __init__(self):
         super().__init__(
-            "Проклятая Корона",
+            "Марш смерти",
             "Урон атаками x2. Цена удаления карт x2. Золото из наград исчезает.",
             Rarity.LEGENDARY,
         )

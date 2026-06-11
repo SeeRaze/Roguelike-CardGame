@@ -28,8 +28,8 @@ ARTIFACT_GOLD_MULT = 1.0
 
 def gold_reward(floor: int, is_elite: bool, has_crown: bool) -> int:
     """Золото за выжитый бой — зеркало RewardManager.build_rewards (та же
-    формула). «Проклятая Корона» обнуляет золото (осознанный размен: урон вместо
-    экономики) → у Корона-билдов нет средств на прореживание (важная синергия).
+    формула). «Марш смерти» обнуляет золото (осознанный размен: урон вместо
+    экономики) → у Марш-билдов нет средств на прореживание (важная синергия).
     Приток масштабируется ARTIFACT_GOLD_MULT (заглушка-катализатор артефактов)."""
     if has_crown:
         return 0
@@ -106,7 +106,7 @@ class EconomyPolicy:
 
 
 def _has_crown(gm) -> bool:
-    return any(r.name == "Проклятая Корона" for r in gm.relics)
+    return any(r.name == "Марш смерти" for r in gm.relics)
 
 
 def _removal_target(deck: list, themes: set):

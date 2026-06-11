@@ -4,7 +4,7 @@ import random
 from types import SimpleNamespace
 from managers.RewardManager import build_rewards, _roll_relic_rarity
 from core.rarity import Rarity
-from core.relics import ALL_RELICS, ПроклятаяКорона
+from core.relics import ALL_RELICS, МаршСмерти
 
 
 def _gm(relics=None, floor=5):
@@ -48,7 +48,7 @@ def test_анлок_открывает_locked_артефакт_в_выдаче()
 
 
 def test_проклятая_корона_убирает_золото():
-    rewards = build_rewards(_gm(relics=[ПроклятаяКорона()]), is_boss=True, is_elite=False)
+    rewards = build_rewards(_gm(relics=[МаршСмерти()]), is_boss=True, is_elite=False)
     types = [r["type"] for r in rewards]
     assert "gold" not in types
 
