@@ -111,11 +111,11 @@ class Кэш(Relic):
 
     def on_turn_start(self, combat_manager):
         if self._shield_hold:
-            saved = getattr(combat_manager.player, '_iron_will_shield', 0)
+            saved = getattr(combat_manager.player, '_cache_held_shield', 0)
             if saved > 0:
                 combat_manager.player.shield = saved
                 combat_manager.add_log_message(
                     f"[Реликвия] '{self.name}': щит {saved} сохранён!"
                 )
             self._shield_hold = False
-            combat_manager.player._iron_will_shield = 0
+            combat_manager.player._cache_held_shield = 0
