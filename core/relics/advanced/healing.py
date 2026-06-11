@@ -26,7 +26,7 @@ class СердцеТитана(Relic):
 
 
 class СтараяПиявка(Relic):
-    """Прямой хил увеличивается на +2 HP."""
+    """Прямой хил игрока увеличивается на +2 HP (в пределах недостающего HP)."""
 
     def __init__(self):
         super().__init__(
@@ -35,11 +35,15 @@ class СтараяПиявка(Relic):
             Rarity.COMMON,
         )
 
-    def on_heal(self, healed_amount, creature):
+    def on_heal(self, healed_amount, creature, combat_manager=None):
         bonus = min(2, creature.max_hp - creature.hp)
         if bonus > 0:
             creature.hp += bonus
-            print(f"[Реликвия] 'Старая Пиявка': +{bonus} HP бонус к хилу!")
+            # В бою пишем в общий лог; вне боя (отдых/событие) канала нет.
+            if combat_manager is not None:
+                combat_manager.add_log_message(
+                    f"[Реликвия] '{self.name}': +{bonus} HP бонус к хилу!"
+                )
 
 
 class ЗасохшийКлевер(Relic):

@@ -1,5 +1,6 @@
 # core/relics/advanced/bleed_poison.py
-# Реликвии темы «кровь и яд» (Кровотечение / Яд).
+# Реликвии темы «кровь и Legacy-код» (Кровотечение / накладывание Legacy-кода
+# на врага). Бывший «яд» влит в Legacy-код при сносе старых стихий (С58).
 from core.relics.base import Relic
 from core.rarity import Rarity
 

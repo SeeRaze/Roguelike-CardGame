@@ -4,6 +4,8 @@ from core.relics.base import Relic
 from core.rarity import Rarity
 
 class ЭнергоЯдро(Relic):
+    """В начале первого боя навсегда увеличивает макс. энергию игрока на +1."""
+
     def __init__(self):
         super().__init__("Энерго-Ядро", "Увеличивает максимальную энергию на +1.", Rarity.RARE)
         self._applied = False
@@ -17,6 +19,8 @@ class ЭнергоЯдро(Relic):
 
 
 class ДревнееОгниво(Relic):
+    """Каждый тик Legacy-кода на любом существе наносит +2 урона (амп DoT)."""
+
     def __init__(self):
         super().__init__("Древнее Огниво", "Каждый тик Legacy-кода наносит +2 урона.", Rarity.UNCOMMON)
 
@@ -25,11 +29,13 @@ class ДревнееОгниво(Relic):
 
 
 class НамокшаяРукавица(Relic):
+    """При наложении 'Разлитый кофе' на врага игрок получает +4 Щита."""
+
     def __init__(self):
         super().__init__("Намокшая Рукавица", "При наложении 'Разлитый кофе' на врага -- +4 Щита.", Rarity.UNCOMMON)
 
     def on_coffee_applied(self, combat_manager):
-        combat_manager.player.gain_shield(4, combat_manager)  # ← фикс
+        combat_manager.player.gain_shield(4, combat_manager)
         combat_manager.add_log_message(f"[Реликвия] '{self.name}': +4 Щита!")
 
 

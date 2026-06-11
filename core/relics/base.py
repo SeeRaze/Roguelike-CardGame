@@ -7,7 +7,8 @@
   COMMON     — простой плоский стат или маленький разовый эффект; без условий
                синергии (напр. +10 щита в начале боя, +2 урона всем атакам).
   UNCOMMON   — условные/синергийные эффекты средней силы (привязка к стихии/
-               статусу/событию: +урон за тик Горения, щит при наложении Мокрого).
+               статусу/событию: +урон за тик Legacy-кода, щит при наложении
+               Разлитого кофе).
   RARE       — сильные движки и билд-дефайнеры (генерация энергии, сустейн,
                внутрибоевой компаунд: +1 макс. энергия, хил % недостающего HP).
   EPIC       — масштабирование ПО ЗАБЕГУ (компаунд между боями; см.
@@ -37,7 +38,8 @@ class Relic:
       on_boss_defeated     <- GameManager.distribute_combat_rewards (только босс-этаж)
                               + managers/balance/runner.py (сим, босс-этаж)
       on_bleed_tick        <- Creature.take_damage (при bleed > 0)
-      on_heal              <- Creature.heal (после фактического хила)
+      on_heal              <- Creature.heal (после фактического хила;
+                              combat_manager только если хил случился в бою)
       on_chest_opened      <- ui/chest/common.py (при открытии сундука)
       activate             <- InputHandler (только для is_active=True реликвий)
 
@@ -75,7 +77,8 @@ class Relic:
     def on_boss_defeated(self, player, combat_manager=None): pass
     def on_bleed_tick(self, bleed_dmg, creature,
                       combat_manager):                  return bleed_dmg
-    def on_heal(self, healed_amount, creature):         pass
+    def on_heal(self, healed_amount, creature,
+                combat_manager=None):                   pass
     def on_chest_opened(self, chest_type: str,
                         game_manager):                  pass
 

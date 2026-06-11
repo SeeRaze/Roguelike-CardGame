@@ -89,7 +89,7 @@ class Creature:
             gm = getattr(combat_manager, 'gm', None)
             if gm:
                 for relic in gm.relics:
-                    relic.on_heal(healed, self)
+                    relic.on_heal(healed, self, combat_manager)
             if hasattr(self, 'on_heal_passive'):
                 self.on_heal_passive(healed, combat_manager)
 
