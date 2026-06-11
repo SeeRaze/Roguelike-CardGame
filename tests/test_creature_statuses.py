@@ -36,11 +36,11 @@ def test_файрвол_отражает_урон_в_атакующего():
 def test_вампиризм_лечит_атакующего_и_гаснет_втрое():
     target = Creature("Цель", 50, 50)
     attacker = Creature("Вампир", 40, 50)
-    attacker.vampire = 4
+    attacker.cache_hit = 4
     target.take_damage(10, attacker=attacker)
-    # хил = max(1, 10*2//5) = 4 -> 40 + 4 = 44; вампиризм 4 -> 4//3 = 1
+    # хил = max(1, 10*2//5) = 4 -> 40 + 4 = 44; кэш-хит 4 -> 4//3 = 1
     assert attacker.hp == 44
-    assert attacker.vampire == 1
+    assert attacker.cache_hit == 1
 
 
 

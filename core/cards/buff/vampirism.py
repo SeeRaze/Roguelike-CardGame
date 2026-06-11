@@ -1,22 +1,22 @@
 # Карты вампиризма: накладывают статус-бафф на игрока.
-# Вампиризм триггерится в Creature.take_damage при каждой атаке игрока.
+# Кэш-хит триггерится в Creature.take_damage при каждой атаке игрока.
 
 from core.cards.base import Card, DamageEffect
 from core.rarity import Rarity
 
 
 class VampireBuffEffect:
-    """Накладывает статус вампиризма на игрока."""
+    """Накладывает статус кэш-хита на игрока."""
     def __init__(self, base_val, upgrade_val):
         self.base_val    = base_val
         self.upgrade_val = upgrade_val
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         amount = self.upgrade_val if is_upgraded else self.base_val
-        player.add_status("vampire", amount, combat_manager)
+        player.add_status("cache_hit", amount, combat_manager)
         if combat_manager:
             combat_manager.add_log_message(
-                f" -> Вампиризм +{amount}. Итого: {player.statuses['vampire']}."
+                f" -> Кэш-хит +{amount}. Итого: {player.statuses['cache_hit']}."
             )
 
 
@@ -26,7 +26,7 @@ def create_drain():
         name="Высасывание",
         cost=1,
         card_type="attack",
-        description="Урон 6 (9). Вампиризм +4 (6).",
+        description="Урон 6 (9). Кэш-хит +4 (6).",
         effects=[DamageEffect(6, 9), VampireBuffEffect(4, 6)],
         rarity=Rarity.UNCOMMON,
     )
@@ -38,7 +38,7 @@ def create_blood_feast():
         name="Кровавый Пир",
         cost=2,
         card_type="attack",
-        description="Урон 18 (24). Вампиризм +10 (15). Изгнание.",
+        description="Урон 18 (24). Кэш-хит +10 (15). Изгнание.",
         effects=[DamageEffect(18, 24), VampireBuffEffect(10, 15)],
         rarity=Rarity.RARE,
         exile=True,
@@ -51,7 +51,7 @@ def create_life_tap():
         name="Жизнеотвод",
         cost=1,
         card_type="attack",
-        description="Урон 4 (6). Вампиризм +6 (9).",
+        description="Урон 4 (6). Кэш-хит +6 (9).",
         effects=[DamageEffect(4, 6), VampireBuffEffect(6, 9)],
         rarity=Rarity.COMMON,
     )

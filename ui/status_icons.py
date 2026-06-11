@@ -138,7 +138,7 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
         # Шипастая звезда (отражение).
         _star(screen, cx, cy, r, color, points=6)
 
-    elif key == "vampire":
+    elif key == "cache_hit":
         # Два клыка под дугой.
         pygame.draw.arc(screen, color,
                         (cx - r, cy - r, r * 2, r * 2), 0.2, 2.94, lw)

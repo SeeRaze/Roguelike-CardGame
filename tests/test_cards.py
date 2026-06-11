@@ -188,7 +188,7 @@ def test_vampire_effect_накладывает_вампиризм(make_creature)
     player = make_creature("Игрок", 50, 50)
     enemy  = make_creature("Враг", 50, 50)
     VampireBuffEffect(4, 6).execute(player, enemy, combat_manager=None, is_upgraded=False)
-    assert player.vampire == 4
+    assert player.cache_hit == 4
 
 
 # ═══════════════════════════════════════════════════════════

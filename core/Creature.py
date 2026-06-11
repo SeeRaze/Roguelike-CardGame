@@ -164,21 +164,21 @@ class Creature:
             attacker.hp = max(attacker.hp - self.statuses['firewall'], attacker._hp_floor())
 
         if amount > 0 and attacker is not None:
-            vamp = attacker.statuses.get('vampire', 0)
+            vamp = attacker.statuses.get('cache_hit', 0)
             if vamp > 0:
-                # Вампиризм лечит на 40% нанесённого урона (было 50%). Доля
-                # снижена, чтобы вампирный sustain не перекрывал урон врага
-                # на поздних этажах. Тема «кровь» сохранена.
+                # Кэш-хит лечит на 40% нанесённого урона (было 50%). Доля
+                # снижена, чтобы sustain не перекрывал урон врага
+                # на поздних этажах.
                 heal_amount = max(1, amount * 2 // 5)
                 attacker.heal(heal_amount, combat_manager)
-                # Стак вампиризма гаснет ВТРОЕ за триггер (а не вдвое): меньше
+                # Стак кэш-хита гаснет ВТРОЕ за триггер (а не вдвое): меньше
                 # «бесплатных» лечащих ударов с одного наложения.
                 decayed = vamp // 3
-                attacker.statuses['vampire'] = decayed
+                attacker.statuses['cache_hit'] = decayed
                 if combat_manager:
                     combat_manager.add_log_message(
-                        f" [ВАМПИР] Вы восстанавливаете {heal_amount} HP. "
-                        f"Вампиризм: {vamp} → {decayed}."
+                        f" [КЭШ-ХИТ] Вы восстанавливаете {heal_amount} HP. "
+                        f"Кэш-хит: {vamp} → {decayed}."
                     )
 
     def tick_statuses(self, combat_manager=None):
