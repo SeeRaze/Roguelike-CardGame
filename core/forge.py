@@ -18,7 +18,7 @@
 from managers.MapGenerator import FLOORS_PER_ACT
 from core.cards.base import (
     DamageEffect, ShieldEffect, BarrierEffect, HealEffect, RegenEffect,
-    PoisonEffect,
+    StatusEffect,
 )
 from core.cards.debuff.bleed import BleedEffect
 
@@ -307,8 +307,10 @@ def card_is_defensive(card) -> bool:
     for e in card.effects:
         if isinstance(e, (ShieldEffect, BarrierEffect, HealEffect, RegenEffect)):
             has_def = True
-        elif isinstance(e, (DamageEffect, BleedEffect, PoisonEffect)):
+        elif isinstance(e, (DamageEffect, BleedEffect)):
             has_off = True
+        elif isinstance(e, StatusEffect) and e.status_type == "legacy":
+            has_off = True   # Legacy-код — DoT (офенс), как поглощённый им Яд
     return has_def and not has_off
 
 

@@ -77,7 +77,7 @@ def test_badges_skip_inactive():
     from ui.combat.hud import CombatHUD
     font = pygame.font.SysFont("Arial", 16)
     c = Creature("t", 50, 50)
-    c.poison = 4   # только один активен
+    c.legacy = 4   # только один активен
     rects = CombatHUD.draw_status_badges(_surf(), font, c, 0, 0)
     assert len(rects) == 1
-    assert rects[0][1] == "poison"
+    assert rects[0][1] == "legacy"

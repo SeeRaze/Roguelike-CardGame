@@ -20,7 +20,7 @@ def get_chemist_deck():
         create_defend(), create_defend(),
         create_ignite(),        # Горение — сырьё стихии
         create_splash(),        # Мокрый — сырьё стихии (ПАР при слиянии с огнём)
-        create_poison_stab(),   # Яд — сырьё стихии
+        create_poison_stab(),   # Legacy-код — сырьё стихии (DoT)
     ]
 
 

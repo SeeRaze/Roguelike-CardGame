@@ -60,29 +60,31 @@ class TestSpellEater:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Чумной Гнойник — яд, ×2 при щите
+# Чумной Гнойник — Legacy-код, ×2 +Токс (Кислотный дождь) при щите
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestPlaguePustule:
-    def test_poison_no_shield(self):
+    def test_legacy_no_shield(self):
         e = PlaguePustule("PP", 100, 100)
         p = Creature("p", 50, 50)
         e.on_turn_start(p, None)
-        assert p.poison == PlaguePustule.PLAGUE_POISON
+        assert p.legacy == PlaguePustule.PLAGUE_POISON
+        assert p.tox == 0                      # без щита токса нет
 
-    def test_poison_doubled_with_shield(self):
+    def test_legacy_doubled_with_shield_and_tox(self):
         e = PlaguePustule("PP", 100, 100)
         p = Creature("p", 50, 50)
         p.shield = 5
         e.on_turn_start(p, None)
-        assert p.poison == PlaguePustule.PLAGUE_POISON * 2
+        assert p.legacy == PlaguePustule.PLAGUE_POISON * 2
+        assert p.tox == PlaguePustule.PLAGUE_TOX   # щит провоцирует Кислотный дождь
 
-    def test_poison_stacks_over_turns(self):
+    def test_legacy_stacks_over_turns(self):
         e = PlaguePustule("PP", 100, 100)
         p = Creature("p", 50, 50)
         e.on_turn_start(p, None)
         e.on_turn_start(p, None)
-        assert p.poison == PlaguePustule.PLAGUE_POISON * 2
+        assert p.legacy == PlaguePustule.PLAGUE_POISON * 2
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -131,19 +133,19 @@ class TestButcherTorturer:
 class TestCorruptionDevourer:
     def test_devours_under_cap(self):
         e = CorruptionDevourer("CD", 50, 100)
-        e.poison = 3
+        e.legacy = 3
         e.on_turn_start(None, None)
-        assert e.poison == 0
+        assert e.legacy == 0
         assert e.hp == 53   # вылечился на 3
 
     def test_cap_limits_consumption(self):
         e = CorruptionDevourer("CD", 50, 100)
-        e.poison = 5
+        e.legacy = 5
         e.bleed = 4
         e.ignited = 3       # суммарно 12, cap 8
         e.on_turn_start(None, None)
-        # Приоритет poison→bleed→ignited: ест poison5 + bleed3 = 8.
-        assert e.poison == 0
+        # Приоритет legacy→bleed→ignited: ест legacy5 + bleed3 = 8.
+        assert e.legacy == 0
         assert e.bleed == 1
         assert e.ignited == 3
         assert e.hp == 58
@@ -155,7 +157,7 @@ class TestCorruptionDevourer:
 
     def test_heal_capped_at_max_hp(self):
         e = CorruptionDevourer("CD", 99, 100)
-        e.poison = 8
+        e.legacy = 8
         e.on_turn_start(None, None)
         assert e.hp == 100   # лечение не превышает max_hp
 

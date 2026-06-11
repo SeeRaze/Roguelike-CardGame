@@ -2,7 +2,7 @@
 # Сбор ключевых слов карты и отрисовка модульного тултипа-глоссария.
 import pygame
 from core.cards.base import (
-    StatusEffect, PoisonEffect, RegenEffect, HealEffect, DetonateEffect,
+    StatusEffect, RegenEffect, HealEffect, DetonateEffect,
     BarrierEffect,
 )
 from core.cards.debuff.bleed import BleedEffect
@@ -25,9 +25,6 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
         if isinstance(effect, StatusEffect):
             key = effect.status_type
             val = effect.upgrade_turns if card.upgraded else effect.base_turns
-        elif isinstance(effect, PoisonEffect):
-            key = "poison"
-            val = effect.upgrade_val if card.upgraded else effect.base_val
         elif isinstance(effect, RegenEffect):
             key = "regen"
             val = effect.upgrade_val if card.upgraded else effect.base_val

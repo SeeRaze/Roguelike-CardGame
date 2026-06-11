@@ -229,7 +229,7 @@ def test_восстановленный_союзник_теряет_щит_и_с
     cm = CombatManager(summoner, Cultist("Культист", 1, 1), _simple_deck())
     wolf = _make_wolf(summoner)
     wolf.shield = 9
-    wolf.poison = 4
+    wolf.legacy = 4
     cm.allies.append(wolf)
     cm.enemies[0].hp = 0
     cm._check_enemy_death(cm.enemies[0])
@@ -237,7 +237,7 @@ def test_восстановленный_союзник_теряет_щит_и_с
     cm2 = CombatManager(summoner, Cultist("Культист", 30, 30), _simple_deck())
     restored = cm2.allies[0]
     assert restored.shield == 0
-    assert restored.poison == 0
+    assert restored.legacy == 0
 
 
 # ═══════════════════════════════════════════════════════════

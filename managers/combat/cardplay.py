@@ -237,7 +237,7 @@ class CardPlayMixin:
             "barrier":    getattr(p, "barrier", 0),
             "mastery":    getattr(p, "mastery", 0),
             "minions":    sum(1 for a in self.allies if a.hp > 0),
-            "tgt_poison": getattr(target, "poison", 0),
+            "tgt_legacy": getattr(target, "legacy", 0),
             "tgt_bleed":  getattr(target, "bleed", 0),
         }
 

@@ -5,8 +5,9 @@
 # устаревшее число. Проверяем: чистые карты обновляются, нестандартные — no-op.
 
 from core.cards.base import (
-    Card, DamageEffect, ShieldEffect, PoisonEffect, StatusEffect, RegenEffect,
+    Card, DamageEffect, ShieldEffect, StatusEffect, RegenEffect,
 )
+from core.cards.debuff.bleed import BleedEffect
 from core.forge import apply_linear_level
 from ui.cards.description import project_forge_values
 
@@ -37,17 +38,17 @@ def test_unforged_card_unchanged():
 
 
 def test_multi_effect_card_projects_all_pairs():
-    c = Card("Кислотный Барьер", 1, "defense",
-             "Дает 6(9) щита. Накладывает 2(3) Яда.",
-             [ShieldEffect(6, 9), PoisonEffect(2, 3)])
+    c = Card("Кровавый Барьер", 1, "defense",
+             "Дает 6(9) щита. Накладывает 2(3) Кровотечения.",
+             [ShieldEffect(6, 9), BleedEffect(2, 3)])
     _forge(c, 2)  # δ = 1 (на base И upgrade)
-    assert project_forge_values(c) == "Дает 7(10) щита. Накладывает 3(4) Яда."
+    assert project_forge_values(c) == "Дает 7(10) щита. Накладывает 3(4) Кровотечения."
 
 
 def test_spacing_preserved():
     # «6 (9)» с пробелом и «2(3)» без — оба сохраняют свой стиль.
     c = Card("X", 1, "attack", "A 6 (9). B 2(3).",
-             [DamageEffect(6, 9), PoisonEffect(2, 3)])
+             [DamageEffect(6, 9), BleedEffect(2, 3)])
     _forge(c, 2)
     assert project_forge_values(c) == "A 7 (10). B 3(4)."
 

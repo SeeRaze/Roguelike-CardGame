@@ -3,7 +3,7 @@ from core.StatusRegistry import all_keys
 _STATUS_KEYS = set(all_keys())
 
 # Статусы, блокируемые МагоМ через «Стихийный барьер»
-_ELEMENTAL_KEYS = frozenset(("ignited", "wet", "poison"))
+_ELEMENTAL_KEYS = frozenset(("ignited", "wet"))
 
 
 class Creature:
@@ -220,13 +220,6 @@ class Creature:
             s['ignited'] -= 1
             if s['ignited'] == 0:
                 print(f" [Статус] Огонь на {self.name} потух.")
-
-        if s.get('poison', 0) > 0:
-            print(f" [ЯД] {self.name} получает {s['poison']} урона от яда!")
-            self.hp = max(self.hp - s['poison'], 0)
-            s['poison'] -= 1
-            if s['poison'] == 0:
-                print(f" [Статус] Яд в теле {self.name} рассеялся.")
 
         # Legacy-код (DoT, С58): УВАЖАЕТ щит. КИСЛОТНЫЙ ДОЖДЬ (Legacy+Токс): Токс
         # делает Legacy ПРОБИВАЮЩИМ щит (кислота ест броню) — дом «пробития»

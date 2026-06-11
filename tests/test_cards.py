@@ -5,7 +5,7 @@
 # Эффекты — фундамент боя: если execute() работает неверно, ломаются все карты.
 from core.cards.base import (
     Card, DamageEffect, ShieldEffect, HealEffect,
-    StatusEffect, PoisonEffect,
+    StatusEffect,
 )
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect
@@ -158,24 +158,6 @@ def test_status_effect_улучшенный(make_creature):
     enemy  = make_creature("Враг", 50, 50)
     StatusEffect("weak", 1, 2).execute(player, enemy, combat_manager=None, is_upgraded=True)
     assert enemy.weak == 2             # upgrade_turns=2, не base_turns=1
-
-
-# ═══════════════════════════════════════════════════════════
-# PoisonEffect
-# ═══════════════════════════════════════════════════════════
-
-def test_poison_effect_накладывает_яд(make_creature):
-    player = make_creature("Игрок", 50, 50)
-    enemy  = make_creature("Враг", 50, 50)
-    PoisonEffect(3, 5).execute(player, enemy, combat_manager=None, is_upgraded=False)
-    assert enemy.poison == 3
-
-
-def test_poison_effect_улучшенный(make_creature):
-    player = make_creature("Игрок", 50, 50)
-    enemy  = make_creature("Враг", 50, 50)
-    PoisonEffect(3, 5).execute(player, enemy, combat_manager=None, is_upgraded=True)
-    assert enemy.poison == 5
 
 
 # ═══════════════════════════════════════════════════════════

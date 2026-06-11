@@ -20,7 +20,7 @@ from core.cards import (
     create_summon_wolf, create_summon_golem,
 )
 from core.cards.base import (
-    DamageEffect, ShieldEffect, StatusEffect, PoisonEffect,
+    DamageEffect, ShieldEffect, StatusEffect,
     DetonateEffect, RegenEffect, HealEffect, BarrierEffect,
 )
 from core.cards.air import FlowEffect
@@ -54,7 +54,7 @@ _THEME_BONUS = 3.0   # надбавка кандидату за совпаден
 
 # Профильные статусы и их «ценность» для эвристики драфта (масштабируемость).
 _STATUS_VALUE = {
-    "vulnerable": 4, "poison": 3, "ignited": 3,
+    "vulnerable": 4, "legacy": 3, "ignited": 3,
     "wet": 3, "bleed": 3, "weak": 2, "strength": 4,
 }
 
@@ -97,9 +97,7 @@ def _card_themes(card) -> set:
     «больше урона»). Сустейн-колода ценит хил/щит, ядовитая — яд и т.д."""
     t = set()
     for e in card.effects:
-        if isinstance(e, PoisonEffect):
-            t.add("poison")
-        elif isinstance(e, StatusEffect):
+        if isinstance(e, StatusEffect):
             t.add(e.status_type)
         elif isinstance(e, (RegenEffect, HealEffect)):
             t.add("sustain")
@@ -153,8 +151,6 @@ def _card_score(card) -> float:
     for e in card.effects:
         if isinstance(e, DamageEffect):
             value += e.base_val
-        elif isinstance(e, PoisonEffect):
-            value += e.base_val * 1.5          # масштабируется по ходам
         elif isinstance(e, StatusEffect):
             value += _STATUS_VALUE.get(e.status_type, 2) * max(1, e.base_turns)
         elif isinstance(e, ShieldEffect):

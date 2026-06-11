@@ -5,12 +5,12 @@ from core.rarity import Rarity
 
 
 class ОкровавленныйШприц(Relic):
-    """При разыгрывании карты с Изгнанием: +1 Энергия + Яд 2 на врага."""
+    """При разыгрывании карты с Изгнанием: +1 Энергия + Legacy-код 2 на врага."""
 
     def __init__(self):
         super().__init__(
             "Окровавленный Шприц",
-            "Разыгрывая карту с Изгнанием: +1 Энергия и Яд 2 на врага.",
+            "Разыгрывая карту с Изгнанием: +1 Энергия и Legacy-код 2 на врага.",
             Rarity.UNCOMMON,
         )
 
@@ -21,9 +21,9 @@ class ОкровавленныйШприц(Relic):
             target = combat_manager.get_target_enemy()
             if target is None:
                 return
-            target.poison += 2
+            target.add_status("legacy", 2, combat_manager)
             combat_manager.add_log_message(
-                f"[Реликвия] '{self.name}': +1 Энергия, Яд 2 на врага!"
+                f"[Реликвия] '{self.name}': +1 Энергия, Legacy-код 2 на врага!"
             )
 
 
@@ -40,19 +40,19 @@ class ГнилойКлык(Relic):
 
 
 class ФлаконСЖелчью(Relic):
-    """В начале каждого боя вешает Яд 3 на врага."""
+    """В начале каждого боя вешает Legacy-код 3 на врага."""
 
     def __init__(self):
         super().__init__(
             "Флакон с Желчью",
-            "В начале каждого боя враг получает Яд 3.",
+            "В начале каждого боя враг получает Legacy-код 3.",
             Rarity.UNCOMMON,
         )
 
     def on_combat_start(self, combat_manager):
-        combat_manager.enemy.poison += 3
+        combat_manager.enemy.add_status("legacy", 3, combat_manager)
         combat_manager.add_log_message(
-            f"[Реликвия] '{self.name}': враг отравлен на 3!"
+            f"[Реликвия] '{self.name}': враг получает Legacy-код 3!"
         )
 
 

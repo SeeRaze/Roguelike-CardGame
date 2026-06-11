@@ -147,7 +147,7 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
     elif key == "ignited":
         _flame(screen, cx, cy, r, color)
 
-    elif key == "poison":
+    elif key == "legacy":
         _skull(screen, cx, cy, r, color)
 
     elif key == "bleed":

@@ -116,20 +116,6 @@ class StatusEffect:
             )
 
 
-class PoisonEffect:
-    def __init__(self, base_val, upgrade_val):
-        self.base_val = base_val
-        self.upgrade_val = upgrade_val
-
-    def execute(self, player, enemy, combat_manager, is_upgraded):
-        val = self.upgrade_val if is_upgraded else self.base_val
-        enemy.poison += val
-        if combat_manager:
-            combat_manager.add_log_message(
-                f" -> {enemy.name} отравлен на +{val} ед. яда!"
-            )
-
-
 class BarrierEffect:
     """Накладывает Барьер на игрока — несгораемый щит, не сбрасывается между ходами.
     Каждый стак барьера = +1 к щиту при СБРОСЕ в начале хода (см. CombatManager).

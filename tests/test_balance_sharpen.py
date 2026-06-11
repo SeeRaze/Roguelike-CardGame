@@ -6,7 +6,7 @@
 # сквозную врезку atk_mult в EffectCalculator (шаг 8). Чистая логика, без pygame.
 from core.Creature import Creature
 from core.cards.base import (
-    Card, DamageEffect, ShieldEffect, HealEffect, PoisonEffect,
+    Card, DamageEffect, ShieldEffect, HealEffect, StatusEffect,
 )
 from core.cards.debuff.bleed import BleedEffect
 from core.EffectCalculator import EffectCalculator
@@ -72,9 +72,9 @@ def test_card_is_defensive():
     mixed = Card(name="Гибрид", cost=1, card_type="attack", description="",
                  effects=[DamageEffect(4, 6), ShieldEffect(4, 6)])
     assert _card_is_defensive(mixed) is False
-    # Дот (яд/кровь) — офенс, не оборона.
-    pois = Card(name="Яд", cost=1, card_type="skill", description="",
-                effects=[PoisonEffect(3, 5)])
+    # Дот (Legacy-код/кровь) — офенс, не оборона.
+    pois = Card(name="Legacy", cost=1, card_type="skill", description="",
+                effects=[StatusEffect("legacy", 3, 5)])
     bld = Card(name="Кровь", cost=1, card_type="attack", description="",
                effects=[BleedEffect(3, 5)])
     assert _card_is_defensive(pois) is False

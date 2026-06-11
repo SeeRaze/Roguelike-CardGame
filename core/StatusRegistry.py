@@ -35,15 +35,6 @@ STATUSES = {
         "is_duration": True,
         "is_stack":    True,
     },
-    "poison": {
-        "abbr":        "ЯД",
-        "badge_bg":    (60, 160, 60),
-        "badge_fg":    (255, 255, 255),
-        "tooltip":     "Яд: N урона сквозь щит, затем убывает на 1.",
-        "keyword":     ("Яд", "N урона сквозь щит в конце хода.\nЗатем убывает на 1."),
-        "is_duration": False,
-        "is_stack":    True,
-    },
     "strength": {
         "abbr":        "ЯРОСТЬ",
         "badge_bg":    (180, 40, 40),

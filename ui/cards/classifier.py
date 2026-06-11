@@ -1,7 +1,7 @@
 # ui/cards/classifier.py
 # Классификация карты по составу эффектов -> ключ палитры (см. data._C).
 from core.cards.base import (
-    StatusEffect, PoisonEffect, RegenEffect, HealEffect,
+    StatusEffect, RegenEffect, HealEffect,
     VampireDamageEffect, DamageEffect, ShieldEffect,
     BarrierEffect,
 )
@@ -23,7 +23,6 @@ def classify_card(card) -> str:
     has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
     has_bleed    = any(isinstance(e, (BleedEffect, FrenzyEffect)) for e in effects)
-    has_poison   = any(isinstance(e, PoisonEffect) for e in effects)
     has_shield   = any(isinstance(e, (ShieldEffect, DisciplineToShieldEffect)) for e in effects)
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
     has_regen    = any(isinstance(e, RegenEffect) for e in effects)
@@ -44,8 +43,6 @@ def classify_card(card) -> str:
         return "vampire"
     if has_bleed:
         return "bleed"
-    if has_poison:
-        return "poison"
     if has_ignited:
         return "fire"
     if has_wet:
