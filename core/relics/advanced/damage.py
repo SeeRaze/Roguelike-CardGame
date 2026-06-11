@@ -42,12 +42,12 @@ class УтреннийСозвон(Relic):
 
 
 class Дедлайн(Relic):
-    """Первая атака в ходу гарантированно накладывает Слабость 1."""
+    """Первая атака в ходу гарантированно накладывает Токсичность 1."""
 
     def __init__(self):
         super().__init__(
             "Дедлайн",
-            "Горящий дедлайн давит: первая атака в каждом ходу накладывает врагу Слабость 1.",
+            "Горящий дедлайн давит: первая атака в каждом ходу накладывает врагу Токсичность 1.",
             Rarity.UNCOMMON,
         )
         self._used_this_turn = False
@@ -60,10 +60,10 @@ class Дедлайн(Relic):
             target = combat_manager.get_target_enemy()
             if target is None:
                 return
-            target.add_status("weak", 1, combat_manager)
+            target.add_status("tox", 1, combat_manager)
             self._used_this_turn = True
             combat_manager.add_log_message(
-                f"[Реликвия] '{self.name}': Слабость 1 на врага!"
+                f"[Реликвия] '{self.name}': Токсичность 1 на врага!"
             )
 
     def on_turn_start(self, combat_manager):
@@ -88,19 +88,19 @@ class ЗакрытыйТикет(Relic):
 
 
 class БагРепорт(Relic):
-    """В начале боя враг получает Уязвимость 1 (получаемый урон ×1.5)."""
+    """В начале боя враг получает Кофе 1 (+20% получаемого урона на бой)."""
 
     def __init__(self):
         super().__init__(
             "Баг-репорт",
-            "Завели тикет на врага: в начале каждого боя он получает Уязвимость 1.",
+            "Завели тикет на врага: в начале каждого боя он получает Разлитый кофе 1 (+20% вход. урона).",
             Rarity.COMMON,
         )
 
     def on_combat_start(self, combat_manager):
-        combat_manager.enemy.add_status("vulnerable", 1, combat_manager)
+        combat_manager.enemy.add_status("coffee", 1, combat_manager)
         combat_manager.add_log_message(
-            f"[Реликвия] '{self.name}': Уязвимость 1 на врага!"
+            f"[Реликвия] '{self.name}': Разлитый кофе 1 на врага!"
         )
 
 

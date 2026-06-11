@@ -88,7 +88,7 @@ class TestPlaguePustule:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Мясник-Истязатель — Шипы + Слабость при росте HP
+# Мясник-Истязатель — Шипы + Токсичность при росте HP
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestButcherTorturer:
@@ -100,7 +100,7 @@ class TestButcherTorturer:
         e = ButcherTorturer("BT", 100, 100)
         p = Creature("p", 50, 80)
         e.on_turn_start(p, None)
-        assert p.weak == 0
+        assert p.tox == 0
 
     def test_weakness_on_hp_increase(self):
         e = ButcherTorturer("BT", 100, 100)
@@ -108,7 +108,7 @@ class TestButcherTorturer:
         e.on_turn_start(p, None)   # снимок 50
         p.hp = 60                  # лечение
         e.on_turn_start(p, None)
-        assert p.weak == 1
+        assert p.tox == 1
 
     def test_no_weakness_on_hp_decrease(self):
         e = ButcherTorturer("BT", 100, 100)
@@ -116,7 +116,7 @@ class TestButcherTorturer:
         e.on_turn_start(p, None)   # снимок 50
         p.hp = 40                  # урон
         e.on_turn_start(p, None)
-        assert p.weak == 0
+        assert p.tox == 0
 
     def test_thorns_reflect_via_take_damage(self):
         # Интеграция: Шипы отражают урон атакующему (Creature.take_damage).

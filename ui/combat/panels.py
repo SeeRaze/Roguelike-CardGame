@@ -194,7 +194,7 @@ def _draw_enemy_panel_body(view, screen, enemy, panel_rect, player, projection,
     elif enemy.intent_type == "defend":
         screen.blit(hp_font.render(f"Защита {enemy.intent_value}", True, _BLUE), (x, y))
     elif enemy.intent_type == "debuff":
-        screen.blit(hp_font.render(f"Слабость {enemy.intent_value}", True, _INTENT_OTHER), (x, y))
+        screen.blit(hp_font.render(f"Токсичность {enemy.intent_value}", True, _INTENT_OTHER), (x, y))
     else:
         screen.blit(hp_font.render("—", True, _GRAY), (x, y))
 

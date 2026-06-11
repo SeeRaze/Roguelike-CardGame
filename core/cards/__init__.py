@@ -5,7 +5,6 @@ from core.cards.basic import (
 )
 from core.cards.air import create_gust, create_updraft, create_whirlwind, create_sirocco
 from core.cards.poison import create_poison_stab, create_toxic_cloud, create_acid_shield
-from core.cards.debuff import create_bash, create_neutralize, create_intimidate
 from core.cards.buff import create_flex, create_battle_cry, create_thorn_armor
 # Новые механики
 from core.cards.heal import create_bandage, create_second_wind, create_elixir

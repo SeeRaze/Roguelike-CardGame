@@ -20,7 +20,7 @@ from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
 def _elemental_key(effects):
     """Первый стихийный ключ среди эффектов карты (порядок = как лежат в карте), или
     None. DecompEffect → 'decomp'; StatusEffect/AoEStatusEffect → его status_type,
-    если он стихийный. Не-стихийные статусы (vulnerable/weak/…) игнорируются."""
+    если он стихийный. Не-стихийные статусы игнорируются."""
     for e in effects:
         if isinstance(e, DecompEffect):
             return "decomp"
@@ -44,11 +44,6 @@ def classify_card(card) -> str:
     has_echo     = any(isinstance(e, EchoEffect) for e in effects)
     has_barrier  = any(isinstance(e, BarrierEffect) for e in effects)
     has_mastery  = any(isinstance(e, (MasteryEffect, OverclockEffect)) for e in effects)
-
-    has_debuff   = any(
-        isinstance(e, StatusEffect) and e.status_type in ("vulnerable", "weak")
-        for e in effects
-    )
 
     # Стихия-PAYLOAD: первый стихийный ключ среди эффектов (StatusEffect/AoE по
     # status_type, DecompEffect → "decomp"). Рамка карты = цвет этой стихии.
@@ -74,11 +69,9 @@ def classify_card(card) -> str:
         return "heal"
     if has_buff:
         return "buff"
-    if has_debuff:
-        return "debuff"
     if has_shield and not has_damage:
         return "shield"
-    if has_damage and not has_shield and not has_debuff:
+    if has_damage and not has_shield:
         return "attack_pure"
     if has_damage:
         return "attack_mixed"

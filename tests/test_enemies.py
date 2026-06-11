@@ -82,12 +82,12 @@ def test_execute_intent_защита_даёт_щит_врагу(make_creature):
     assert enemy.shield == 8
 
 
-def test_execute_intent_дебафф_вешает_слабость(make_creature):
+def test_execute_intent_дебафф_вешает_токсичность(make_creature):
     enemy  = Enemy("Враг", 30, 30)
     player = make_creature("Игрок", 50, 50)
     enemy.set_intent("debuff", 2)
     enemy.execute_intent(player, combat_manager=None)
-    assert player.weak == 2
+    assert player.tox == 2
 
 
 def test_execute_intent_инкрементирует_turn_count(make_creature):

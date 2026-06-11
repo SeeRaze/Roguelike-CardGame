@@ -160,17 +160,17 @@ class TestOblivionArchivist:
     def test_on_turn_start_weak_if_deck_large(self):
         a = self._boss()
         player = Creature("Игрок", 50, 50)
-        # Без CombatManager → deck_size=99 → больше 15 → Слабость
-        weak_before = player.weak
+        # Без CombatManager → deck_size=99 → больше 15 → Токсичность
+        tox_before = player.tox
         a.on_turn_start(player, None)
-        assert player.weak == weak_before + 1
+        assert player.tox == tox_before + 1
 
     def test_on_turn_start_phase2_always_weak(self):
         a = self._boss(hp=40)
         player = Creature("Игрок", 50, 50)
-        weak_before = player.weak
+        tox_before = player.tox
         a.on_turn_start(player, None)
-        assert player.weak == weak_before + 1
+        assert player.tox == tox_before + 1
 
     def test_intent_cycle(self):
         a = self._boss()
@@ -214,7 +214,7 @@ class TestVoidElemental:
         v = self._boss()
         v.turn_count = 1
         v.on_turn_start(None, None)
-        assert v.vulnerable == 1
+        assert v.coffee == 2
         assert v._exposed
 
     def test_phase1_3turn_cycle(self):
@@ -301,19 +301,19 @@ class TestTimeKeeper:
         assert t.current_phase == 2
         player = Creature("Игрок", 50, 50)
         t.turn_count = 2; t.choose_intent()
-        weak_before = player.weak
+        tox_before = player.tox
         hp_before = t.hp
         t.execute_intent(player, None)
-        assert player.weak == weak_before + 2
+        assert player.tox == tox_before + 2
         assert t.hp > hp_before  # heal
 
     def test_phase1_no_weak_on_shift(self):
         t = self._boss()
         player = Creature("Игрок", 50, 50)
         t.turn_count = 2; t.choose_intent()
-        weak_before = player.weak
+        tox_before = player.tox
         t.execute_intent(player, None)
-        assert player.weak == weak_before  # без Weak в фазе 1
+        assert player.tox == tox_before  # без Токсичности в фазе 1
 
     def test_execute_attack_defend_delegates_to_super(self):
         t = self._boss()
@@ -373,9 +373,9 @@ class TestTowerArchitect:
         a = self._boss(50)
         player = Creature("Игрок", 50, 50)
         a.choose_intent()
-        weak_before = player.weak
+        tox_before = player.tox
         a.execute_intent(player, None)
-        assert player.weak == weak_before + 1
+        assert player.tox == tox_before + 1
 
     def test_phase3_always_heavy_attack(self):
         a = self._boss(20)
@@ -397,9 +397,9 @@ class TestTowerArchitect:
         a = self._boss(100)
         player = Creature("Игрок", 50, 50)
         a.choose_intent()
-        weak_before = player.weak
+        tox_before = player.tox
         a.execute_intent(player, None)
-        assert player.weak == weak_before  # без Weak в фазе 1
+        assert player.tox == tox_before  # без Токсичности в фазе 1
 
     def test_random_title(self):
         title = TowerArchitect.random_title()

@@ -76,10 +76,10 @@ def test_тик_регенерации_ограничен_потолком_за_
 
 def test_временные_статусы_спадают_на_один():
     c = Creature("Цель", 50, 50)
-    c.vulnerable = 2
-    c.weak = 2
+    c.decomp = 2
+    c.stunned = 2
     c.tick_statuses()
-    assert c.vulnerable == 1 and c.weak == 1
+    assert c.decomp == 1 and c.stunned == 1
 
 
 def test_кровотечение_сбрасывается_в_ноль_без_гнилого_клыка():

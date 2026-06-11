@@ -120,10 +120,10 @@ def newly_unlocked(meta: dict) -> list:
 # пересекаются: классы "Chemist", карты "legacy_patch", реликвии "ОткатКБэкапу").
 #
 # РАЗМЕТКА (К3, страman `_starter_pool_design.md`, согласовано юзером):
-#   СТАРТОВЫЕ generic (13, НЕ заперты): базовые strike/defend/heavy_blade/iron_wall +
+#   СТАРТОВЫЕ generic (12, НЕ заперты): базовые strike/defend/heavy_blade/iron_wall +
 #     по 1 простейшей COMMON-карте новых стихий (legacy_patch/coffee_spill/voltage_spike/
-#     micromanage/memory_leak/disassembler) + bandage (сустейн) + intimidate (дебафф) +
-#     cleaving_strike (позиц-вкус).
+#     micromanage/memory_leak/disassembler — micromanage=tox несёт дебафф-слот) + bandage
+#     (сустейн) + cleaving_strike (позиц-вкус).
 #   СТАРТОВЫЕ артефакты (6): Линтер(FP)/УтреннийСозвон(+урон)/ДМСБазовый(HP)/
 #     Кэшбэк(золото)/ФоновоеИндексирование(удача)/ЛидЗаСпиной — разные механики
 #     ВИДНЫ и ОЩУТИМЫ, но слабы; мощь (UNCOMMON+) за достижениями.
@@ -131,14 +131,15 @@ def newly_unlocked(meta: dict) -> list:
 #     блокировкой КЛАССА у тир-2). Стартдеки не трогаем.
 # Карта/артефакт здесь = LOCKED (вливается за мета-прогрессию). Остальное — стартовое.
 
-# card_id'ы карт, требующие анлока (32 из 45 generic). С58: старые стихии убраны из пула;
-# новые стихии — пол (6 COMMON-applier'ов) стартовый, UNCOMMON/RARE заперты.
+# card_id'ы карт, требующие анлока. С58: старые стихии убраны из пула; С59: weak/vulnerable
+# (bash/neutralize/intimidate) дропнуты при консолидации в стихии (tox/coffee).
+# Новые стихии — пол (6 COMMON-applier'ов) стартовый, UNCOMMON/RARE заперты.
 LOCKED_CARDS: set = {
     "catalyst",
     # Новые стихии (С58): UNCOMMON/RARE заперты (пол = простейшие COMMON-карты семей).
     "tech_debt", "coffee_flood", "overload", "mass_short", "overtime",
     "infinite_loop", "reverse_engineer",
-    "bash", "neutralize", "flex", "battle_cry",
+    "flex", "battle_cry",
     "thorn_armor", "second_wind", "elixir", "regenerate", "vitality", "triage",
     "drain", "blood_feast", "life_tap", "lacerate", "hemorrhage", "open_wound",
     "echo_resonance", "echo_strike", "echo_cascade", "piercing_thrust", "wide_swing",

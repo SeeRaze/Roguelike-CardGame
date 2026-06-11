@@ -139,10 +139,10 @@ class Enemy(Creature):
                 )
 
         elif isinstance(intent, IntentDebuff):
-            player.weak += intent.value
+            player.tox += intent.value
             if combat_manager:
                 combat_manager.add_log_message(
-                    f" -> Накладывает на вас Слабость ({intent.value} х.)"
+                    f" -> Накладывает на вас Токсичность ({intent.value})"
                 )
 
         elif isinstance(intent, IntentHeal):

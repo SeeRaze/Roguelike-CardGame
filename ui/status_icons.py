@@ -125,16 +125,7 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
     """Рисует иконку статуса key в квадрате радиуса r вокруг (cx, cy)."""
     lw = max(2, int(r * 0.28))   # стандартная толщина штриха
 
-    if key == "vulnerable":
-        # Прицел: круг + перекрестие + точка (цель «на мушке»).
-        pygame.draw.circle(screen, color, (cx, cy), r, lw)
-        pygame.draw.line(screen, color, (cx - r, cy), (cx + r, cy), lw)
-        pygame.draw.line(screen, color, (cx, cy - r), (cx, cy + r), lw)
-
-    elif key == "weak":
-        _arrow(screen, cx, cy, r, color, up=False)
-
-    elif key == "strength":
+    if key == "strength":
         _arrow(screen, cx, cy, r, color, up=True)
 
     elif key == "legacy":

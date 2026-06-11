@@ -11,7 +11,7 @@ class TimeKeeper(BossBase):
     """Босс этажа 80 — проверка персистентного/run-long скейлинга.
 
     Каждый ход: _temporal_charge++. Урон атаки = base × (1 + 0.15 × charge).
-    Каждый 3-й ход: Temporal Shift — отхил 15% max HP. Фаза 2: +2 Слабость
+    Каждый 3-й ход: Temporal Shift — отхил 15% max HP. Фаза 2: +2 Токсичность
     игроку при каждом Shift.
 
     Без персистентных множителей (Повышение грейда ×1.25^N, форж-теги ×mult)
@@ -21,7 +21,7 @@ class TimeKeeper(BossBase):
     Мягкие обходы:
     - Все классы с Повышение грейда: ×1.25^4 ≈ ×2.44 урона
     - Форж-теги (×mult слоты): пробивают отхил
-    - Берсерк: игнорирует Слабость через Казнь на лоу-HP
+    - Берсерк: игнорирует Токсичность через Казнь на лоу-HP
     """
 
     PHASE_THRESHOLD = 0.5
@@ -63,12 +63,12 @@ class TimeKeeper(BossBase):
         elif step == 1:
             self.set_intent("defend", self.base_test_shield)
         else:
-            # Temporal Shift: отхил + (фаза 2) Слабость.
+            # Temporal Shift: отхил + (фаза 2) Токсичность.
             heal_amount = int(self.max_hp * self.TEMPORAL_HEAL_PCT)
             self.set_intent("heal", heal_amount)
 
     def execute_intent(self, player, combat_manager=None):
-        """Переопределено для Temporal Shift: хил + опц. Слабость в фазе 2."""
+        """Переопределено для Temporal Shift: хил + опц. Токсичность в фазе 2."""
 
         intent = self.intent
 
@@ -83,12 +83,12 @@ class TimeKeeper(BossBase):
                 combat_manager.add_log_message(
                     f"[ХРАНИТЕЛЬ] Временной сдвиг: +{heal_amount} HP."
                 )
-            # Фаза 2: +2 Слабость игроку
+            # Фаза 2: +2 Токсичность игроку
             if was_phase2:
-                player.weak += 2
+                player.tox += 2
                 if combat_manager:
                     combat_manager.add_log_message(
-                        "[ХРАНИТЕЛЬ] Временной сдвиг искажает вас: +2 Слабость."
+                        "[ХРАНИТЕЛЬ] Временной сдвиг искажает вас: +2 Токсичность."
                     )
         else:
             # Стандартная обработка для attack/defend

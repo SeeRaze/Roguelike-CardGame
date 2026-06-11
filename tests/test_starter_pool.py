@@ -63,11 +63,11 @@ def test_все_locked_артефакты_существуют():
     assert not bogus, f"LOCKED_RELICS содержит несуществующие id: {bogus}"
 
 
-def test_стартовый_generic_пул_ровно_13_карт():
-    # Новый игрок (пустые unlocks) видит только стартовые generic (13) + класс.
+def test_стартовый_generic_пул_ровно_12_карт():
+    # Новый игрок (пустые unlocks) видит только стартовые generic (12) + класс.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
     generic_ids = ids & {card_id_for(f) for f in GENERIC_FACTORIES}
-    assert len(generic_ids) == 13
+    assert len(generic_ids) == 12
     assert "strike" in generic_ids
     assert "tech_debt" not in generic_ids   # locked
 
@@ -75,5 +75,5 @@ def test_стартовый_generic_пул_ровно_13_карт():
 def test_классовые_сигнатурки_остаются_у_нового_игрока():
     # Тир-1 сигнатурки не заперты (стартдеки не трогаем) → видны при пустых unlocks.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
-    # 13 стартовых generic + 3 классовых Воина (С57: ось Дисц, старая ось вычищена) = 16.
-    assert len(ids) == 16
+    # 12 стартовых generic + 3 классовых Воина (С57: ось Дисц, старая ось вычищена) = 15.
+    assert len(ids) == 15

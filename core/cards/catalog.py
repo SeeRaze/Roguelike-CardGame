@@ -12,7 +12,6 @@ from core.cards import (
     create_strike, create_defend, create_heavy_blade, create_iron_wall,
     create_catalyst,
     create_steel_barricade, create_bastion,
-    create_bash, create_neutralize, create_intimidate,
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
@@ -56,7 +55,6 @@ GENERIC_FACTORIES = [
     create_hard_delete, create_stack_trace,
     create_task_manager, create_undo, create_copy, create_paste,
     # ── Буфф/хил/утилити/эхо/клив (отдельный слой, рескин позже) ──
-    create_bash, create_neutralize, create_intimidate,
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,

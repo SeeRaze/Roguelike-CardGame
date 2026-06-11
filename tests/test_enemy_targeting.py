@@ -136,7 +136,7 @@ def test_дебафф_всегда_на_игроке(make_creature, monkeypatch)
     # Даже если random выбрал бы союзника — дебафф уходит игроку.
     monkeypatch.setattr(enemy_base.random, "choice", lambda seq: wolf)
     enemy.execute_intent(player, cm)
-    assert player.weak == 2
+    assert player.tox == 2
 
 
 # ═══════════════════════════════════════════════════════════

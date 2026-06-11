@@ -41,12 +41,12 @@ def test_guaranteed_includes_player_buffs_and_enemy_debuffs():
     player.mastery = 4          # +4 (Маг; ниже порога Нестабильности=5 → чистый флат)
     player.atk_mult = 1.5       # ×1.5 (Заточка)
     target = Creature("Враг", 100, 100)
-    target.vulnerable = 1       # ×1.5
+    target.coffee = 1           # ×1.2 (+20%/стак)
     cm = _Combat(player)
     pv = EffectCalculator.preview(player, target, 10, combat_manager=cm)
-    # (10 + 4 маст) ×1.5 уязв = 21 (int), ×1.5 Заточка = 31
-    assert pv["guaranteed"] == 31
-    assert pv["full"] == 31     # нет комбо/ковки → full == guaranteed
+    # (10 + 4 маст) = 14, ×1.2 кофе = 16 (int), ×1.5 Заточка = 24
+    assert pv["guaranteed"] == 24
+    assert pv["full"] == 24     # нет комбо/ковки → full == guaranteed
     assert pv["reactions"] == []
 
 
@@ -89,14 +89,13 @@ def test_breakdown_lists_modifiers():
     player = Creature("Игрок", 50, 50)
     player.mastery = 3
     target = Creature("Враг", 100, 100)
-    target.vulnerable = 1
     target.coffee = 1
     target.legacy = 1
     cm = _Combat(player)
     pv = EffectCalculator.preview(player, target, 10, combat_manager=cm)
     labels = [label for (label, _kind, _val) in pv["steps"]]
     assert "Мастерство" in labels
-    assert "Уязвимость" in labels
+    assert "Кофе" in labels
     assert "ХОТФИКС" in labels
 
 

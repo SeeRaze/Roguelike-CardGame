@@ -21,12 +21,12 @@ def test_dilution_neutralizes_debuff_intent():
     cm = _cm()
     e = cm.enemies[0]
     p = cm.player
-    p.weak = 0
+    p.tox = 0
     e.coffee = 1
     e.tox = 1
     e.set_intent("debuff", 3)
     e.execute_intent(p, cm)
-    assert p.weak == 0          # спец-намерение (debuff) обезврежено
+    assert p.tox == 0          # спец-намерение (debuff) обезврежено
 
 
 def test_dilution_allows_basic_attack():
@@ -46,11 +46,11 @@ def test_no_dilution_without_both_elements():
     cm = _cm()
     e = cm.enemies[0]
     p = cm.player
-    p.weak = 0
+    p.tox = 0
     e.coffee = 1                # только Кофе, без Токса
     e.set_intent("debuff", 3)
     e.execute_intent(p, cm)
-    assert p.weak == 3          # спец-намерение проходит
+    assert p.tox == 3          # спец-намерение проходит
 
 
 # ─── Crash Reboot: снос баффов/щита + блок восстановления ─────────────────────

@@ -24,30 +24,30 @@ def test_ярость_добавляет_урон():
     assert calc(atk, tgt, 10) == 13
 
 
-def test_слабость_снижает_урон_на_25_процентов():
+def test_токсичность_снижает_урон():
     atk = Creature("Атакующий", 50, 50)
     tgt = Creature("Цель", 50, 50)
-    atk.weak = 1
-    # int(10 * 0.75) == 7
-    assert calc(atk, tgt, 10) == 7
+    atk.tox = 1
+    # int(10 * 0.9) == 9
+    assert calc(atk, tgt, 10) == 9
 
 
-def test_уязвимость_цели_увеличивает_урон_в_полтора_раза():
+def test_кофе_цели_увеличивает_урон():
     atk = Creature("Атакующий", 50, 50)
     tgt = Creature("Цель", 50, 50)
-    tgt.vulnerable = 1
-    # int(10 * 1.5) == 15
-    assert calc(atk, tgt, 10) == 15
+    tgt.coffee = 1
+    # int(10 * 1.2) == 12
+    assert calc(atk, tgt, 10) == 12
 
 
-def test_порядок_ярость_потом_слабость():
-    # Сначала прибавляется ярость, потом применяется слабость.
+def test_порядок_ярость_потом_токсичность():
+    # Сначала прибавляется ярость, потом применяется токсичность.
     atk = Creature("Атакующий", 50, 50)
     tgt = Creature("Цель", 50, 50)
     atk.strength = 4
-    atk.weak = 1
-    # (10 + 4) -> int(14 * 0.75) == 10
-    assert calc(atk, tgt, 10) == 10
+    atk.tox = 1
+    # (10 + 4) -> int(14 * 0.9) == 12
+    assert calc(atk, tgt, 10) == 12
 
 
 def test_комбо_хотфикс_удваивает_урон():

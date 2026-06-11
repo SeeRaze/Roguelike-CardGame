@@ -68,7 +68,6 @@ class Player(Creature):
     # Внутрибоевые движки кат.4 (barrier/mastery/echo) живут только в одном бою —
     # их компаунд внутрибоевой; персистентность между боями — отдельный слой.
     _COMBAT_RESET_KEYS = (
-        "weak", "vulnerable",
         "strength", "thorns", "regen", "bleed", "vampire",
         "echo", "barrier", "mastery", "discipline",
         "instability",

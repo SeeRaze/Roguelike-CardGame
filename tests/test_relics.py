@@ -68,15 +68,15 @@ def test_окровавленный_шприц_на_карте_изгнания(
     assert cm.enemy.legacy == 2
 
 
-def test_свинцовый_набалдашник_слабит_первой_атакой(make_combat):
+def test_дедлайн_токсичит_первой_атакой(make_combat):
     cm = make_combat()
     relic = Дедлайн()
     атака = SimpleNamespace(card_type="attack")
     relic.on_card_played(атака, cm)
-    assert cm.enemy.weak == 1
-    # Вторая атака в том же ходу слабость уже не накладывает.
+    assert cm.enemy.tox == 1
+    # Вторая атака в том же ходу токсичность уже не накладывает.
     relic.on_card_played(атака, cm)
-    assert cm.enemy.weak == 1
+    assert cm.enemy.tox == 1
 
 
 # --- Аудит cm.enemy: статусы реликвий в групповом бою не мажут в труп ---
@@ -104,8 +104,8 @@ def test_свинцовый_набалдашник_слабит_живого_а_
     живой = make_creature("Живой", 50, 50)
     cm.enemies.append(живой)
     Дедлайн().on_card_played(SimpleNamespace(card_type="attack"), cm)
-    assert живой.weak == 1
-    assert труп.weak == 0
+    assert живой.tox == 1
+    assert труп.tox == 0
 
 
 def test_шипастая_броня_кровит_живого_а_не_труп(make_combat, make_creature):
@@ -140,10 +140,10 @@ def test_панцирь_дикобраза_даёт_шипы(make_combat):
     assert cm.player.thorns == 3
 
 
-def test_метка_охотника_вешает_уязвимость(make_combat):
+def test_баг_репорт_вешает_кофе(make_combat):
     cm = make_combat()
     БагРепорт().on_combat_start(cm)
-    assert cm.enemy.vulnerable == 1
+    assert cm.enemy.coffee == 1
 
 
 def test_тотем_ярости_даёт_ярость(make_combat):

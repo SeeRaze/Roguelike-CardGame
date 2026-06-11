@@ -149,15 +149,15 @@ def test_heal_effect_улучшенный(make_creature):
 def test_status_effect_накладывает_статус_на_врага(make_creature):
     player = make_creature("Игрок", 50, 50)
     enemy  = make_creature("Враг", 50, 50)
-    StatusEffect("vulnerable", 2, 3).execute(player, enemy, combat_manager=None, is_upgraded=False)
-    assert enemy.vulnerable == 2
+    StatusEffect("coffee", 2, 3).execute(player, enemy, combat_manager=None, is_upgraded=False)
+    assert enemy.coffee == 2
 
 
 def test_status_effect_улучшенный(make_creature):
     player = make_creature("Игрок", 50, 50)
     enemy  = make_creature("Враг", 50, 50)
-    StatusEffect("weak", 1, 2).execute(player, enemy, combat_manager=None, is_upgraded=True)
-    assert enemy.weak == 2             # upgrade_turns=2, не base_turns=1
+    StatusEffect("tox", 1, 2).execute(player, enemy, combat_manager=None, is_upgraded=True)
+    assert enemy.tox == 2             # upgrade=2, не base=1
 
 
 # ═══════════════════════════════════════════════════════════

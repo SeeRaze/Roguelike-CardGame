@@ -11,7 +11,7 @@ class TowerArchitect(BossBase):
 
     Три фазы по HP:
     - Фаза 1 (>66%): умеренные атаки, защита каждый 3-й ход.
-    - Фаза 2 (33-66%): тяжёлые атаки (×1.3), +1 Слабость за каждый удар.
+    - Фаза 2 (33-66%): тяжёлые атаки (×1.3), +1 Токсичность за каждый удар.
     - Фаза 3 (<33%): отчаянные атаки (×1.6), без защиты.
 
     Высокие базовые статы (×2.2 HP / ×1.3 dmg / ×1.8 shield от EnemySpawner)
@@ -73,11 +73,11 @@ class TowerArchitect(BossBase):
             self.set_intent("attack", int(self.base_test_damage * 1.6))
 
     def execute_intent(self, player, combat_manager=None):
-        """Фаза 2: каждая атака накладывает +1 Слабость."""
+        """Фаза 2: каждая атака накладывает +1 Токсичность."""
         super().execute_intent(player, combat_manager)
         if self.current_phase == 2 and isinstance(self.intent, IntentAttack):
-            player.weak += 1
+            player.tox += 1
             if combat_manager:
                 combat_manager.add_log_message(
-                    "[АРХИТЕКТОР] Ваша защита трещит под натиском: +1 Слабость."
+                    "[АРХИТЕКТОР] Ваша защита трещит под натиском: +1 Токсичность."
                 )
