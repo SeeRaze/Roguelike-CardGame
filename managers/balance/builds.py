@@ -39,7 +39,7 @@ from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
 )
 from core.relics import (
-    ЭнергоЯдро, ТочильныйКамень, ЖелезнаяВоля, ШипастаяБроня,
+    ЭнергоЯдро, Линтер, ЖелезнаяВоля, ШипастаяБроня,
     ДревнееОгниво, СердцеТитана, ГнилойКлык, ОкровавленныйШприц,
     ТрофейныйКлык, ТехническийДолг,
 )
@@ -73,16 +73,16 @@ CLASS_CORES = {
         # Мастерство → перегруз ×1.5 → Резонансный разряд выжимает глубину. HP-churn.
         [create_overclock, create_resonant_discharge, create_arcane_focus,
          create_coffee_spill, create_legacy_patch],
-        [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень],
+        [ДревнееОгниво, ЭнергоЯдро, Линтер],
     ),
     "Rogue": (
         [create_bloodlust, create_lacerate, create_serrated_edge,
          create_open_wound, create_hemorrhage],
-        [ГнилойКлык, ОкровавленныйШприц, ЭнергоЯдро, ТочильныйКамень],
+        [ГнилойКлык, ОкровавленныйШприц, ЭнергоЯдро, Линтер],
     ),
     "Berserker": (
         [create_battle_cry],
-        [ЭнергоЯдро, СердцеТитана, ТочильныйКамень, ТехническийДолг],
+        [ЭнергоЯдро, СердцеТитана, Линтер, ТехническийДолг],
     ),
     "Summoner": (
         [create_summon_golem, create_summon_wolf, create_summon_golem],

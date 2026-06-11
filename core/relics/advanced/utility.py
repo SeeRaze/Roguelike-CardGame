@@ -4,13 +4,13 @@ from core.relics.base import Relic
 from core.rarity import Rarity
 
 
-class СчастливаяМонетка(Relic):
+class Кэшбэк(Relic):
     """При открытии обычного сундука +10 золота."""
 
     def __init__(self):
         super().__init__(
-            "Счастливая Монетка",
-            "При открытии обычного сундука получаете +10 золота.",
+            "Кэшбэк",
+            "Кэшбэк: при открытии обычного сундука +10 золота.",
             Rarity.COMMON,
         )
 

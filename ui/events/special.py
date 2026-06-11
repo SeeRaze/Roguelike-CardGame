@@ -16,7 +16,7 @@ SPECIAL_EVENTS = [
         "options": [
             {
                 "label": "Вернуть яйцо (реликвия василиска)",
-                "effects": ["remove_flag:has_basilisk_egg", "gain_relic:LuckyClover"],
+                "effects": ["remove_flag:has_basilisk_egg", "gain_relic:Автодополнение"],
             },
             {
                 "label": "Забрать второе яйцо (-30 HP, +карта)",

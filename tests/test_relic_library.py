@@ -22,8 +22,8 @@ def test_categories_are_known():
 def test_categorize_uses_dominant_hook():
     """Категория выводится из переопределённого хука (примеры-якоря)."""
     by_name = {cls().name: cls() for cls in ALL_RELICS}
-    # Точильный Камень — модификатор урона (on_damage_calculated).
-    assert categorize(by_name["Точильный Камень"]) == "Модификатор урона"
+    # Линтер — модификатор урона (on_damage_calculated).
+    assert categorize(by_name["Линтер"]) == "Модификатор урона"
     # Сердце Титана — рост/восстановление по забегу (on_combat_end).
     assert categorize(by_name["Сердце Титана"]) == "Рост по забегу (компаунд)"
     # Железная Воля — активируемая.

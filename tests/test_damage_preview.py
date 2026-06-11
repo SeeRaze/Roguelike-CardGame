@@ -103,8 +103,8 @@ def test_breakdown_lists_modifiers():
 # ─── Реликвия с одноразовым зарядом: превью НЕ тратит его ──────────────────────
 
 def test_relic_one_shot_not_consumed_in_preview():
-    from core.relics.advanced.damage import ЗаточенныйОсколок
-    relic = ЗаточенныйОсколок()
+    from core.relics.advanced.damage import УтреннийСозвон
+    relic = УтреннийСозвон()
     player = Creature("Игрок", 50, 50)
     target = Creature("Враг", 100, 100)
     cm = _Combat(player)

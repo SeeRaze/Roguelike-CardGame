@@ -111,9 +111,9 @@ def test_card_id_снимает_префикс_create():
 
 
 def test_relic_id_это_имя_класса():
-    class ТочильныйКамень:
+    class Линтер:
         pass
-    assert relic_id_for(ТочильныйКамень) == "ТочильныйКамень"
+    assert relic_id_for(Линтер) == "Линтер"
 
 
 def test_реестры_locked_наполнены_разметкой():
@@ -124,7 +124,7 @@ def test_реестры_locked_наполнены_разметкой():
     for starter in ("strike", "defend", "heavy_blade", "iron_wall"):
         assert starter not in LOCKED_CARDS
     # Стартовые артефакты по осям НЕ заперты.
-    for starter in ("ТочильныйКамень", "Заплатка", "СчастливаяМонетка"):
+    for starter in ("Линтер", "ДМСБазовый", "Кэшбэк"):
         assert starter not in LOCKED_RELICS
 
 
@@ -146,7 +146,7 @@ def test_locked_артефакт_требует_анлок_в_мете(monkeypat
     monkeypatch.setattr(prog, "LOCKED_RELICS", {"СердцеТитана"})
     assert is_relic_unlocked(_meta(), "СердцеТитана") is False
     assert is_relic_unlocked({"unlocks": ["СердцеТитана"]}, "СердцеТитана") is True
-    assert is_relic_unlocked(_meta(), "ТочильныйКамень") is True  # стартовый — мимо
+    assert is_relic_unlocked(_meta(), "Линтер") is True  # стартовый — мимо
 
 
 # ── Дев-флаг «полный доступ» (С57, под тест-сессии) ──────────────────────────

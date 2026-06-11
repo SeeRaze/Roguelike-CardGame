@@ -7,7 +7,7 @@ NEUTRAL_EVENTS = [
             "Камень покрыт рунами, от него исходит тепло."
         ),
         "options": [
-            {"label": "Принести жертву (-15% HP, +реликвия)",   "effects": ["lose_hp_pct:0.15", "gain_relic:LuckyClover"]},
+            {"label": "Принести жертву (-15% HP, +реликвия)",   "effects": ["lose_hp_pct:0.15", "gain_relic:Автодополнение"]},
             {"label": "Закалить дух (-10% HP, +12% макс. HP)",  "effects": ["lose_hp_pct:0.10", "temper_spirit:0.12"]},
             {"label": "Помолиться (+20% HP)",                    "effects": ["heal_pct:0.20"]},
             {"label": "Пройти мимо",                             "effects": ["skip"]},
