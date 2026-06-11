@@ -3,7 +3,7 @@ from core.cards.catalog import get_pool_for_class
 
 
 def _get_relic_class(name: str):
-    from core.relics.starter  import Автодополнение, Файрвол, Линтер
+    from core.relics.starter  import Автодополнение, РеверсПрокси, Линтер
     from core.relics.elemental import Дебаггер, ПассивнаяАгрессия
     from core.relics.advanced import (
         СборщикМусора, ОткатКБэкапу, ЗомбиПроцесс,
@@ -13,7 +13,7 @@ def _get_relic_class(name: str):
     )
     registry = {
         "Автодополнение":        Автодополнение,
-        "Файрвол":     Файрвол,
+        "Реверс-прокси":     РеверсПрокси,
         "Линтер":    Линтер,
         "Дебаггер":      Дебаггер,
         "ПассивнаяАгрессия":   ПассивнаяАгрессия,

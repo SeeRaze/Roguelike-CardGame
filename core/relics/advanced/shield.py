@@ -58,19 +58,19 @@ class ДМСПлатиновый(Relic):
 
 
 class Антивирус(Relic):
-    """В начале боя игрок получает Шипы 3 (отражает урон атакующему)."""
+    """В начале боя игрок получает Файрвол 3 (отражает урон атакующему)."""
 
     def __init__(self):
         super().__init__(
             "Антивирус",
-            "В начале каждого боя антивирус ставит защиту: Шипы 3.",
+            "В начале каждого боя антивирус ставит защиту: Файрвол 3.",
             Rarity.COMMON,
         )
 
     def on_combat_start(self, combat_manager):
-        combat_manager.player.add_status("thorns", 3, combat_manager)
+        combat_manager.player.add_status("firewall", 3, combat_manager)
         combat_manager.add_log_message(
-            f"[Реликвия] '{self.name}': Шипы 3!"
+            f"[Реликвия] '{self.name}': Файрвол 3!"
         )
 
 

@@ -11,11 +11,11 @@ CURSED_BUFF_POOL = [
                            getattr(gm.player, "strength", 0) + 3),
     ),
     (
-        "+5 Шипов",
+        "+5 Файрвола",
         "Постоянный бонус: отражать +5 урона атакующему.",
         12,
-        lambda gm: setattr(gm.player, "thorns",
-                           getattr(gm.player, "thorns", 0) + 5),
+        lambda gm: setattr(gm.player, "firewall",
+                           getattr(gm.player, "firewall", 0) + 5),
     ),
     (
         "+1 Энергия",

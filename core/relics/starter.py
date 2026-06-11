@@ -10,11 +10,11 @@ class Автодополнение(Relic):
         combat_manager.add_log_message(f"[Реликвия] '{self.name}' активирована!")
         combat_manager.deck_manager.draw_cards(2)
 
-class Файрвол(Relic):
+class РеверсПрокси(Relic):
     """В начале каждого боя игрок получает 10 Щита (стартовая оборона)."""
 
     def __init__(self):
-        super().__init__("Файрвол", "В начале каждого боя файрвол держит оборону: 10 Щита.", Rarity.COMMON)
+        super().__init__("Реверс-прокси", "В начале каждого боя реверс-прокси держит оборону: 10 Щита.", Rarity.COMMON)
     def on_combat_start(self, combat_manager):
         combat_manager.player.gain_shield(10, combat_manager)
         combat_manager.add_log_message(f"[Реликвия] '{self.name}' дает вам 10 Щита!")

@@ -1,6 +1,6 @@
 # core/enemies/elites/butcher.py
 # Мясник-Истязатель — элита-контра вампиризму/хилу.
-# Механика: постоянные Шипы (отражают урон атакующему) + наказание за лечение —
+# Механика: постоянный Файрвол (отражает урон атакующему) + наказание за лечение —
 # если HP игрока ВЫРОС между ходами Мясника (хил/вампир/реген перекрыли урон),
 # игрок получает Токсичность. Контра билдам, чей сустейн превышает входящий урон.
 # Обход: не полагаться на хил (щит/бёрст), убить до накопления Токсичности.
@@ -11,7 +11,7 @@ from core.enemies.elites.base import EliteBase
 class ButcherTorturer(EliteBase):
     """Элита-контра вампиризму/хилу.
 
-    Пассив: Шипы BUTCHER_THORNS (Creature.take_damage отражает их атакующему).
+    Пассив: Файрвол BUTCHER_FIREWALL (Creature.take_damage отражает их атакующему).
     Начало хода (on_turn_start): если HP игрока стал ВЫШЕ, чем на прошлом ходу
     Мясника (нетто-лечение перекрыло урон) — +1 Токсичность. Первое наблюдение
     лишь фиксирует снимок (без штрафа).
@@ -19,10 +19,10 @@ class ButcherTorturer(EliteBase):
     Мягкие обходы:
     - Щитовики (Воин): защита вместо хила → HP не растёт, Токсичности нет
     - Бёрст/высокий DPS: убивают до накопления Токсичности
-    - Шипы малы относительно поздних HP — не «глухая стена», а налог на сустейн
+    - Файрвол мал относительно поздних HP — не «глухая стена», а налог на сустейн
     """
 
-    BUTCHER_THORNS = 3   # постоянное отражение урона (Creature.take_damage)
+    BUTCHER_FIREWALL = 3   # постоянное отражение урона (Creature.take_damage)
 
     _TITLES = [
         "Мясник-Истязатель",
@@ -32,7 +32,7 @@ class ButcherTorturer(EliteBase):
 
     def __init__(self, name, hp, max_hp):
         super().__init__(name=name, hp=hp, max_hp=max_hp)
-        self.thorns = self.BUTCHER_THORNS
+        self.firewall = self.BUTCHER_FIREWALL
         # Снимок HP игрока с прошлого хода Мясника. None → первое наблюдение.
         self._last_player_hp = None
 
@@ -44,9 +44,9 @@ class ButcherTorturer(EliteBase):
 
     def on_turn_start(self, player, combat_manager) -> None:
         """Налог на сустейн: рост HP игрока между ходами Мясника → +1 Токсичность."""
-        # Поддерживаем Шипы (на случай, если что-то их обнулит в будущем).
-        if self.thorns < self.BUTCHER_THORNS:
-            self.thorns = self.BUTCHER_THORNS
+        # Поддерживаем Файрвол (на случай, если что-то его обнулит в будущем).
+        if self.firewall < self.BUTCHER_FIREWALL:
+            self.firewall = self.BUTCHER_FIREWALL
 
         cur = player.hp
         if self._last_player_hp is not None and cur > self._last_player_hp:
@@ -61,7 +61,7 @@ class ButcherTorturer(EliteBase):
     # ── Боевая логика ───────────────────────────────────────────────────
 
     def choose_intent(self):
-        # Преимущественно атакует (Шипы и Токсичность — пассивная угроза).
+        # Преимущественно атакует (Файрвол и Токсичность — пассивная угроза).
         if self.turn_count % 3 == 2:
             self.set_intent("defend", self.base_test_shield)
         else:

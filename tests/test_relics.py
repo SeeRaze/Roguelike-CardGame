@@ -134,10 +134,10 @@ def test_реликвии_без_живых_врагов_не_падают(make_
 
 # --- Новые обычные артефакты (флэт-статы под непокрытые механики) ---
 
-def test_панцирь_дикобраза_даёт_шипы(make_combat):
+def test_панцирь_дикобраза_даёт_файрвол(make_combat):
     cm = make_combat()
     Антивирус().on_combat_start(cm)
-    assert cm.player.thorns == 3
+    assert cm.player.firewall == 3
 
 
 def test_баг_репорт_вешает_кофе(make_combat):

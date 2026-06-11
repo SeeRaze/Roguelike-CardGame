@@ -134,7 +134,7 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
     elif key == "regen":
         _plus(screen, cx, cy, r, color)
 
-    elif key == "thorns":
+    elif key == "firewall":
         # Шипастая звезда (отражение).
         _star(screen, cx, cy, r, color, points=6)
 

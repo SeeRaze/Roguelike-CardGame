@@ -1,6 +1,6 @@
 from core.rarity import Rarity
 from core.relics.base import Relic
-from core.relics.starter import Автодополнение, Файрвол, Линтер
+from core.relics.starter import Автодополнение, РеверсПрокси, Линтер
 from core.relics.elemental import (
     Оверклокинг, Дебаггер, ПассивнаяАгрессия,
     Кофемашина,
@@ -21,7 +21,7 @@ from core.relics.advanced import (
 RELIC_POOL = {
     Rarity.COMMON: [
         Автодополнение,
-        Файрвол,
+        РеверсПрокси,
         Линтер,
         СнекБар,
         Кэшбэк,

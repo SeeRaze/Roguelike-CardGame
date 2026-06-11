@@ -25,12 +25,12 @@ def test_hp_не_уходит_ниже_нуля():
     assert c.hp == 0
 
 
-def test_шипы_отражают_урон_в_атакующего():
+def test_файрвол_отражает_урон_в_атакующего():
     target = Creature("Цель", 50, 50)
     attacker = Creature("Враг", 50, 50)
-    target.thorns = 2
+    target.firewall = 2
     target.take_damage(5, attacker=attacker)
-    assert attacker.hp == 48    # 2 урона отражено шипами
+    assert attacker.hp == 48    # 2 урона отражено файрволом
 
 
 def test_вампиризм_лечит_атакующего_и_гаснет_втрое():

@@ -113,7 +113,7 @@ class Creature:
         """Прямой урон СКВОЗЬ ЩИТ — напрямую в HP, минуя shield.
         Идиом из berserker.py / DetonationRegistry / яд («сквозь щит»).
         Переиспользуется вне боя (Ритуал крови костра, Проклятый сундук)
-        и не дёргает боевые хуки (шипы/вампир). Возвращает фактический урон."""
+        и не дёргает боевые хуки (файрвол/вампир). Возвращает фактический урон."""
         lost = max(0, min(amount, self.hp - self._hp_floor()))
         self.hp -= lost
         print(f"[{self.name}] теряет {lost} HP сквозь щит. "
@@ -158,10 +158,10 @@ class Creature:
         self.hp = max(self.hp, self._hp_floor())
         print(f"[{self.name}] Итог -> Щит: {self.shield}, HP: {self.hp}")
 
-        if self.statuses.get('thorns', 0) > 0 and attacker is not None:
-            print(f" [ШИПЫ] {self.name} отражает "
-                  f"{self.statuses['thorns']} урона на {attacker.name}!")
-            attacker.hp = max(attacker.hp - self.statuses['thorns'], attacker._hp_floor())
+        if self.statuses.get('firewall', 0) > 0 and attacker is not None:
+            print(f" [ФАЙРВОЛ] {self.name} отражает "
+                  f"{self.statuses['firewall']} урона на {attacker.name}!")
+            attacker.hp = max(attacker.hp - self.statuses['firewall'], attacker._hp_floor())
 
         if amount > 0 and attacker is not None:
             vamp = attacker.statuses.get('vampire', 0)

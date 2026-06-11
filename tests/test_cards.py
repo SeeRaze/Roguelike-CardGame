@@ -160,7 +160,7 @@ def test_status_effect_улучшенный(make_creature):
 
 
 # ═══════════════════════════════════════════════════════════
-# BuffEffect (strength, thorns, etc.)
+# BuffEffect (strength, firewall, etc.)
 # ═══════════════════════════════════════════════════════════
 
 def test_buff_effect_накладывает_бафф_на_игрока(make_creature):
@@ -174,8 +174,8 @@ def test_buff_effect_накладывает_бафф_на_игрока(make_crea
 def test_buff_effect_улучшенный(make_creature):
     player = make_creature("Игрок", 50, 50)
     enemy  = make_creature("Враг", 50, 50)
-    BuffEffect("thorns", 3, 5).execute(player, enemy, combat_manager=None, is_upgraded=True)
-    assert player.thorns == 5
+    BuffEffect("firewall", 3, 5).execute(player, enemy, combat_manager=None, is_upgraded=True)
+    assert player.firewall == 5
 
 
 

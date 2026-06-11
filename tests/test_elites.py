@@ -92,9 +92,9 @@ class TestPlaguePustule:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestButcherTorturer:
-    def test_thorns_set_on_init(self):
+    def test_firewall_set_on_init(self):
         e = ButcherTorturer("BT", 100, 100)
-        assert e.thorns == ButcherTorturer.BUTCHER_THORNS
+        assert e.firewall == ButcherTorturer.BUTCHER_FIREWALL
 
     def test_first_observation_no_weakness(self):
         e = ButcherTorturer("BT", 100, 100)
@@ -118,12 +118,12 @@ class TestButcherTorturer:
         e.on_turn_start(p, None)
         assert p.tox == 0
 
-    def test_thorns_reflect_via_take_damage(self):
-        # Интеграция: Шипы отражают урон атакующему (Creature.take_damage).
+    def test_firewall_reflect_via_take_damage(self):
+        # Интеграция: Файрвол отражает урон атакующему (Creature.take_damage).
         e = ButcherTorturer("BT", 100, 100)
         attacker = Creature("a", 30, 30)
         e.take_damage(10, attacker=attacker)
-        assert attacker.hp == 30 - ButcherTorturer.BUTCHER_THORNS
+        assert attacker.hp == 30 - ButcherTorturer.BUTCHER_FIREWALL
 
 
 # ═══════════════════════════════════════════════════════════════════════════

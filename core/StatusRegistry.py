@@ -8,12 +8,12 @@ STATUSES = {
         "is_duration": False,
         "is_stack":    True,
     },
-    "thorns": {
-        "abbr":        "ШИПЫ",
+    "firewall": {
+        "abbr":        "ФАЙРВОЛ",
         "badge_bg":    (80, 140, 60),
         "badge_fg":    (255, 255, 255),
-        "tooltip":     "Шипы: отражает N урона атакующему.",
-        "keyword":     ("Шипы", "Отражает N урона атакующему."),
+        "tooltip":     "Файрвол: отражает N урона атакующему.",
+        "keyword":     ("Файрвол", "Отражает N урона атакующему."),
         "is_duration": False,
         "is_stack":    True,
     },
