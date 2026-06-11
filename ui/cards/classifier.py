@@ -1,10 +1,11 @@
 # ui/cards/classifier.py
-# Классификация карты по составу эффектов -> ключ палитры (см. data._C).
+# Классификация карты по составу эффектов -> ключ палитры (см. data.card_palette).
 from core.cards.base import (
-    StatusEffect, RegenEffect, HealEffect,
+    StatusEffect, AoEStatusEffect, DecompEffect, RegenEffect, HealEffect,
     VampireDamageEffect, DamageEffect, ShieldEffect,
     BarrierEffect,
 )
+from ui.cards.data import _ELEMENTAL_CARD_KEYS
 from core.cards.debuff.bleed import BleedEffect
 from core.cards.buff.strength import BuffEffect
 from core.cards.buff.vampirism import VampireBuffEffect
@@ -17,8 +18,21 @@ from core.cards.warrior import DisciplineBurstDamageEffect, DisciplineToShieldEf
 from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
 
 
+def _elemental_key(effects):
+    """Первый стихийный ключ среди эффектов карты (порядок = как лежат в карте), или
+    None. DecompEffect → 'decomp'; StatusEffect/AoEStatusEffect → его status_type,
+    если он стихийный. Не-стихийные статусы (vulnerable/weak/…) игнорируются."""
+    for e in effects:
+        if isinstance(e, DecompEffect):
+            return "decomp"
+        if isinstance(e, (StatusEffect, AoEStatusEffect)) and \
+                e.status_type in _ELEMENTAL_CARD_KEYS:
+            return e.status_type
+    return None
+
+
 def classify_card(card) -> str:
-    """Определяет класс карты по составу эффектов. Возвращает ключ из data._C."""
+    """Определяет класс карты по составу эффектов. Возвращает ключ для card_palette."""
     effects = card.effects
     has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
@@ -37,10 +51,16 @@ def classify_card(card) -> str:
         for e in effects
     )
 
+    # Стихия-PAYLOAD: первый стихийный ключ среди эффектов (StatusEffect/AoE по
+    # status_type, DecompEffect → "decomp"). Рамка карты = цвет этой стихии.
+    elemental = _elemental_key(effects)
+
     if has_vampire:
         return "vampire"
     if has_bleed:
         return "bleed"
+    if elemental:
+        return elemental
     if has_flow:
         return "air"
     if has_echo:

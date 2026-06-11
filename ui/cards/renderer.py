@@ -4,7 +4,7 @@ import pygame
 from core.rarity import Rarity, RARITY_COLORS
 from ui.cards.classifier import classify_card
 from ui.cards.data import (
-    _C, COLOR_COST_LOW, COLOR_COST_DISC, GENERIC_BORDER,
+    card_palette, COLOR_COST_LOW, COLOR_COST_DISC, GENERIC_BORDER,
     FORGE_TITLE_BASE, FORGE_TITLE_LINEAR, FORGE_TITLE_EARLY, GEM_R,
 )
 from ui.cards import description, keywords
@@ -42,7 +42,7 @@ class CardRenderer:
     def get_card_colors(card):
         """(bg, border) карты. Вариант Б: фон = приглушённая школа эффекта,
         рамка = цвет класса (generic → нейтраль)."""
-        school_bg, _ = _C[classify_card(card)]
+        school_bg, _ = card_palette(classify_card(card))
         border = _class_color(getattr(card, "card_class", None))
         return _muted_bg(school_bg), border
 

@@ -225,6 +225,58 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
             pygame.draw.line(screen, color, (cx, cy), (ex, ey), max(1, lw - 1))
             pygame.draw.circle(screen, color, (ex, ey), max(1, int(r * 0.18)))
 
+    elif key == "coffee":
+        # Разлитый кофе: чашка (полукруг-чаша + ручка) + струйка пара.
+        cup_top = cy - int(r * 0.1)
+        pygame.draw.arc(screen, color,
+                        (cx - int(r * 0.7), cup_top - int(r * 0.1),
+                         int(r * 1.4), int(r * 1.5)), 3.34, 6.08, lw)
+        pygame.draw.line(screen, color,
+                         (cx - int(r * 0.7), cup_top), (cx + int(r * 0.55), cup_top), lw)
+        pygame.draw.arc(screen, color,                       # ручка справа
+                        (cx + int(r * 0.4), cup_top, int(r * 0.6), int(r * 0.7)),
+                        -1.4, 1.4, max(1, lw - 1))
+        pygame.draw.line(screen, color,                      # пар
+                         (cx, cup_top - int(r * 0.35)), (cx, cup_top - r), max(1, lw - 1))
+
+    elif key == "shortcircuit":
+        # Короткое замыкание: молния-зигзаг (заряд детонатора).
+        _bolt(screen, cx, cy, r, color)
+
+    elif key == "tox":
+        # Токсичный менеджмент: капля яда с «минусом» (срезает урон). Яд-зелёная капля.
+        _droplet(screen, cx, cy, r, color)
+        bg = (15, 15, 15)
+        pygame.draw.line(screen, bg,
+                         (cx - int(r * 0.3), cy + int(r * 0.25)),
+                         (cx + int(r * 0.3), cy + int(r * 0.25)), max(2, lw - 1))
+
+    elif key == "leak":
+        # Утечка памяти: чип-прямоугольник с ножками + капля снизу (течёт).
+        cw, ch = int(r * 0.7), int(r * 0.55)
+        pygame.draw.rect(screen, color, (cx - cw, cy - r, cw * 2, ch * 2), lw)
+        for lx in (cx - int(r * 0.4), cx + int(r * 0.4)):    # ножки чипа
+            pygame.draw.line(screen, color, (lx, cy - r), (lx, cy - r - int(r * 0.3)),
+                             max(1, lw - 1))
+        pygame.draw.circle(screen, color, (cx, cy + int(r * 0.55)), int(r * 0.32))
+        pygame.draw.polygon(screen, color, [                 # остриё капли вверх
+            (cx, cy + int(r * 0.1)),
+            (cx - int(r * 0.3), cy + int(r * 0.55)),
+            (cx + int(r * 0.3), cy + int(r * 0.55))])
+
+    elif key == "decomp":
+        # Декомпиляция: распадающийся блок — стороны квадрата пунктиром (разбор кода).
+        corners = [(cx - r, cy - r), (cx + r, cy - r), (cx + r, cy + r), (cx - r, cy + r)]
+        for i in range(4):
+            x0, y0 = corners[i]
+            x1, y1 = corners[(i + 1) % 4]
+            # Два коротких штриха по краям стороны, разрыв в середине (распад).
+            for t0, t1 in ((0.0, 0.32), (0.68, 1.0)):
+                pygame.draw.line(
+                    screen, color,
+                    (int(x0 + (x1 - x0) * t0), int(y0 + (y1 - y0) * t0)),
+                    (int(x0 + (x1 - x0) * t1), int(y0 + (y1 - y0) * t1)), lw)
+
     else:
         # Фолбэк: первая буква аббревиатуры статуса.
         data = STATUSES.get(key)
