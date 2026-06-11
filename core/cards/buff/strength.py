@@ -15,11 +15,11 @@ class BuffEffect:
 
 
 def create_flex():
-    return Card("Разминка", 1, "skill", "Даёт +2(3) Ярости на этот бой.", [
-        BuffEffect("strength", 2, 3)
+    return Card("Разминка", 1, "skill", "Даёт +2(3) Оптимизации на этот бой.", [
+        BuffEffect("optimize", 2, 3)
     ])
 
 def create_battle_cry():
-    return Card("Боевой Клич", 2, "skill", "Мощный рывок: +4(6) Ярости.", [
-        BuffEffect("strength", 4, 6)
+    return Card("Боевой Клич", 2, "skill", "Мощный рывок: +4(6) Оптимизации.", [
+        BuffEffect("optimize", 4, 6)
     ])

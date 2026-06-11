@@ -166,9 +166,9 @@ def test_status_effect_улучшенный(make_creature):
 def test_buff_effect_накладывает_бафф_на_игрока(make_creature):
     player = make_creature("Игрок", 50, 50)
     enemy  = make_creature("Враг", 50, 50)
-    player.strength = 1
-    BuffEffect("strength", 2, 3).execute(player, enemy, combat_manager=None, is_upgraded=False)
-    assert player.strength == 3        # 1 + 2
+    player.optimize = 1
+    BuffEffect("optimize", 2, 3).execute(player, enemy, combat_manager=None, is_upgraded=False)
+    assert player.optimize == 3        # 1 + 2
 
 
 def test_buff_effect_улучшенный(make_creature):

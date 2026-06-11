@@ -125,7 +125,7 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
     """Рисует иконку статуса key в квадрате радиуса r вокруг (cx, cy)."""
     lw = max(2, int(r * 0.28))   # стандартная толщина штриха
 
-    if key == "strength":
+    if key == "optimize":
         _arrow(screen, cx, cy, r, color, up=True)
 
     elif key == "legacy":

@@ -146,10 +146,10 @@ def test_баг_репорт_вешает_кофе(make_combat):
     assert cm.enemy.coffee == 1
 
 
-def test_тотем_ярости_даёт_ярость(make_combat):
+def test_лид_за_спиной_даёт_оптимизацию(make_combat):
     cm = make_combat()
     ЛидЗаСпиной().on_combat_start(cm)
-    assert cm.player.strength == 1
+    assert cm.player.optimize == 1
 
 
 def test_флакон_катализатора_обливает_кофе(make_combat):
@@ -249,16 +249,16 @@ def test_гнилое_сердце_банкует_щит_в_барьер_и_ра
     cm.player.shield = 25
     relic.on_turn_end(cm)
     assert cm.player.barrier == 25          # весь щит банкнут в Барьер
-    assert cm.player.strength == 2          # 25 // 10
+    assert cm.player.optimize == 2          # 25 // 10
 
 
-def test_гнилое_сердце_не_затирает_чужую_силу(make_combat):
-    """Инкрементальный вклад: внешняя Сила сохраняется."""
+def test_точка_отказа_не_затирает_чужую_оптимизацию(make_combat):
+    """Инкрементальный вклад: внешняя Оптимизация сохраняется."""
     from core.relics import ТочкаОтказа
     cm = make_combat()
     relic = ТочкаОтказа()
     relic.on_combat_start(cm)
-    cm.player.strength = 5                  # сила из другого источника
+    cm.player.optimize = 5                  # оптимизация из другого источника
     cm.player.shield = 30
     relic.on_turn_end(cm)
-    assert cm.player.strength == 5 + 3       # 30//10 поверх внешних 5
+    assert cm.player.optimize == 5 + 3       # 30//10 поверх внешних 5

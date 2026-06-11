@@ -7,8 +7,8 @@ CURSED_BUFF_POOL = [
         "+3 Ярости",
         "Постоянный бонус +3 к урону всех атак.",
         15,
-        lambda gm: setattr(gm.player, "strength",
-                           getattr(gm.player, "strength", 0) + 3),
+        lambda gm: setattr(gm.player, "optimize",
+                           getattr(gm.player, "optimize", 0) + 3),
     ),
     (
         "+5 Файрвола",

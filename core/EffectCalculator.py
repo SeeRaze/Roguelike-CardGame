@@ -54,13 +54,13 @@ class EffectCalculator:
                 if base_damage != before:
                     _rec(getattr(relic, 'name', 'Реликвия'), '+', base_damage - before)
 
-        # 2. ЯРОСТЬ атакующего
-        if attacker.strength > 0:
+        # 2. ОПТИМИЗАЦИЯ атакующего
+        if attacker.optimize > 0:
             if not dry_run:
-                print(f" [ЯРОСТЬ] {attacker.name} добавляет "
-                      f"+{attacker.strength} к урону!")
-            base_damage += attacker.strength
-            _rec("Сила", "+", attacker.strength)
+                print(f" [ОПТИМИЗАЦИЯ] {attacker.name} добавляет "
+                      f"+{attacker.optimize} к урону!")
+            base_damage += attacker.optimize
+            _rec("Оптимизация", "+", attacker.optimize)
 
         # 2c. МАСТЕРСТВО СТИХИЙ (Маг): +N к урону за каждое комбо в этом бою (флат-аддитив,
         # как Сила/Дисциплина). Перегруз Нестабильности (множитель) — отдельный шаг 4c

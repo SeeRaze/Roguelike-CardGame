@@ -1,10 +1,10 @@
 STATUSES = {
-    "strength": {
-        "abbr":        "ЯРОСТЬ",
+    "optimize": {
+        "abbr":        "ОПТИМ",
         "badge_bg":    (180, 40, 40),
         "badge_fg":    (255, 220, 180),
-        "tooltip":     "Ярость: +N к урону всех атак.",
-        "keyword":     ("Ярость", "+N к урону всех атак."),
+        "tooltip":     "Оптимизация: +N к урону всех атак.",
+        "keyword":     ("Оптимизация", "+N к урону всех атак."),
         "is_duration": False,
         "is_stack":    True,
     },

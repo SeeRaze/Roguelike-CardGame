@@ -329,14 +329,14 @@ def _kill_with_card(cm):
 
 
 def test_on_kill_срабатывает_на_килле_картой_до_конца_хода():
-    """ЗакрытыйТикет (+1 Сила/килл) срабатывает в момент добивания картой,
+    """ЗакрытыйТикет (+1 Оптимизация/килл) срабатывает в момент добивания картой,
     а не только в end_turn_phase."""
     from core.relics.advanced.damage import ЗакрытыйТикет
     gm = SimpleNamespace(relics=[ЗакрытыйТикет()])
     cm = _make_cm(gm=gm)
-    strength_before = cm.player.strength
+    optimize_before = cm.player.optimize
     _kill_with_card(cm)
-    assert cm.player.strength == strength_before + 1
+    assert cm.player.optimize == optimize_before + 1
     assert cm.enemies[0]._death_processed is True
 
 
@@ -380,12 +380,12 @@ def test_обработка_смерти_картой_идемпотентна()
     cm = _make_cm(gm=gm)
     _kill_with_card(cm)
     assert gm.stats["monsters_killed"] == 1
-    strength_after_kill = cm.player.strength
+    optimize_after_kill = cm.player.optimize
     # Повторный свип; смерть уже обработана → no-op.
     cm._process_enemy_deaths()
     cm._check_enemy_death(cm.enemies[0])
     assert gm.stats["monsters_killed"] == 1
-    assert cm.player.strength == strength_after_kill
+    assert cm.player.optimize == optimize_after_kill
 
 
 def test_aoe_убивает_двух_врагов_оба_обработаны():

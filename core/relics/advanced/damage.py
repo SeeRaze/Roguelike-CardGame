@@ -71,19 +71,19 @@ class Дедлайн(Relic):
 
 
 class ЗакрытыйТикет(Relic):
-    """При убийстве врага: +1 Сила до конца боя."""
+    """При убийстве врага: +1 Оптимизация до конца боя."""
 
     def __init__(self):
         super().__init__(
             "Закрытый тикет",
-            "Каждый закрытый тикет бодрит: убийство врага даёт +1 Силы до конца боя.",
+            "Каждый закрытый тикет бодрит: убийство врага даёт +1 Оптимизации до конца боя.",
             Rarity.UNCOMMON,
         )
 
     def on_kill(self, enemy, combat_manager):
-        combat_manager.player.strength += 1
+        combat_manager.player.optimize += 1
         combat_manager.add_log_message(
-            f"[Реликвия] '{self.name}': +1 Сила (текущая: {combat_manager.player.strength})!"
+            f"[Реликвия] '{self.name}': +1 Оптимизация (текущая: {combat_manager.player.optimize})!"
         )
 
 
@@ -105,22 +105,22 @@ class БагРепорт(Relic):
 
 
 class ЛидЗаСпиной(Relic):
-    """В начале боя игрок получает Ярость 1 (+1 к урону всех атак в этом бою).
+    """В начале боя игрок получает Оптимизацию 1 (+1 к урону всех атак в этом бою).
 
-    Ярость сбрасывается между боями (reset_combat_statuses) — флэт-бонус на бой,
+    Оптимизация сбрасывается между боями (reset_combat_statuses) — флэт-бонус на бой,
     без компаунда."""
 
     def __init__(self):
         super().__init__(
             "Лид за спиной",
-            "Лид стоит над душой: в начале каждого боя получаете Ярость 1.",
+            "Лид стоит над душой: в начале каждого боя получаете Оптимизацию 1.",
             Rarity.COMMON,
         )
 
     def on_combat_start(self, combat_manager):
-        combat_manager.player.add_status("strength", 1, combat_manager)
+        combat_manager.player.add_status("optimize", 1, combat_manager)
         combat_manager.add_log_message(
-            f"[Реликвия] '{self.name}': Ярость 1!"
+            f"[Реликвия] '{self.name}': Оптимизация 1!"
         )
 
 
