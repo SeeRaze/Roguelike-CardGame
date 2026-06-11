@@ -137,16 +137,6 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
     elif key == "strength":
         _arrow(screen, cx, cy, r, color, up=True)
 
-    elif key == "wet":
-        _droplet(screen, cx, cy, r, color)
-        # Волна-блик под каплей.
-        pygame.draw.arc(screen, (255, 255, 255),
-                        (cx - int(r * 0.3), cy, int(r * 0.6), int(r * 0.5)),
-                        3.6, 5.8, max(1, lw // 2))
-
-    elif key == "ignited":
-        _flame(screen, cx, cy, r, color)
-
     elif key == "legacy":
         _skull(screen, cx, cy, r, color)
 

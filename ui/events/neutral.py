@@ -35,7 +35,7 @@ NEUTRAL_EVENTS = [
         ),
         "options": [
             {"label": "Принять испытание (-25% HP, +реликвия)", "effects": ["lose_hp_pct:0.25", "gain_relic:ДревнееОгниво"]},
-            {"label": "Взять огненную карту",                    "effects": ["gain_card:create_fire_breath"]},
+            {"label": "Взять Legacy-карту",                      "effects": ["gain_card:create_tech_debt"]},
             {"label": "Отступить",                               "effects": ["skip"]},
         ],
     },

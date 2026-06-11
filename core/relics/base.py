@@ -27,8 +27,8 @@ class Relic:
       on_turn_end          <- CombatManager.end_turn_phase (после сброса руки,
                               ДО действий врагов; под _guarded_action)
       on_damage_calculated <- EffectCalculator.calculate_damage
-      on_tick_ignited      <- Creature.tick_statuses
-      on_wet_applied       <- Creature.add_status (key="wet")
+      on_tick_legacy       <- Creature.tick_statuses
+      on_coffee_applied    <- Creature.add_status (key="coffee")
       on_card_played       <- CombatManager.play_card_by_index
       on_shield_gained     <- Creature.gain_shield
       on_kill              <- CombatManager._check_enemy_death (розыгрыш карты /
@@ -66,8 +66,8 @@ class Relic:
     def on_turn_end(self, combat_manager):              pass
     def on_damage_calculated(self, base_dmg, is_player_attack=True, dry_run=False):
         return base_dmg
-    def on_tick_ignited(self, creature):                return 0
-    def on_wet_applied(self, combat_manager):           pass
+    def on_tick_legacy(self, creature):                 return 0
+    def on_coffee_applied(self, combat_manager):        pass
     def on_card_played(self, card, combat_manager):     pass
     def on_shield_gained(self, amount, creature, combat_manager=None): pass
     def on_kill(self, enemy, combat_manager):           pass

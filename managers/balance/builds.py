@@ -12,9 +12,9 @@ import random
 from core.cards import (
     create_iron_wall, create_bastion,
     create_punishing_formation, create_warrior_stance,
-    create_arcane_focus, create_ignite,
+    create_arcane_focus, create_coffee_spill,
     create_overclock, create_resonant_discharge,
-    create_splash, create_lacerate,
+    create_legacy_patch, create_lacerate,
     create_open_wound, create_hemorrhage, create_battle_cry,
     create_bloodlust, create_serrated_edge,
     create_summon_wolf, create_summon_golem,
@@ -54,8 +54,8 @@ _THEME_BONUS = 3.0   # надбавка кандидату за совпаден
 
 # Профильные статусы и их «ценность» для эвристики драфта (масштабируемость).
 _STATUS_VALUE = {
-    "vulnerable": 4, "legacy": 3, "ignited": 3,
-    "wet": 3, "bleed": 3, "weak": 2, "strength": 4,
+    "vulnerable": 4, "legacy": 3,
+    "bleed": 3, "weak": 2, "strength": 4,
 }
 
 # ─── Ядра билдов: фабрики карт в стартовую колоду + профильные реликвии ───────
@@ -69,10 +69,10 @@ CLASS_CORES = {
         [ЖелезнаяВоля, ШипастаяБроня, ЭнергоЯдро],
     ),
     "Mage": (
-        # Движок Мастерства: гамбл Разгоном + комбо (Поджог/Всплеск) растят Мастерство →
-        # перегруз ×1.5 → Резонансный разряд выжимает глубину. HP-churn (хил от комбо).
+        # Движок Мастерства: гамбл Разгоном + комбо ХОТФИКС (Кофе/Legacy) растят
+        # Мастерство → перегруз ×1.5 → Резонансный разряд выжимает глубину. HP-churn.
         [create_overclock, create_resonant_discharge, create_arcane_focus,
-         create_ignite, create_splash],
+         create_coffee_spill, create_legacy_patch],
         [ДревнееОгниво, ЭнергоЯдро, ТочильныйКамень],
     ),
     "Rogue": (

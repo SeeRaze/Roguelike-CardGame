@@ -9,7 +9,7 @@ import random
 from core.enemies.elites.base import EliteBase
 
 # Статусы-DoT, которые Пожиратель ест (в порядке приоритета поедания).
-_DEVOURABLE = ("legacy", "bleed", "ignited")
+_DEVOURABLE = ("legacy", "bleed")
 
 
 class CorruptionDevourer(EliteBase):

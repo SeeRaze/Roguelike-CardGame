@@ -84,12 +84,12 @@ def _live_cm(enemy_hp=200):
 
 
 def test_розыгрыш_с_эхо_и_комбо_размотает_гард_в_ноль():
-    # Враг с wet+ignited (комбо ПАР ×3) + у игрока эхо: вся цепочка (apply→комбо→
+    # Враг с coffee+legacy (комбо ХОТФИКС ×2) + у игрока эхо: вся цепочка (apply→комбо→
     # эхо-ретриггеры) проходит без зацикливания, глубина гарда размотана в 0.
     cm = _live_cm()
     enemy = cm.enemies[0]
-    enemy.wet = 5
-    enemy.ignited = 5
+    enemy.coffee = 5
+    enemy.legacy = 5
     cm.player.echo = 2
     cm.player.energy = 99
     # найти атакующую карту в руке

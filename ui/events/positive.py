@@ -8,7 +8,7 @@ POSITIVE_EVENTS = [
         ),
         "options": [
             {"label": "Выпить (+30% HP)",                         "effects": ["heal_pct:0.30"]},
-            {"label": "Наполнить флягу (+15% HP, +водная карта)", "effects": ["heal_pct:0.15", "gain_card:create_splash"]},
+            {"label": "Наполнить флягу (+15% HP, +Кофе-карта)",  "effects": ["heal_pct:0.15", "gain_card:create_coffee_spill"]},
             {"label": "Пройти мимо",                              "effects": ["skip"]},
         ],
     },

@@ -284,14 +284,14 @@ def test_guarded_рекурсивный_хук_не_зацикливается()
 
 def test_фаза_врага_тикает_статусы_под_гардом_и_разматывает_глубину():
     """end_turn_phase проводит тики/намерения через _guarded_action — поведение
-    идентично (горение наносит урон), а глубина гарда размотана в 0 после фазы."""
+    идентично (Legacy-код наносит урон), а глубина гарда размотана в 0 после фазы."""
     cm = _make_cm()
     enemy = cm.enemies[0]
-    enemy.statuses['ignited'] = 2             # горит → тик нанесёт урон
+    enemy.statuses['legacy'] = 2              # Legacy-код → тик нанесёт урон
     hp_before = enemy.hp
     cm._trigger_guard.depth = 3               # искусственный «мусор» в гарде
     cm.end_turn_phase()
-    assert enemy.hp < hp_before                # тик горения сработал
+    assert enemy.hp < hp_before                # тик Legacy сработал
     # Каждое действие сбрасывает depth в 0 и разматывает — после фазы чисто.
     assert cm._trigger_guard.depth == 0
 

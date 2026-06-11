@@ -4,14 +4,14 @@
 
 from core.players import Chemist
 from core.enemies.cultist import Cultist
-from core.cards import create_strike, create_ignite, create_defend
+from core.cards import create_strike, create_coffee_spill, create_defend
 from managers.balance.policy import get_policy, ChemistPolicy
 from managers.CombatManager import CombatManager
 
 
 def _cm(deck=None):
     d = deck if deck is not None else [
-        create_strike(), create_strike(), create_ignite(), create_defend(),
+        create_strike(), create_strike(), create_coffee_spill(), create_defend(),
     ]
     return CombatManager(Chemist(), Cultist("K", 80, 80), d)
 

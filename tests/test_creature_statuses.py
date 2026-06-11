@@ -58,13 +58,6 @@ def test_тик_legacy_наносит_урон_и_уменьшает_стак():
     assert c.hp == 47 and c.legacy == 2
 
 
-def test_тик_горения_наносит_три_урона():
-    c = Creature("Цель", 50, 50)
-    c.ignited = 2
-    c.tick_statuses()
-    assert c.hp == 47 and c.ignited == 1
-
-
 def test_тик_регенерации_лечит():
     c = Creature("Цель", 40, 50)
     c.regen = 2
@@ -85,9 +78,8 @@ def test_временные_статусы_спадают_на_один():
     c = Creature("Цель", 50, 50)
     c.vulnerable = 2
     c.weak = 2
-    c.wet = 2
     c.tick_statuses()
-    assert c.vulnerable == 1 and c.weak == 1 and c.wet == 1
+    assert c.vulnerable == 1 and c.weak == 1
 
 
 def test_кровотечение_сбрасывается_в_ноль_без_гнилого_клыка():

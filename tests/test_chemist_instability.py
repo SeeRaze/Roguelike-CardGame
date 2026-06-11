@@ -5,7 +5,7 @@
 from core.EffectCalculator import EffectCalculator
 from core.players import Chemist, Warrior
 from core.enemies.cultist import Cultist
-from core.cards import create_strike, create_ignite, create_defend
+from core.cards import create_strike, create_coffee_spill, create_defend
 from managers.CombatManager import CombatManager
 
 
@@ -25,7 +25,7 @@ class _Plain:
 # ── накопление статуса ─────────────────────────────────────────────────────────────
 
 def test_фьюжн_растит_нестабильность():
-    cm = _cm(Chemist(), deck=[create_strike(), create_ignite(), create_defend()])
+    cm = _cm(Chemist(), deck=[create_strike(), create_coffee_spill(), create_defend()])
     cm.player.reagent = 9
     assert cm.player.instability == 0
     cm.fuse_hand_cards(0, 1)

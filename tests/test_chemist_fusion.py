@@ -6,7 +6,7 @@
 from core.players import Chemist, Warrior
 from core.players.chemist import REAGENT_PER_TURN
 from core.enemies.cultist import Cultist
-from core.cards import create_strike, create_defend, create_ignite
+from core.cards import create_strike, create_defend, create_coffee_spill
 from core.fusion import FUSION_REAGENT_COST, MAX_FUSED_EFFECTS
 from managers.CombatManager import CombatManager
 
@@ -37,7 +37,7 @@ def test_реагент_не_капает_другим_классам():
 # ── механизм слияния ───────────────────────────────────────────────────────────────
 
 def test_слияние_создаёт_глитч_в_руке():
-    cm = _cm(Chemist(), deck=[create_strike(), create_ignite(), create_defend()])
+    cm = _cm(Chemist(), deck=[create_strike(), create_coffee_spill(), create_defend()])
     cm.player.reagent = 5
     hand_before = len(cm.deck_manager.hand)
     a, b = 0, 1
@@ -54,14 +54,14 @@ def test_слияние_создаёт_глитч_в_руке():
 
 
 def test_слияние_тратит_реагент():
-    cm = _cm(Chemist(), deck=[create_strike(), create_ignite(), create_defend()])
+    cm = _cm(Chemist(), deck=[create_strike(), create_coffee_spill(), create_defend()])
     cm.player.reagent = 3
     cm.fuse_hand_cards(0, 1)
     assert cm.player.reagent == 3 - FUSION_REAGENT_COST
 
 
 def test_слияние_отказ_без_реагента():
-    cm = _cm(Chemist(), deck=[create_strike(), create_ignite(), create_defend()])
+    cm = _cm(Chemist(), deck=[create_strike(), create_coffee_spill(), create_defend()])
     cm.player.reagent = 0
     hand_before = len(cm.deck_manager.hand)
     assert cm.fuse_hand_cards(0, 1) is False
@@ -70,7 +70,7 @@ def test_слияние_отказ_без_реагента():
 
 def test_слияние_отказ_у_не_химика():
     # Гейт доступа: у Воина fusion_enabled=False → механизм инертен даже с Реагентом.
-    cm = _cm(Warrior(), deck=[create_strike(), create_ignite(), create_defend()])
+    cm = _cm(Warrior(), deck=[create_strike(), create_coffee_spill(), create_defend()])
     cm.player.reagent = 5
     assert cm.fuse_hand_cards(0, 1) is False
 

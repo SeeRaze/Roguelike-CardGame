@@ -196,7 +196,6 @@ def test_накопление_bleed_разбойника_за_ходы():
     BleedEffect(2, 3).execute(cm.player, cm.enemy, cm, is_upgraded=False)
     assert cm.enemy.get_status("bleed") == 6
     # Тик: 6 // 2 = 3 остаётся
-    cm.enemy.set_status("ignited", 0)  # чистим прочее
     cm.enemy.tick_statuses(cm)
     assert cm.enemy.get_status("bleed") == 3
     # Ход 2: ещё наложение поверх остатка

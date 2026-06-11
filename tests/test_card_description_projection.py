@@ -54,11 +54,11 @@ def test_spacing_preserved():
 
 
 def test_status_turns_not_bumped_but_displayed():
-    # Поджог: урон бампится ковкой, длительность статуса — НЕТ (turns).
-    c = Card("Поджог", 1, "attack", "Урон 2(4). Поджигает врага на 3(4) х.",
-             [DamageEffect(2, 4), StatusEffect("ignited", 3, 4)])
+    # Урон бампится ковкой, длительность статуса (turns) — НЕТ.
+    c = Card("ТестЭффект", 1, "attack", "Урон 2(4). Накладывает Legacy на 3(4) х.",
+             [DamageEffect(2, 4), StatusEffect("legacy", 3, 4)])
     _forge(c, 2)  # δ = 1 (только на DamageEffect)
-    assert project_forge_values(c) == "Урон 3(5). Поджигает врага на 3(4) х."
+    assert project_forge_values(c) == "Урон 3(5). Накладывает Legacy на 3(4) х."
 
 
 # ─── Страховка: несовпадение пар и эффектов → строка не трогается ──────────────

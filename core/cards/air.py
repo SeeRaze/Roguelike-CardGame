@@ -54,26 +54,22 @@ class FlowEffect:
 
 
 class SpreadEffect:
-    """Распространение (Воздух): ветер разносит половину стаков Горения и Legacy-кода
+    """Распространение (Воздух): ветер разносит половину стаков Legacy-кода
     с цели на ВСЕХ ОСТАЛЬНЫХ живых врагов (копия, цель свои стаки сохраняет).
-    AoE-энейблер для огненных/DoT-билдов на мульти-боях."""
+    AoE-энейблер для DoT-билдов на мульти-боях."""
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         if combat_manager is None:
             return
-        ignited_half = enemy.get_status("ignited") // 2
         legacy_half  = enemy.get_status("legacy") // 2
-        if ignited_half <= 0 and legacy_half <= 0:
+        if legacy_half <= 0:
             return
         for other in getattr(combat_manager, "enemies", []):
             if other is enemy or other.hp <= 0:
                 continue
-            if ignited_half > 0:
-                other.add_status("ignited", ignited_half, combat_manager)
-            if legacy_half > 0:
-                other.add_status("legacy", legacy_half, combat_manager)
+            other.add_status("legacy", legacy_half, combat_manager)
         combat_manager.add_log_message(
-            " -> Суховей разносит пламя и Legacy-код по врагам!"
+            " -> Суховей разносит Legacy-код по врагам!"
         )
 
 

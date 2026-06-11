@@ -18,31 +18,31 @@ class ЭнергоЯдро(Relic):
 
 class ДревнееОгниво(Relic):
     def __init__(self):
-        super().__init__("Древнее Огниво", "Каждый тик Горения наносит +2 урона.", Rarity.UNCOMMON)
+        super().__init__("Древнее Огниво", "Каждый тик Legacy-кода наносит +2 урона.", Rarity.UNCOMMON)
 
-    def on_tick_ignited(self, creature):
+    def on_tick_legacy(self, creature):
         return 2
 
 
 class НамокшаяРукавица(Relic):
     def __init__(self):
-        super().__init__("Намокшая Рукавица", "При наложении 'Мокрый' на врага -- +4 Щита.", Rarity.UNCOMMON)
+        super().__init__("Намокшая Рукавица", "При наложении 'Разлитый кофе' на врага -- +4 Щита.", Rarity.UNCOMMON)
 
-    def on_wet_applied(self, combat_manager):
+    def on_coffee_applied(self, combat_manager):
         combat_manager.player.gain_shield(4, combat_manager)  # ← фикс
         combat_manager.add_log_message(f"[Реликвия] '{self.name}': +4 Щита!")
 
 
 class ФлаконКатализатора(Relic):
-    """В начале боя случайный живой враг становится Мокрым (2 хода).
+    """В начале боя случайный живой враг получает Разлитый кофе (2 стака).
 
-    Второй энейблер «Пара»: открывает огонь-по-мокрому (урон ×2) уже на старте,
-    а также триггерит реликвии на наложение Мокрого (напр. «Намокшая Рукавица»)."""
+    Энейблер ХОТФИКСа: открывает амп урона (+20%/стак) уже на старте, а также
+    триггерит реликвии на наложение Кофе (напр. «Намокшая Рукавица»)."""
 
     def __init__(self):
         super().__init__(
             "Флакон Катализатора",
-            "В начале каждого боя случайный враг становится Мокрым (2 хода).",
+            "В начале каждого боя случайный враг получает Разлитый кофе (2).",
             Rarity.COMMON,
         )
 
@@ -51,7 +51,7 @@ class ФлаконКатализатора(Relic):
         if not living:
             return
         target = random.choice(living)
-        target.add_status("wet", 2, combat_manager)
+        target.add_status("coffee", 2, combat_manager)
         combat_manager.add_log_message(
-            f"[Реликвия] '{self.name}': {target.name} становится Мокрым!"
+            f"[Реликвия] '{self.name}': {target.name} облит кофе!"
         )

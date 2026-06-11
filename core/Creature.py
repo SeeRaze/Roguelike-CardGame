@@ -66,11 +66,11 @@ class Creature:
 
         self.statuses[key] = max(0, self.statuses.get(key, 0) + amount)
 
-        if key == "wet" and combat_manager:
+        if key == "coffee" and combat_manager:
             gm = getattr(combat_manager, 'gm', None)
             if gm:
                 for relic in gm.relics:
-                    relic.on_wet_applied(combat_manager)
+                    relic.on_coffee_applied(combat_manager)
 
     # ------------------------------------------------------------------
     # Боевые методы
@@ -202,30 +202,23 @@ class Creature:
     def tick_statuses(self, combat_manager=None):
         s = self.statuses
 
-        for key in ('vulnerable', 'weak', 'wet', 'decomp', 'stunned',
+        for key in ('vulnerable', 'weak', 'decomp', 'stunned',
                     'heal_block'):
             if s.get(key, 0) > 0:
                 s[key] -= 1
                 if s[key] == 0:
                     print(f" [Статус] {key} на {self.name} прошёл.")
 
-        if s.get('ignited', 0) > 0:
-            ignite_dmg = 3
-            if combat_manager and hasattr(combat_manager, 'gm') \
-                    and combat_manager.gm:
-                for relic in combat_manager.gm.relics:
-                    ignite_dmg += relic.on_tick_ignited(self)
-            print(f" [Горение] {self.name} получает {ignite_dmg} урона!")
-            self.hp = max(self.hp - ignite_dmg, 0)
-            s['ignited'] -= 1
-            if s['ignited'] == 0:
-                print(f" [Статус] Огонь на {self.name} потух.")
-
         # Legacy-код (DoT, С58): УВАЖАЕТ щит. КИСЛОТНЫЙ ДОЖДЬ (Legacy+Токс): Токс
         # делает Legacy ПРОБИВАЮЩИМ щит (кислота ест броню) — дом «пробития»
         # поглощённого Яда, заработок за сетап. Декей-триангуляр: −1 стак/ход.
+        # Реликвии могут усиливать тик (on_tick_legacy, напр. Древнее Огниво +2).
         if s.get('legacy', 0) > 0:
             dmg = s['legacy']
+            if combat_manager and hasattr(combat_manager, 'gm') \
+                    and combat_manager.gm:
+                for relic in combat_manager.gm.relics:
+                    dmg += relic.on_tick_legacy(self)
             if s.get('tox', 0) > 0:
                 # Кислотный дождь: напрямую в HP, сквозь щит.
                 self.hp = max(self.hp - dmg, 0)
