@@ -14,9 +14,7 @@ from core.cards import (
     create_punishing_formation, create_warrior_stance,
     create_arcane_focus, create_coffee_spill,
     create_overclock, create_resonant_discharge,
-    create_legacy_patch, create_lacerate,
-    create_open_wound, create_hemorrhage, create_battle_cry,
-    create_bloodlust, create_serrated_edge,
+    create_legacy_patch, create_battle_cry,
     create_summon_wolf, create_summon_golem,
 )
 from core.cards.base import (
@@ -34,13 +32,12 @@ from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import (
     MasteryEffect, OverclockEffect, MasteryScalingDamageEffect,
 )
-from core.cards.rogue import FrenzyEffect
 from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
 )
 from core.relics import (
     Оверклокинг, Линтер, Кэш, Санитайзер,
-    Дебаггер, ОткатКБэкапу, ЗомбиПроцесс, СборщикМусора,
+    Дебаггер, ОткатКБэкапу,
     ЗакрытыйТикет, Овердрафт,
 )
 
@@ -75,11 +72,6 @@ CLASS_CORES = {
          create_coffee_spill, create_legacy_patch],
         [Дебаггер, Оверклокинг, Линтер],
     ),
-    "Rogue": (
-        [create_bloodlust, create_lacerate, create_serrated_edge,
-         create_open_wound, create_hemorrhage],
-        [ЗомбиПроцесс, СборщикМусора, Оверклокинг, Линтер],
-    ),
     "Berserker": (
         [create_battle_cry],
         [Оверклокинг, ОткатКБэкапу, Линтер, Овердрафт],
@@ -109,7 +101,7 @@ def _card_themes(card) -> set:
             t.add("attack")
         elif isinstance(e, (DetonateEffect, FlowEffect)):
             t.add("synergy")
-        elif isinstance(e, (BleedEffect, FrenzyEffect)):
+        elif isinstance(e, BleedEffect):
             t.add("bleed")
         elif isinstance(e, (MasteryEffect, OverclockEffect)):
             t.add("mastery")                    # копит Мастерство (Разгон — гамблом)
@@ -162,7 +154,7 @@ def _card_score(card) -> float:
         elif isinstance(e, ShieldDamageEffect):
             value += 6                          # AoE по щиту
         elif isinstance(e, BleedEffect):
-            value += e.base_val * 1.5           # dot, масштабируется по ходам/frenzy
+            value += e.base_val * 1.5           # dot, масштабируется по ходам
         elif isinstance(e, (DetonateEffect, FlowEffect)):
             value += 4                          # синергия/темпо
         elif isinstance(e, (EchoEffect, EchoPayoffEffect)):
@@ -175,8 +167,6 @@ def _card_score(card) -> float:
             value += int(e.base_val * (1 + e.mult_per * 5))  # база ×множитель при ~5 Мастерства
         elif isinstance(e, BarrierEffect):
             value += e.base_val * 2.5           # несгораемый щит (компаунд)
-        elif isinstance(e, FrenzyEffect):
-            value += e.base_val * 2             # усиливает все будущие bleed
         elif isinstance(e, DebtScalingDamageEffect):
             value += e.base_val + e.per_depth * 5  # база + оценка глубины долга (~серед.)
         elif isinstance(e, DebtToForgeOnKillEffect):

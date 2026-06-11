@@ -3,7 +3,7 @@
 # повторно за бой не активируется.
 from core.players import Berserker
 from core.players.abilities import (
-    WarriorAbility, RogueAbility, MageAbility, BerserkerAbility,
+    WarriorAbility, MageAbility, BerserkerAbility,
 )
 
 
@@ -31,16 +31,6 @@ def test_воин_щитовой_удар_бьёт_живого_в_группе(
     assert ab.activate(cm) is True
     assert dead.hp == 0             # труп не трогаем
     assert alive.hp == 25           # урон 50% от 10 щита = 5 по живому
-
-
-def test_разбойник_вскрытие_удваивает_кровотечение(make_combat):
-    cm = make_combat()
-    cm.enemy.bleed = 3
-    ab = RogueAbility()
-    ab.activate(cm)
-    assert cm.enemy.bleed == 6
-    assert ab._used is True
-    assert ab._penalty_pending is True   # штраф энергии на следующий ход
 
 
 def test_маг_стихийный_барьер_даёт_щит(make_combat):

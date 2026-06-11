@@ -15,9 +15,9 @@ from managers.balance.builds import (
     _card_score, _card_themes, _deck_themes, greedy_draft, get_ceiling_build,
     CLASS_CORES,
 )
-from core.players import Warrior, Rogue, Mage, Berserker, Summoner
+from core.players import Warrior, Mage, Berserker, Summoner
 
-ALL_CLASSES = [Warrior, Rogue, Mage, Berserker, Summoner]
+ALL_CLASSES = [Warrior, Mage, Berserker, Summoner]
 
 
 def _atk(name, dmg, cost):

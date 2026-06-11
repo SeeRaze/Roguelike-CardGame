@@ -4,7 +4,6 @@
 from core.players.base import Player
 from core.players.warrior import Warrior
 from core.players.mage import Mage
-from core.players.rogue import Rogue
 from core.players.berserker import Berserker
 from core.cards import create_strike, create_boil
 from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class
@@ -89,12 +88,6 @@ def test_маг_имеет_правильные_статы():
     assert m.max_energy == 3
     assert m.gold == 90
     assert m.active_ability is not None
-
-
-def test_разбойник_имеет_3_энергии_и_40_hp():
-    r = Rogue()
-    assert r.max_energy == 3
-    assert r.max_hp == 40
 
 
 def test_берсерк_имеет_60_hp():

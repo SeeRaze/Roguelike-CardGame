@@ -91,11 +91,11 @@ def test_apply_run_class_best_per_class():
     meta = SM._default_meta()
     SM._apply_run(meta, _run(cls="Mage",   floor=4, dmg=20))
     SM._apply_run(meta, _run(cls="Mage",   floor=8, dmg=15))
-    SM._apply_run(meta, _run(cls="Rogue",  floor=6, dmg=99))
+    SM._apply_run(meta, _run(cls="Berserker", floor=6, dmg=99))
     assert meta["class_best"]["Mage"]["best_floor"]  == 8
     assert meta["class_best"]["Mage"]["max_damage"]  == 20    # max по классу
     assert meta["class_best"]["Mage"]["runs"]        == 2
-    assert meta["class_best"]["Rogue"]["best_floor"] == 6
+    assert meta["class_best"]["Berserker"]["best_floor"] == 6
 
 
 def test_runs_ring_capped():
@@ -113,11 +113,11 @@ def test_default_meta_has_empty_unlocks():
 
 
 def test_record_run_grants_and_persists_unlock(isolated_save):
-    # Этаж 8 выполняет условие Rogue(≥5)+Summoner(≥6)+Chemist(≥8).
+    # Этаж 8 выполняет условие Summoner(≥6)+Chemist(≥8).
     fresh = SM.record_run(_run(floor=8, bosses=1))
-    assert set(fresh) == {"Rogue", "Summoner", "Chemist"}  # возвращены новооткрытые
+    assert set(fresh) == {"Summoner", "Chemist"}          # возвращены новооткрытые
     SM.reset_cache()                                       # имитируем перезапуск
-    assert set(SM.get_meta()["unlocks"]) == {"Rogue", "Summoner", "Chemist"}
+    assert set(SM.get_meta()["unlocks"]) == {"Summoner", "Chemist"}
 
 
 def test_record_run_no_unlock_returns_empty(isolated_save):

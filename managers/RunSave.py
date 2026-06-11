@@ -102,11 +102,11 @@ def restore_run(gm, data: dict) -> bool:
         return False
 
     from core.players import (
-        Warrior, Rogue, Mage, Berserker, Summoner, Chemist,
+        Warrior, Mage, Berserker, Chemist,
     )
     CLASS_MAP = {
-        "Warrior": Warrior, "Rogue": Rogue, "Mage": Mage,
-        "Berserker": Berserker, "Summoner": Summoner, "Chemist": Chemist,
+        "Warrior": Warrior, "Mage": Mage,
+        "Berserker": Berserker, "Chemist": Chemist,
     }
     cls = CLASS_MAP.get(data.get("player_class"))
     if cls is None:

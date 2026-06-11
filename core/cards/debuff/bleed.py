@@ -6,17 +6,13 @@ from core.rarity import Rarity
 
 
 class BleedEffect:
-    """Накладывает кровотечение на врага. Усиливается Кровожадностью (frenzy)
-    игрока: +player.frenzy к величине. Это движок кат.4 Разбойника — каждая
-    сыгранная атака растит frenzy (пассив Rogue), а bleed-карты конвертируют
-    накопленную ярость в растущий урон."""
+    """Накладывает кровотечение (bleed) на врага — урон по тикам."""
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val
         self.upgrade_val = upgrade_val
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         amount = self.upgrade_val if is_upgraded else self.base_val
-        amount += getattr(player, 'frenzy', 0)
         enemy.add_status("bleed", amount, combat_manager)
         if combat_manager:
             combat_manager.add_log_message(
@@ -25,7 +21,7 @@ class BleedEffect:
 
 
 def create_lacerate():
-    """Разбойник: быстрый порез, вешает кровотечение."""
+    """Быстрый порез, вешает кровотечение."""
     return Card(
         name="Порез",
         cost=1,
@@ -37,7 +33,7 @@ def create_lacerate():
 
 
 def create_hemorrhage():
-    """Разбойник: тяжёлый удар с сильным кровотечением."""
+    """Тяжёлый удар с сильным кровотечением."""
     return Card(
         name="Кровопускание",
         cost=2,

@@ -25,7 +25,6 @@ def test_ярус_1_это_воин_маг_берсерк():
 
 
 def test_ярус_2_и_демиург():
-    assert class_tier("Rogue") == 2
     assert class_tier("Summoner") == 2
     assert class_tier("Chemist") == 2
     assert class_tier("Demiurge") == 3
@@ -45,16 +44,15 @@ def test_ярус_1_всегда_открыт_даже_без_меты():
 
 def test_ярус_2_закрыт_у_нового_игрока():
     m = _meta()
-    assert is_unlocked(m, "Rogue") is False
     assert is_unlocked(m, "Summoner") is False
     assert is_unlocked(m, "Chemist") is False
 
 
 def test_записанный_анлок_открывает_класс():
     m = _meta()
-    m["unlocks"].append("Rogue")
-    assert is_unlocked(m, "Rogue") is True
-    assert is_unlocked(m, "Summoner") is False   # другой класс не задет
+    m["unlocks"].append("Chemist")
+    assert is_unlocked(m, "Chemist") is True
+    assert is_unlocked(m, "Demiurge") is False   # другой класс не задет
 
 
 def test_демиург_всегда_закрыт_маяк():
@@ -73,26 +71,26 @@ def test_условие_не_выполнено_ничего_не_открыва
     assert m["unlocks"] == []
 
 
-def test_этаж_открывает_разбойника():
-    m = _meta(best_floor=5)            # Rogue: этаж >= 5
+def test_этаж_открывает_химика():
+    m = _meta(best_floor=8)            # Chemist: этаж >= 8
     fresh = newly_unlocked(m)
-    assert "Rogue" in fresh
-    assert is_unlocked(m, "Rogue") is True
+    assert "Chemist" in fresh
+    assert is_unlocked(m, "Chemist") is True
 
 
 def test_идемпотентность_повтор_без_прогресса_пуст():
-    m = _meta(best_floor=8)                    # откроет Rogue+Summoner+Chemist
+    m = _meta(best_floor=8)                    # откроет Summoner+Chemist
     first = newly_unlocked(m)
-    assert set(first) == {"Rogue", "Summoner", "Chemist"}
+    assert set(first) == {"Summoner", "Chemist"}
     assert newly_unlocked(m) == []            # второй раз — нечего открывать
-    assert set(m["unlocks"]) == {"Rogue", "Summoner", "Chemist"}
+    assert set(m["unlocks"]) == {"Summoner", "Chemist"}
 
 
 def test_newly_unlocked_создаёт_ключ_unlocks_если_нет():
-    m = {"stats": {"best_floor": 5}}          # без ключа unlocks
+    m = {"stats": {"best_floor": 8}}          # без ключа unlocks
     newly_unlocked(m)
     assert "unlocks" in m
-    assert "Rogue" in m["unlocks"]
+    assert "Chemist" in m["unlocks"]
 
 
 def test_все_условия_вызываемы_и_булевы():
@@ -177,7 +175,7 @@ def test_дев_флаг_открывает_всё(monkeypatch):
     monkeypatch.setenv("ROGUELIKE_DEV_UNLOCK", "1")
     monkeypatch.setattr(prog, "LOCKED_CARDS", {"fire_breath"})
     monkeypatch.setattr(prog, "LOCKED_RELICS", {"ОткатКБэкапу"})
-    assert is_unlocked(_meta(), "Rogue") is True          # тир-2 без анлока
+    assert is_unlocked(_meta(), "Chemist") is True        # тир-2 без анлока
     assert is_card_unlocked(_meta(), "fire_breath") is True
     assert is_relic_unlocked(_meta(), "ОткатКБэкапу") is True
 

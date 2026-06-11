@@ -69,7 +69,7 @@ class Player(Creature):
     _COMBAT_RESET_KEYS = (
         "weak", "vulnerable",
         "strength", "thorns", "regen", "bleed", "vampire",
-        "echo", "barrier", "mastery", "frenzy", "discipline",
+        "echo", "barrier", "mastery", "discipline",
         "instability",
         # Новые стихии-дебаффы (С58) — внутрибоевые, сбрасываются между боями.
         "legacy", "coffee", "shortcircuit", "tox", "leak", "decomp", "stunned",

@@ -266,20 +266,11 @@ def test_реестр_round_trip_id_карта():
         assert card_id_of(card, hint_class=hint) == cid
 
 
-def test_реестр_имена_уникальны_кроме_дубля():
-    # Матчинг по имени надёжен только при уникальных именах (единств. исключение —
-    # «Жажда крови», развязывается классом). Защита от новых дублей имени.
+def test_реестр_имена_уникальны():
+    # Матчинг по имени надёжен только при уникальных именах. Защита от новых дублей.
     from core.cards.catalog import _NAME_TO_ENTRIES
     dups = {n: e for n, e in _NAME_TO_ENTRIES.items() if len(e) > 1}
-    assert set(dups) <= {"Жажда крови"}, f"новые дубли имён: {set(dups)-{'Жажда крови'}}"
-
-
-def test_реестр_дубль_развязан_классом():
-    from core.cards.catalog import make_card_by_id, card_id_of
-    bt = make_card_by_id("blood_thirst")   # Berserker
-    bl = make_card_by_id("bloodlust")      # Rogue
-    assert card_id_of(bt, hint_class="Berserker") == "blood_thirst"
-    assert card_id_of(bl, hint_class="Rogue") == "bloodlust"
+    assert not dups, f"дубли имён: {set(dups)}"
 
 
 def test_реестр_неизвестный_id_none():

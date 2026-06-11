@@ -167,7 +167,7 @@ class Creature:
             vamp = attacker.statuses.get('vampire', 0)
             if vamp > 0:
                 # Вампиризм лечит на 40% нанесённого урона (было 50%). Доля
-                # снижена, чтобы sustain Разбойника не перекрывал урон врага
+                # снижена, чтобы вампирный sustain не перекрывал урон врага
                 # на поздних этажах. Тема «кровь» сохранена.
                 heal_amount = max(1, amount * 2 // 5)
                 attacker.heal(heal_amount, combat_manager)
@@ -253,12 +253,9 @@ class Creature:
             has_gniloy_klyk = gm and any(
                 r.name == "Зомби-процесс" for r in gm.relics
             )
-            # Разбойник врождённо «бередит раны»: его Кровотечение убывает вдвое,
-            # а не в ноль — это даёт frenzy-усиленным наложениям накапливаться
-            # (движок кат.4). Проверяем класс игрока через combat_manager.
-            player = getattr(combat_manager, 'player', None) if combat_manager else None
-            is_rogue = type(player).__name__ == "Rogue" if player else False
-            if has_gniloy_klyk or is_rogue:
+            # Реликвия «Зомби-процесс» «бередит раны»: Кровотечение убывает вдвое,
+            # а не в ноль — наложения накапливаются дольше.
+            if has_gniloy_klyk:
                 s['bleed'] = s['bleed'] // 2
                 print(f" [Статус] Кровотечение на {self.name} "
                       f"уменьшилось до {s['bleed']}.")

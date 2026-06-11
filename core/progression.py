@@ -31,7 +31,6 @@ CLASS_TIERS = {
     "Warrior":   1,
     "Mage":      1,
     "Berserker": 1,
-    "Rogue":     2,
     "Summoner":  2,
     "Chemist":   2,
     "Demiurge":  3,
@@ -67,7 +66,6 @@ def _killed_bosses(n):
 # Условие открытия → функция от меты, возвращает bool. ВРЕМЕННЫЕ заглушки (С50).
 # Ярус 1 здесь не нужен (всегда открыт). Демиург — всегда False (маяк).
 UNLOCK_CONDITIONS = {
-    "Rogue":    _reached_floor(5),
     "Summoner": _reached_floor(6),
     "Chemist":  _reached_floor(8),
     "Demiurge": lambda meta: False,   # «Идеальный аудит» — контент финала, позже
@@ -121,7 +119,7 @@ def newly_unlocked(meta: dict) -> list:
 # КОНВЕНЦИЯ: карта/артефакт БЕЗ записи в LOCKED_* = СТАРТОВЫЙ (всегда доступен).
 # unlock_id предмета == его собственный стабильный id (анлочим конкретный предмет).
 # meta['unlocks'] — общий список (классы + card_id'ы + relic_id'ы; namespace'ы не
-# пересекаются: классы "Rogue", карты "fire_breath", реликвии "ОткатКБэкапу").
+# пересекаются: классы "Chemist", карты "legacy_patch", реликвии "ОткатКБэкапу").
 #
 # РАЗМЕТКА (К3, страman `_starter_pool_design.md`, согласовано юзером):
 #   СТАРТОВЫЕ generic (13, НЕ заперты): базовые strike/defend/heavy_blade/iron_wall +

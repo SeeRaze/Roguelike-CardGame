@@ -12,7 +12,6 @@ from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import MasteryEffect
-from core.cards.rogue import FrenzyEffect
 from core.cards.berserker import DebtScalingDamageEffect
 from core.cards.warrior import DisciplineBurstDamageEffect, DisciplineToShieldEffect
 from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
@@ -36,7 +35,7 @@ def classify_card(card) -> str:
     effects = card.effects
     has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
     has_vampire  = any(isinstance(e, VampireBuffEffect) for e in effects)
-    has_bleed    = any(isinstance(e, (BleedEffect, FrenzyEffect)) for e in effects)
+    has_bleed    = any(isinstance(e, BleedEffect) for e in effects)
     has_shield   = any(isinstance(e, (ShieldEffect, DisciplineToShieldEffect)) for e in effects)
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
     has_regen    = any(isinstance(e, RegenEffect) for e in effects)

@@ -94,7 +94,7 @@ class CardRenderer:
         width, height = 180, 250
         rect = pygame.Rect(x, y, width, height)
 
-        # temp_cost: механика Разбойника (-1 к стоимости случайной карты)
+        # temp_cost: механика Потока (-1 к стоимости случайной карты)
         display_cost = getattr(card, 'temp_cost', card.cost)
         is_discounted = display_cost < card.cost
 

@@ -10,7 +10,6 @@ from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect, SpreadEffect
 from core.cards.echo import EchoEffect
 from core.cards.mage import MasteryEffect
-from core.cards.rogue import FrenzyEffect
 from core.StatusRegistry import STATUSES
 from ui.cards.data import _EXTRA_KEYWORDS, effect_icon_color
 from ui.status_icons import draw_status_icon
@@ -54,9 +53,6 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
             val = effect.upgrade_val if card.upgraded else effect.base_val
         elif isinstance(effect, MasteryEffect):
             key = "mastery"
-            val = effect.upgrade_val if card.upgraded else effect.base_val
-        elif isinstance(effect, FrenzyEffect):
-            key = "frenzy"
             val = effect.upgrade_val if card.upgraded else effect.base_val
 
         if key and key not in seen:

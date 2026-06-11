@@ -192,13 +192,6 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
                          (cx, cy - int(r * 0.2)), (cx, cy + int(r * 0.35)), lw)
         pygame.draw.circle(screen, color, (cx, cy + int(r * 0.62)), max(1, lw // 2))
 
-    elif key == "frenzy":
-        # Следы когтей: три параллельные диагонали.
-        for off in (-int(r * 0.45), 0, int(r * 0.45)):
-            pygame.draw.line(screen, color,
-                             (cx + off - int(r * 0.3), cy - r),
-                             (cx + off + int(r * 0.3), cy + r), lw)
-
     elif key == "heal":
         # Зелёный крест-аптечка (псевдо-ключ карт лечения).
         _plus(screen, cx, cy, r, color)

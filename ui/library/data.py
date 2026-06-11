@@ -18,8 +18,6 @@ _CLASS_TABS = [
     ("Воин",        "Warrior"),
     ("Маг",         "Mage"),
     ("Берсерк",     "Berserker"),
-    ("Разбойник",   "Rogue"),
-    ("Призыватель", "Summoner"),
 ]
 
 TABS = [

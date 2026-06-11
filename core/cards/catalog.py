@@ -23,7 +23,6 @@ from core.cards import (
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
-    create_bloodlust, create_serrated_edge,
     create_blood_rage, create_reckless_blow, create_blood_thirst, create_crunch,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
 )
@@ -84,7 +83,6 @@ CLASS_FACTORIES = {
     # всплеск = мост стихии→ось через MasteryEffect).
     "Mage":      [create_overclock, create_resonant_discharge,
                   create_arcane_focus, create_elemental_surge],
-    "Rogue":     [create_bloodlust, create_serrated_edge],
     "Berserker": [create_blood_rage, create_reckless_blow, create_blood_thirst,
                   create_crunch],
 }
@@ -141,9 +139,9 @@ for _cls_facs in _TAGGED_CLASS_FACTORIES.values():
 
 # name → [(card_id, card_class)]: определяет id уже созданной карты для сохранения БЕЗ
 # origin-поля на инстансе (не трогаем точки создания). В ЖИВОЙ колоде card_class почти
-# всегда None (стартдек/generic тег не ставят), поэтому матчим по ИМЕНИ. Имена уникальны
-# (65/66), единственный дубль «Жажда крови» (bloodlust/Rogue vs blood_thirst/Berserker)
-# развязывается классом игрока (hint_class). Гарантия — тест test_card_registry.
+# всегда None (стартдек/generic тег не ставят), поэтому матчим по ИМЕНИ. Имена уникальны;
+# при возможном дубле имени card_id_of развязывает по классу карты/игрока (hint_class).
+# Гарантия — тест test_card_registry.
 _NAME_TO_ENTRIES = {}
 for _cid, _f in RAW_FACTORIES.items():
     _c = _f()

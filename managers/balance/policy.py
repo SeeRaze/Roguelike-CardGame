@@ -29,7 +29,6 @@ from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
 _WARRIOR_SHIELD_MIN     = 8   # «Щитовой удар»: удар = 50% щита
 _WARRIOR_RETRIBUTION_MIN = 10 # «Возмездие»: придержать, пока щит не накоплен
 _WARRIOR_DISCIPLINE_MIN = 4   # спендер Дисциплины окупается, когда накоплено ≥ стаков
-_ROGUE_BLEED_MIN        = 8   # «Вскрытие»: удвоить кровотечение (ценой -1 энергии)
 _MAGE_ELEMENTAL_MIN     = 4   # «Стихийный барьер»: щит = стихийные стаки * 3
 _MAGE_OVERCLOCK_HP_FRAC = 0.5 # «Разгон»: гэмблить HP→Мастерство только при HP ≥ доли max
 # Берсерк «Безумие» = ставка дисперсии: дамп руки за 0 энергии ценой HP (нырок в
@@ -226,15 +225,6 @@ class WarriorPolicy(BotPolicy):
             ab.activate(combat)
 
 
-class RoguePolicy(BotPolicy):
-    """«Вскрытие» — удвоить осмысленный стак кровотечения (ценой -1 энергии)."""
-
-    def on_turn_end(self, combat) -> None:
-        ab = _ability(combat)
-        if ab and getattr(combat.enemy, "bleed", 0) >= _ROGUE_BLEED_MIN:
-            ab.activate(combat)
-
-
 class MagePolicy(BotPolicy):
     """Ядро Мага (С56) — «Гни»: Мастерство-перегруз + HP-гамбл. ПАР больше НЕ пред-собран
     (де-рельс): бот СОБИРАЕТ его из раздельных стихий (Всплеск=Мокрый + Поджог=Горение →
@@ -351,7 +341,6 @@ CLASS_POLICIES = {
     "Summoner":  SummonerPolicy(),
     "Berserker": BerserkerPolicy(),
     "Warrior":   WarriorPolicy(),
-    "Rogue":     RoguePolicy(),
     "Mage":      MagePolicy(),
     "Chemist":   ChemistPolicy(),
 }

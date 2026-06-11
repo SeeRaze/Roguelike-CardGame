@@ -1,11 +1,11 @@
 # tests/test_combat_manager.py
 # Проверяем CombatManager — ядро боевого цикла:
 # add_log_message, play_card_by_index, check_player_defeat,
-# start_turn_phase (добор/энергия/Разбойник).
+# start_turn_phase (добор/энергия).
 from unittest.mock import patch
 from types import SimpleNamespace
 
-from core.players import Warrior, Rogue, Summoner
+from core.players import Warrior, Summoner
 from core.enemies.cultist import Cultist
 from core.cards import create_strike, create_defend
 from core.relics import МаршСмерти
@@ -108,7 +108,7 @@ def test_розыгрыш_не_падает_с_реликвией():
 
 
 # ═══════════════════════════════════════════════════════════
-# start_turn_phase — добор, энергия, Разбойник
+# start_turn_phase — добор, энергия
 # ═══════════════════════════════════════════════════════════
 
 def test_начало_хода_восстанавливает_энергию():
@@ -126,18 +126,6 @@ def test_начало_хода_добирает_карты():
     cm.start_turn_phase()
     # В колоде 3 карты — все должны оказаться в руке
     assert len(cm.deck_manager.hand) == 3
-
-
-def test_разбойник_получает_скидку_на_случайную_карту():
-    """В начале хода Разбойника одной карте снижается стоимость на 1."""
-    rogue = Rogue()
-    enemy = Cultist("Культист", 30, 30)
-    cm = CombatManager(rogue, enemy, _simple_deck())
-    discounted = [c for c in cm.deck_manager.hand
-                  if getattr(c, 'temp_cost', None) is not None]
-    assert len(discounted) == 1
-    card = discounted[0]
-    assert card.temp_cost == max(0, card.cost - 1)
 
 
 # ═══════════════════════════════════════════════════════════

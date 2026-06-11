@@ -82,5 +82,5 @@ def test_синергия_приоритетнее_класс_специфики
 
 
 def test_get_policy_возвращает_экземпляр_политики():
-    assert isinstance(get_policy("Rogue"), BotPolicy)
+    assert isinstance(get_policy("Mage"), BotPolicy)
     assert isinstance(get_policy("НесуществующийКласс"), BotPolicy)

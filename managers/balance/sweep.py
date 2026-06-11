@@ -25,7 +25,7 @@ import random
 import statistics
 import sys
 
-from core.players import Warrior, Rogue, Mage, Berserker, Summoner
+from core.players import Warrior, Mage, Berserker
 from managers.balance import events as events_mod
 from managers.balance import forge as forge_mod   # noqa: F401 (бот-политика)
 from core import forge as core_forge              # источник правды ручек ковки (мутируем ТУТ)
@@ -36,7 +36,7 @@ from managers.balance.forge import ForgePolicy
 from managers.balance.runner import run_single_run
 
 CLASSES = {c.__name__: c for c in
-           (Warrior, Rogue, Mage, Berserker, Summoner)}
+           (Warrior, Mage, Berserker)}
 
 # ─── ГРИД СВИПА (оси калибровки триединства) ──────────────────────────────────
 # Закалка зафиксирована около найденного оптимума (этап А: проактивный порог 0.6

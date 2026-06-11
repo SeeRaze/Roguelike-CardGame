@@ -84,13 +84,6 @@ def test_first_card_only_first():
     assert forge_damage_multiplier([{"tag_id": "first_card"}], {"play_index": 1}) == 1.0
 
 
-def test_per_bleed_scales_with_stacks():
-    # Разбойник: компаунд растёт со стаком кровотечения.
-    m1 = forge_damage_multiplier([{"tag_id": "per_bleed"}], {"tgt_bleed": 10})
-    m2 = forge_damage_multiplier([{"tag_id": "per_bleed"}], {"tgt_bleed": 20})
-    assert m2 > m1 > 1.0
-
-
 # ─── Null-safety (§10.7) ──────────────────────────────────────────────────────
 
 def test_s_null_safe():
@@ -110,7 +103,7 @@ def test_multiplier_with_empty_snapshot_safe():
 # ─── Smart-weighted выбор тега (§10.1) ────────────────────────────────────────
 
 def test_pick_tag_class_resonant():
-    assert pick_tag("Rogue", "legendary") == CLASS_TAGS["Rogue"]["legendary"]
+    assert pick_tag("Mage", "legendary") == CLASS_TAGS["Mage"]["legendary"]
     assert pick_tag("Warrior", "early") == CLASS_TAGS["Warrior"]["early"]
 
 
@@ -154,7 +147,7 @@ def test_draft_свой_тег_чаще_чужого_B3():
         choices = draft_tag_choices("Warrior", "early", "damage", k=3, rng=rng)
         if "shielded" in choices:          # резонанс Воина
             self_hits += 1
-        if "bleed" in choices:             # резонанс Разбойника (чужой)
+        if "low_hp" in choices:            # резонанс Берсерка (чужой)
             foreign_seen += 1
     assert self_hits > foreign_seen        # свой чаще
     assert foreign_seen > 0                # но чужой всё равно кусается (не вырезан)
@@ -216,12 +209,12 @@ def test_milestone_opens_slot():
     p.forge_level_cap = 15          # кап не мешает достичь майлстоуна
     p.forge_points = 999
     deck = [_atk("Бомба", 12)]
-    pol.forge_between_acts(p, deck, class_name="Rogue")
+    pol.forge_between_acts(p, deck, class_name="Mage")
     rec = p.deck_forge_state[deck[0]._fuid]
     # Достигли уровня ≥5 → ≥1 слот; первый майлстоун = ранний резонансный тег.
     assert rec["level"] >= 5
     assert len(rec["slots"]) >= 1
-    early_tag = CLASS_TAGS["Rogue"][MILESTONE_TIER[5]]
+    early_tag = CLASS_TAGS["Mage"][MILESTONE_TIER[5]]
     assert rec["slots"][0]["tag_id"] == early_tag
 
 
@@ -232,7 +225,7 @@ def test_no_slot_below_first_milestone():
     pol.on_combat_won(p, floor=1)   # cap = INITIAL (4)
     p.forge_points = 999
     deck = [_atk("Удар", 6)]
-    pol.forge_between_acts(p, deck, class_name="Rogue")
+    pol.forge_between_acts(p, deck, class_name="Mage")
     rec = p.deck_forge_state[deck[0]._fuid]
     assert rec["level"] == 4
     assert rec["slots"] == []

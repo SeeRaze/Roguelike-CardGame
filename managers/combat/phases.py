@@ -95,7 +95,7 @@ class TurnPhaseMixin:
         блокировка восстановления/регена на CRASH_REBOOT_TURNS ходов. Анти-сустейн через
         ШАТДАУН состояния (не невидимое число). Со-присутственный свип, раз/ход."""
         BUFF_KEYS = ("strength", "regen", "thorns", "barrier", "vampire",
-                     "mastery", "frenzy", "discipline", "instability", "echo")
+                     "mastery", "discipline", "instability", "echo")
         for e in list(self.enemies):
             if e.hp <= 0:
                 continue
@@ -152,15 +152,6 @@ class TurnPhaseMixin:
         self.deck_manager.draw_cards(5 + bonus)
         # Утечка памяти (С58): на акт добора враги с leak теряют leak × размер руки.
         self.apply_leak_on_draw()
-
-        if type(self.player).__name__ == "Rogue" and self.deck_manager.hand:
-            import random
-            card = random.choice(self.deck_manager.hand)
-            original = card.cost
-            card.temp_cost = max(0, original - 1)
-            self.add_log_message(
-                f" [РАЗБОЙНИК] {card.name}: стоимость {original} -> {card.temp_cost}"
-            )
 
         self.add_log_message(f"--- НАЧАЛО ХОДА {self.turn_count} ---")
 

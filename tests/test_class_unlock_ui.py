@@ -30,9 +30,9 @@ def test_ярус1_всегда_выбирается():
 
 
 def test_открытый_тир2_выбирается():
-    gm = _FakeGM(unlocks=["Rogue"])      # Rogue открыт записью в мете
-    HubView._select_class(gm, "Rogue")
-    assert type(gm.player).__name__ == "Rogue"
+    gm = _FakeGM(unlocks=["Chemist"])      # Chemist открыт записью в мете
+    HubView._select_class(gm, "Chemist")
+    assert type(gm.player).__name__ == "Chemist"
 
 
 def test_смена_класса_перевыдаёт_колоду():
