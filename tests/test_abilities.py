@@ -45,8 +45,8 @@ def test_разбойник_вскрытие_удваивает_кровотеч
 
 def test_маг_стихийный_барьер_даёт_щит(make_combat):
     cm = make_combat()
-    cm.enemy.wet = 2
-    cm.enemy.ignited = 1            # сумма стихийных стаков = 3
+    cm.enemy.coffee = 2
+    cm.enemy.legacy = 1            # сумма стихийных стаков = 3
     ab = MageAbility()
     ab.activate(cm)
     assert cm.player.shield == 9   # 3 стака × 3

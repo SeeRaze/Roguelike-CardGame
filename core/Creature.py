@@ -2,8 +2,8 @@ from core.StatusRegistry import all_keys
 
 _STATUS_KEYS = set(all_keys())
 
-# Статусы, блокируемые МагоМ через «Стихийный барьер»
-_ELEMENTAL_KEYS = frozenset(("ignited", "wet"))
+# Статусы, блокируемые МагоМ через «Стихийный барьер» (половинки ХОТФИКСа)
+_ELEMENTAL_KEYS = frozenset(("coffee", "legacy"))
 
 
 class Creature:

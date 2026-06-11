@@ -2,7 +2,7 @@ from core.players.base import Player
 from core.players.abilities import MageAbility
 from core.EffectCalculator import EffectCalculator
 from core.cards import (
-    create_strike, create_defend, create_ignite, create_splash,
+    create_strike, create_defend, create_coffee_spill, create_legacy_patch,
     create_overclock, create_resonant_discharge,
 )
 
@@ -30,15 +30,15 @@ def instability_cost(max_hp: int, mastery: int) -> int:
 
 
 def get_mage_deck():
-    # Де-рельсенный стартер (С56): Закипание убрано (ПАР пред-собран = рельсы); Поджог+
-    # Всплеск раздельно → ПАР игрок СОБИРАЕТ сам → комбо растит Мастерство (пассив). 2
-    # сигнатурки-учителя: Разгон (гамбл HP→Мастерство) + Резонансный разряд (выжать
-    # глубину). Закипание/Стихийный всплеск/Тайное сосредоточение — в драфт-пуле (catalog).
+    # Де-рельсенный стартер (С56→С58): ХОТФИКС НЕ пред-собран. Кофе+Legacy раздельно →
+    # игрок СОБИРАЕТ комбо сам → комбо растит Мастерство (пассив). 2 сигнатурки-учителя:
+    # Разгон (гамбл HP→Мастерство) + Резонансный разряд (выжать глубину). Закипание/
+    # Стихийный всплеск/Тайное сосредоточение — в драфт-пуле (catalog).
     return [
         create_strike(), create_strike(),
         create_defend(), create_defend(), create_defend(),
-        create_ignite(),                # Горение (половина ПАР)
-        create_splash(),                # Мокрый (половина ПАР) — собери сам
+        create_coffee_spill(),          # Разлитый кофе (половина ХОТФИКС)
+        create_legacy_patch(),          # Legacy-код (половина ХОТФИКС) — собери сам
         create_overclock(),             # Разгон: гамбл HP → Мастерство
         create_resonant_discharge(),    # Резонансный разряд: урон от глубины Мастерства
     ]

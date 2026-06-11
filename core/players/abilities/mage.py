@@ -9,11 +9,11 @@ class MageAbility(ClassAbility):
     Взамен: щит = сумма всех стихийных стаков на поле * 3.
     Один раз за бой.
 
-    Стихийные статусы: ignited, wet.
+    Стихийные статусы: coffee, legacy (половинки ХОТФИКСа).
     Флаг _elemental_blocked проверяется в Creature.add_status.
     """
 
-    ELEMENTAL_STATUSES = ("ignited", "wet")
+    ELEMENTAL_STATUSES = ("coffee", "legacy")
 
     def __init__(self):
         super().__init__(

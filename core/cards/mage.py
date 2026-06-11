@@ -121,19 +121,19 @@ def create_resonant_discharge():
 
 
 def create_boil():
-    """«Закипание» — вешает Мокрый (3) и Горение (3) на цель + урон 5.
+    """«Закипание» — вешает Разлитый кофе (3) и Legacy-код (3) на цель + урон 5.
     Улучшение: урон 6, статусы по 4 хода. Стоит 1 энергии: сетап стоит дёшево,
-    оставляя энергию на атаку-детонатор ПАР в тот же ход."""
+    оставляя энергию на атаку-детонатор ХОТФИКС в тот же ход."""
     return Card(
         name="Закипание",
         cost=1,
         card_type="attack",
-        description="Урон 5(6). Вешает Мокрый 3(4) и Горение 3(4). "
-                    "Сетап для комбо ПАР.",
+        description="Урон 5(6). Вешает Разлитый кофе 3(4) и Legacy-код 3(4). "
+                    "Сетап для комбо ХОТФИКС.",
         effects=[
             DamageEffect(5, 6),
-            StatusEffect("wet", 3, 4),
-            StatusEffect("ignited", 3, 4),
+            StatusEffect("coffee", 3, 4),
+            StatusEffect("legacy", 3, 4),
         ],
         rarity=Rarity.UNCOMMON,
     )
@@ -153,18 +153,18 @@ def create_arcane_focus():
 
 
 def create_elemental_surge():
-    """«Стихийный всплеск» — урон 4(6) + Мокрый + Горение + Мастерство 1.
-    Гибрид: сетап ПАР (вешает обе стихии) И сразу +1 мастерства. В тот же ход
+    """«Стихийный всплеск» — урон 4(6) + Кофе + Legacy + Мастерство 1.
+    Гибрид: сетап ХОТФИКС (вешает обе стихии) И сразу +1 мастерства. В тот же ход
     атака-детонатор → комбо → ещё +1 мастерства от пассива."""
     return Card(
         name="Стихийный всплеск",
         cost=2,
         card_type="attack",
-        description="Урон 4(6). Мокрый 3 + Горение 3 + Мастерство 1.",
+        description="Урон 4(6). Разлитый кофе 3 + Legacy-код 3 + Мастерство 1.",
         effects=[
             DamageEffect(4, 6),
-            StatusEffect("wet", 3, 3),
-            StatusEffect("ignited", 3, 3),
+            StatusEffect("coffee", 3, 3),
+            StatusEffect("legacy", 3, 3),
             MasteryEffect(1, 1),
         ],
         rarity=Rarity.RARE,

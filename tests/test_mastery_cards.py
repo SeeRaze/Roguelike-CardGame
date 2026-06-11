@@ -96,8 +96,8 @@ def test_стихийный_всплеск_вешает_всё():
     hp_before = cm.enemy.hp
     card.apply(cm.player, cm.enemy, cm)
     assert cm.enemy.hp < hp_before          # урон
-    assert cm.enemy.get_status("wet") == 3  # мокрый
-    assert cm.enemy.get_status("ignited") == 3  # горение
+    assert cm.enemy.get_status("coffee") == 3  # разлитый кофе
+    assert cm.enemy.get_status("legacy") == 3  # legacy-код
     assert cm.player.mastery == 1           # мастерство
 
 

@@ -1,7 +1,7 @@
 from core.players.base import Player
 from core.players.abilities import ChemistAbility
 from core.cards import (
-    create_strike, create_defend, create_ignite, create_splash,
+    create_strike, create_defend, create_coffee_spill, create_voltage_spike,
     create_poison_stab,
 )
 
@@ -18,9 +18,9 @@ def get_chemist_deck():
     return [
         create_strike(), create_strike(), create_strike(),
         create_defend(), create_defend(),
-        create_ignite(),        # Горение — сырьё стихии
-        create_splash(),        # Мокрый — сырьё стихии (ПАР при слиянии с огнём)
-        create_poison_stab(),   # Legacy-код — сырьё стихии (DoT)
+        create_coffee_spill(),   # Разлитый кофе — сырьё стихии (усилитель)
+        create_voltage_spike(),  # Короткое замыкание — сырьё стихии (детонатор)
+        create_poison_stab(),    # Legacy-код — сырьё стихии (DoT)
     ]
 
 

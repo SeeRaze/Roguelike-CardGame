@@ -55,15 +55,16 @@ def test_guaranteed_includes_player_buffs_and_enemy_debuffs():
 def test_combo_reaction_is_chip_not_in_guaranteed():
     player = Creature("Игрок", 50, 50)
     target = Creature("Враг", 100, 100)
-    target.wet = 2
-    target.ignited = 2          # ПАР ×3
+    target.coffee = 2
+    target.legacy = 2          # ХОТФИКС ×2
     cm = _Combat(player)
     pv = EffectCalculator.preview(player, target, 10, combat_manager=cm)
-    assert pv["guaranteed"] == 10          # без комбо
-    assert pv["full"] == 30                # 10 ×3 ПАР
-    assert pv["reactions"] == [{"name": "ПАР", "mult": 3.0}]
+    # Кофе амплифицирует (+20%/стак) В guaranteed (не реакция): 10 ×1.4 = 14.
+    assert pv["guaranteed"] == 14          # без комбо, но с Кофе-ампом
+    assert pv["full"] == 28                # 14 ×2 ХОТФИКС
+    assert pv["reactions"] == [{"name": "ХОТФИКС", "mult": 2.0}]
     # Превью НЕ расходует стаки стихий (нет побочек)
-    assert target.wet == 2 and target.ignited == 2
+    assert target.coffee == 2 and target.legacy == 2
 
 
 # ─── Forge-тег: в full входит, в guaranteed — нет, форж-чип присутствует ───────
@@ -89,14 +90,14 @@ def test_breakdown_lists_modifiers():
     player.mastery = 3
     target = Creature("Враг", 100, 100)
     target.vulnerable = 1
-    target.wet = 1
-    target.ignited = 1
+    target.coffee = 1
+    target.legacy = 1
     cm = _Combat(player)
     pv = EffectCalculator.preview(player, target, 10, combat_manager=cm)
     labels = [label for (label, _kind, _val) in pv["steps"]]
     assert "Мастерство" in labels
     assert "Уязвимость" in labels
-    assert "ПАР" in labels
+    assert "ХОТФИКС" in labels
 
 
 # ─── Реликвия с одноразовым зарядом: превью НЕ тратит его ──────────────────────
