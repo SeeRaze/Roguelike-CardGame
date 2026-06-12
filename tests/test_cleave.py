@@ -64,7 +64,7 @@ def test_column_все_наследуют_DamageEffect():
 
 def test_прокол_бьёт_всю_колонку_сквозь_перехват():
     """3 врага (С51 — 1Ф/2Т): E0 фронт-ЦЕНТР, E1 тыл-ЦЕНТР, E2 тыл-ЛЕВО. Колонка
-    ЦЕНТР = E0+E1. «Прокол» по E0 пробивает в тыл-центр (E1), но НЕ задевает
+    ЦЕНТР = E0+E1. «SQL-инъекция» по E0 пробивает в тыл-центр (E1), но НЕ задевает
     линию ЛЕВО (E2)."""
     p, enemies, cm = _make_cm(3, positioning=True)
     e0, e1, e2 = enemies
@@ -76,8 +76,8 @@ def test_прокол_бьёт_всю_колонку_сквозь_перехва
 
 def test_размах_бьёт_весь_ряд():
     """С51 — 1Ф/2Т: шеренга из двух теперь в ТЫЛУ (E1 тыл-ЦЕНТР, E2 тыл-ЛЕВО);
-    фронт = один E0. «Размах» по тыловому E1 задевает соседа по ряду E2, но не
-    фронт (E0)."""
+    фронт = один E0. «Ответить всем» по тыловому E1 задевает соседа по ряду E2,
+    но не фронт (E0)."""
     p, enemies, cm = _make_cm(3, positioning=True)
     e0, e1, e2 = enemies
     RankStrikeEffect(10, 12).execute(p, e1, cm, is_upgraded=False)
@@ -93,7 +93,7 @@ def test_column_rank_без_позиционки_одиночная_цель():
     e0, e1, e2 = enemies
     ColumnStrikeEffect(10, 12).execute(p, e0, cm, is_upgraded=False)
     assert e1.hp == 50 and e2.hp == 50
-    # сбросим и проверим Размах
+    # сбросим и проверим Ответить всем
     p2, en2, cm2 = _make_cm(3, positioning=False)
     RankStrikeEffect(10, 12).execute(p2, en2[0], cm2, is_upgraded=False)
     assert en2[1].hp == 50 and en2[2].hp == 50
@@ -111,13 +111,13 @@ def test_проекция_aoe_показывает_вторичные_цели()
     from ui.combat.interface import CombatInterface
     p, enemies, cm = _make_cm(3, positioning=True)
     e0, e1, e2 = enemies   # С51 1Ф/2Т: e0 фронт-центр, e1 тыл-центр, e2 тыл-лево
-    # «Прокол» (колонка): цель e0 + вся колонка центра (e1 в тылу центра).
+    # «SQL-инъекция» (колонка): цель e0 + вся колонка центра (e1 в тылу центра).
     pierce = create_piercing_thrust()
     cm.deck_manager.hand = [pierce]
     proj = CombatInterface._card_projection(cm, p, pierce)
     assert e0 in proj and proj[e0] > 0          # первичная цель
     assert e1 in proj and proj[e1] > 0          # колонка пробивает в тыл-центр
-    # «Рассекающий» (сплеш по соседям): цель e0 + сосед e1 (тыл-центр по вертикали).
+    # «Мердж-конфликт» (сплеш по соседям): цель e0 + сосед e1 (тыл-центр по вертикали).
     splash = create_cleaving_strike()
     cm.deck_manager.hand = [splash]
     proj2 = CombatInterface._card_projection(cm, p, splash)

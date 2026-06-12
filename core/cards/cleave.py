@@ -61,7 +61,7 @@ class SplashDamageEffect(_PositionalAoEEffect):
     """Цель + сплеш по ОРТОГОНАЛЬНО соседним клеткам (манхэттен-1, диагональ — не
     сосед). Дёргает `neighbors`. Позиция цели решает: центр строя задевает больше."""
 
-    LABEL = "Рассечение"
+    LABEL = "Мердж-конфликт"
 
     def _secondary_targets(self, enemy, combat_manager):
         from core.positioning import neighbors
@@ -73,7 +73,7 @@ class ColumnStrikeEffect(_PositionalAoEEffect):
     ПРОБИВАЕТ перехват: достаёт прикрытый тыл через фронт той же линии (анти-черепаха).
     Полным уроном (splash_ratio=1.0): колонка узкая (≤1 вторичная цель в Т-раскладке)."""
 
-    LABEL = "Прокол"
+    LABEL = "SQL-инъекция"
     SPLASH_RATIO = 1.0
 
     def _secondary_targets(self, enemy, combat_manager):
@@ -89,7 +89,7 @@ class RankStrikeEffect(_PositionalAoEEffect):
     """Цель + весь её РЯД (горизонталь: весь ФРОНТ или весь ТЫЛ). Дёргает `same_rank`.
     Классический sweep по шеренге; вторичные — `splash_ratio`(0.5)."""
 
-    LABEL = "Размах"
+    LABEL = "Ответить всем"
 
     def _secondary_targets(self, enemy, combat_manager):
         from core.positioning import same_rank
@@ -101,11 +101,11 @@ class RankStrikeEffect(_PositionalAoEEffect):
 
 
 def create_cleaving_strike():
-    """«Рассекающий удар» — урон 6(8) цели + половина по СОСЕДНИМ врагам на сетке.
+    """«Мердж-конфликт» — урон 6(8) цели + половина по СОСЕДНИМ врагам на сетке.
     Демонстрационный носитель сплеша (generic). Награда за позиционирование: бей по
     центру вражеского строя — заденешь больше."""
     return Card(
-        name="Рассекающий удар",
+        name="Мердж-конфликт",
         cost=1,
         card_type="attack",
         description="Урон 6(8) цели + половина по соседним врагам (по сетке).",
@@ -115,10 +115,10 @@ def create_cleaving_strike():
 
 
 def create_piercing_thrust():
-    """«Прокол» — урон 6(8) цели + полный по ВСЕЙ её колонке (фронт+тыл линии).
-    Пробивает перехват: достаёт тыл сквозь фронт. Анти-черепаха (generic)."""
+    """«SQL-инъекция» — урон 6(8) цели + полный по ВСЕЙ её колонке (фронт+тыл линии).
+    Пробивает перехват: проходит сквозь фронт(енд) и достаёт бэк. Анти-черепаха (generic)."""
     return Card(
-        name="Прокол",
+        name="SQL-инъекция",
         cost=2,
         card_type="attack",
         description="Урон 6(8) цели и всем врагам в её колонке (фронт+тыл линии).",
@@ -128,10 +128,10 @@ def create_piercing_thrust():
 
 
 def create_wide_swing():
-    """«Размах» — урон 7(9) цели + половина по всему её РЯДУ (вся шеренга фронта/тыла).
-    Зачистка строя по горизонтали (generic)."""
+    """«Ответить всем» — урон 7(9) цели + половина по всему её РЯДУ (вся шеренга
+    фронта/тыла). Каждый, кто был в копии, получил (generic)."""
     return Card(
-        name="Размах",
+        name="Ответить всем",
         cost=2,
         card_type="attack",
         description="Урон 7(9) цели + половина по всему её ряду (шеренге).",
