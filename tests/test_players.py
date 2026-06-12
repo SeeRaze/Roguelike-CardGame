@@ -119,7 +119,7 @@ def test_воин_стартдек_содержит_два_спендера_ди
     assert "Карающий строй" in names        # грань Дисц → бурст
     assert "Стена щитов" in names           # грань Дисц → выживаемость
     assert "Возмездие" not in names         # старая ось → драфт-пул
-    assert "Стальной заслон" not in names
+    assert "Failover" not in names
     assert "Стойка" not in names            # билдер тоже в пул (нет замкнутого лупа)
     assert len(deck) == 11
     assert names.count("Коммит") == 4
