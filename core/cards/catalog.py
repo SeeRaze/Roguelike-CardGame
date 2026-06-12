@@ -18,7 +18,7 @@ from core.cards import (
     create_punishing_formation, create_shield_wall, create_warrior_stance,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
-    create_echo_resonance, create_echo_strike, create_echo_cascade,
+    create_echo_resonance, create_echo_cascade,
     create_blood_rage, create_reckless_blow, create_blood_thirst, create_crunch,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
 )
@@ -68,7 +68,7 @@ GENERIC_FACTORIES = [
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
-    create_echo_resonance, create_echo_strike, create_echo_cascade,
+    create_echo_resonance, create_echo_cascade,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
     # Барьер (несгораемый щит) — универсальная защита (С57). LOCKED (за прогресс).
     create_steel_barricade, create_bastion,

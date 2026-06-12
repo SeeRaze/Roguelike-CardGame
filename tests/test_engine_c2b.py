@@ -40,7 +40,7 @@ def test_dispatcher_does_not_double_itself():
 def test_echo_giver_does_not_retrigger_itself():
     """Регресс-гард E5 (фикс порядка зарядов): карта, дающая Эхо N, при розыгрыше
     БЕЗ эха на игроке кладёт ровно N зарядов — не ретриггерит сама себя.
-    До фикса Резонанс(Эхо 2) самоповторялся и давал 4."""
+    До фикса Ретрай(Эхо 2) самоповторялся и давал 4."""
     from core.cards.echo import create_echo_resonance
     cm = _cm()
     cm.player.energy = 3

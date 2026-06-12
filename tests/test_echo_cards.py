@@ -1,7 +1,7 @@
 # tests/test_echo_cards.py
 # Проверяем механику Эха: статус на игроке, ретриггер карт, карты эха.
 from core.cards.echo import (
-    EchoEffect, create_echo_resonance, create_echo_strike, create_echo_cascade,
+    EchoEffect, create_echo_resonance, create_echo_cascade,
 )
 from core.cards.base import Card, DamageEffect, ShieldEffect
 from core.players import Warrior
@@ -95,15 +95,6 @@ def test_резонанс_даёт_эхо():
     assert cm.player.echo == 5  # 2 + 3
 
 
-def test_отзвук_наносит_урон_и_даёт_эхо():
-    cm = FakeCombat()
-    card = create_echo_strike()
-    hp_before = cm.enemy.hp
-    card.apply(cm.player, cm.enemy, cm)
-    assert cm.enemy.hp < hp_before  # урон прошёл
-    assert cm.player.echo == 1
-
-
 def test_каскад_без_эха_наносит_базовый_урон():
     cm = FakeCombat()
     cm.player.echo = 0
@@ -131,8 +122,7 @@ def test_эхо_в_catalog_доступно():
     """Эхо-карты есть в общем пуле (generic)."""
     from core.cards.catalog import GENERIC_FACTORIES
     names = [f.__name__ for f in GENERIC_FACTORIES]
-    for n in ("create_echo_resonance", "create_echo_strike",
-              "create_echo_cascade"):
+    for n in ("create_echo_resonance", "create_echo_cascade"):
         assert n in names, f"{n} отсутствует в GENERIC_FACTORIES"
 
 
