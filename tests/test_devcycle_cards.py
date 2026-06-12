@@ -2,7 +2,8 @@
 # Пол стартового пула = ЦИКЛ РАЗРАБОТКИ (ярус 1, С60). 4 карты пола заменяют флат
 # Удар/Защита/Тяжёлый Клинок/Железная Стена под IT. Проверяем: числа/эффекты =
 # шаблон флата; ACCRUE-райдер «Пуш в прод» и «Костыль» навешивают Баг; DEBUG-райдер
-# «Код-ревью» вычищает Баг; «Песочница» даёт щит+барьер; сейв-раундтрип; не в драфте.
+# «Код-ревью» вычищает Баг; «Песочница» даёт щит+барьер; сейв-раундтрип; в драфте
+# (задача 4: флат снесён, пол в GENERIC; Песочница — UNCOMMON Locked).
 from types import SimpleNamespace
 
 from core.players import Warrior
@@ -126,12 +127,27 @@ def test_карты_пола_сериализуются():
         assert restored is not None and restored.name == name
 
 
-def test_карты_пола_пока_не_в_драфте():
-    # Задача 3 = additive: 4 карты НЕ в пуле выдачи (флат ещё живёт; переезд в задаче 4).
+def test_карты_пола_в_драфте():
+    # Задача 4 (снос флата): пол цикла разработки В пуле выдачи; флат — вышел
+    # (фабрики живы для Химика/тестов, но не драфтятся).
     from core.cards.catalog import get_pool_for_class
     names = {f().name for f in get_pool_for_class("Warrior")}
     for n in ("Коммит", "Пуш в прод", "Код-ревью", "Песочница"):
+        assert n in names
+    for n in ("Удар", "Защита", "Тяжёлый Клинок", "Железная Стена"):
         assert n not in names
+
+
+def test_песочница_заперта_для_нового_игрока():
+    # Песочница = UNCOMMON Locked (награда за прогресс), остальной пол — открыт.
+    from core.cards.catalog import get_pool_for_class
+    from core.rarity import Rarity
+    meta = {"stats": {}, "unlocks": []}
+    names = {f().name for f in get_pool_for_class("Warrior", meta=meta)}
+    assert "Песочница" not in names
+    for n in ("Коммит", "Пуш в прод", "Код-ревью"):
+        assert n in names
+    assert create_sandbox().rarity == Rarity.UNCOMMON
 
 
 # ── Проекция описания не корёжится ───────────────────────────────────────────

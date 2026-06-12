@@ -1,7 +1,7 @@
 from core.players.base import Player
 from core.players.abilities import WarriorAbility
 from core.cards import (
-    create_strike, create_defend, create_heavy_blade,
+    create_commit, create_code_review, create_push_to_prod,
     create_punishing_formation, create_shield_wall,
 )
 
@@ -10,10 +10,12 @@ def get_warrior_deck():
     # Де-рельсенный стартер (С56): 2 спендера Дисциплины-учителя, БЕЗ в-стартере
     # генератора стаков (кроме пассива «держи строй») → не замкнутый луп. Возмездие/
     # Стальной заслон/Стойка (старая ось + билдер) — в драфт-пуле класса (catalog).
+    # С60 (задача 4): флат → пол цикла разработки 1:1 (Удар→Коммит, Защита→Код-ревью,
+    # Тяж.Клинок→Пуш в прод). Числа идентичны, у Пуша в прод райдер ACCRUE (+1 Баг).
     return [
-        create_strike(), create_strike(), create_strike(), create_strike(),
-        create_defend(), create_defend(), create_defend(), create_defend(),
-        create_heavy_blade(),
+        create_commit(), create_commit(), create_commit(), create_commit(),
+        create_code_review(), create_code_review(), create_code_review(), create_code_review(),
+        create_push_to_prod(),
         create_punishing_formation(),   # Дисц → бурст (роль Возмездия)
         create_shield_wall(),           # Дисц → щит-стена (ось выживаемости)
     ]

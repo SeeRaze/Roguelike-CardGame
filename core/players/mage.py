@@ -2,7 +2,7 @@ from core.players.base import Player
 from core.players.abilities import MageAbility
 from core.EffectCalculator import EffectCalculator
 from core.cards import (
-    create_strike, create_defend, create_coffee_spill, create_legacy_patch,
+    create_commit, create_code_review, create_coffee_spill, create_legacy_patch,
     create_overclock, create_resonant_discharge,
 )
 
@@ -34,9 +34,11 @@ def get_mage_deck():
     # игрок СОБИРАЕТ комбо сам → комбо растит Мастерство (пассив). 2 сигнатурки-учителя:
     # Разгон (гамбл HP→Мастерство) + Резонансный разряд (выжать глубину). Закипание/
     # Стихийный всплеск/Тайное сосредоточение — в драфт-пуле (catalog).
+    # С60 (задача 4): флат → пол 1:1 (Удар→Коммит, Защита→Код-ревью). Костыль копит
+    # долг (ACCRUE) — Код-ревью×3 даёт counterplay из коробки.
     return [
-        create_strike(), create_strike(),
-        create_defend(), create_defend(), create_defend(),
+        create_commit(), create_commit(),
+        create_code_review(), create_code_review(), create_code_review(),
         create_coffee_spill(),          # Разлитый кофе (половина ХОТФИКС)
         create_legacy_patch(),          # Legacy-код (половина ХОТФИКС) — собери сам
         create_overclock(),             # Разгон: гамбл HP → Мастерство

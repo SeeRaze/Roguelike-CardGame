@@ -41,16 +41,18 @@ from core.cards.shortcuts import (
 # только навешивается через ACCRUE. Импортируется сюда РАДИ регистрации в RAW_FACTORIES
 # (сейв/загрузка current_deck: Баг персистит между боями, нужен стабильный card_id).
 from core.cards.bug import create_bug
-# Пол цикла разработки (С60): 4 карты пола. В RAW_FACTORIES (сейв-совместимость),
-# но НЕ в GENERIC_FACTORIES — в драфт/стартдеки переезжают в задаче 4 (снос флата),
-# чтобы сейчас не дублировать ещё живой флат в пуле выдачи.
+# Пол цикла разработки (С60, задача 4 — снос флата): 4 карты пола В GENERIC-пуле,
+# заменили флат Удар/Защита/Тяжёлый Клинок/Железную Стену 1:1. Флат-фабрики живы
+# (basic.py: стартер Химика + тесты-vehicle), но из пула выдачи ВЫШЛИ.
 from core.cards.devcycle import (
     create_commit, create_push_to_prod, create_code_review, create_sandbox,
 )
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
 GENERIC_FACTORIES = [
-    create_strike, create_defend, create_heavy_blade, create_iron_wall,
+    # ── ПОЛ = ЦИКЛ РАЗРАБОТКИ (С60): Коммит/Пуш в прод/Код-ревью = COMMON-пол
+    # стартдеков; Песочница = UNCOMMON Locked (награда). Петля долга с 1-го боя.
+    create_commit, create_push_to_prod, create_code_review, create_sandbox,
     create_catalyst,
     # ── НОВЫЕ СТИХИИ (С58) — PAYLOAD: наложи Кофе/Legacy/Замыкание, детонируй ──
     create_legacy_patch, create_tech_debt,
@@ -143,9 +145,10 @@ for _cls_facs in _TAGGED_CLASS_FACTORIES.values():
 # Баг — НЕ в пулах выдачи, но в реестре воссоздания: навешанный долг лежит в
 # gm.current_deck и обязан пережить сейв/загрузку (card_id='bug').
 RAW_FACTORIES[card_id_for(create_bug)] = create_bug
-# Карты пола цикла разработки (С60) — НЕ в пулах выдачи (задача 4), но в реестре
-# воссоздания: лягут в стартдеки/колоду забега и обязаны пережить сейв/загрузку.
-for _f in (create_commit, create_push_to_prod, create_code_review, create_sandbox):
+# Флат (С60, задача 4) — ВЫШЕЛ из GENERIC, но в реестре воссоздания: strike/defend
+# живут в стартере Химика (сейв-round-trip), heavy_blade/iron_wall — чтобы старые
+# сейвы с Тяж.Клинком/Жел.Стеной в колоде не теряли карты при загрузке.
+for _f in (create_strike, create_defend, create_heavy_blade, create_iron_wall):
     RAW_FACTORIES[card_id_for(_f)] = _f
 
 # name → [(card_id, card_class)]: определяет id уже созданной карты для сохранения БЕЗ

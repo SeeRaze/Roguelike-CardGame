@@ -30,10 +30,10 @@ def test_meta_none_не_фильтрует_даже_при_locked(monkeypatch):
 
 def test_meta_фильтрует_locked_карту(monkeypatch):
     monkeypatch.setattr(prog, "LOCKED_CARDS", {"tech_debt"})
-    # Новый игрок (пустые unlocks) — tech_debt отфильтрован, strike остался.
+    # Новый игрок (пустые unlocks) — tech_debt отфильтрован, commit остался.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
     assert "tech_debt" not in ids
-    assert "strike" in ids
+    assert "commit" in ids
 
 
 def test_анлок_возвращает_карту_в_пул(monkeypatch):
@@ -63,17 +63,20 @@ def test_все_locked_артефакты_существуют():
     assert not bogus, f"LOCKED_RELICS содержит несуществующие id: {bogus}"
 
 
-def test_стартовый_generic_пул_ровно_12_карт():
-    # Новый игрок (пустые unlocks) видит только стартовые generic (12) + класс.
+def test_стартовый_generic_пул_ровно_11_карт():
+    # Новый игрок (пустые unlocks) видит только стартовые generic (11) + класс.
+    # С60 (задача 4): флат (4) ушёл, пол цикла разработки — 3 COMMON открыты,
+    # Песочница (4-я) заперта → 12−4+3 = 11.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
     generic_ids = ids & {card_id_for(f) for f in GENERIC_FACTORIES}
-    assert len(generic_ids) == 12
-    assert "strike" in generic_ids
+    assert len(generic_ids) == 11
+    assert "commit" in generic_ids
+    assert "sandbox" not in generic_ids     # locked (UNCOMMON-награда)
     assert "tech_debt" not in generic_ids   # locked
 
 
 def test_классовые_сигнатурки_остаются_у_нового_игрока():
     # Тир-1 сигнатурки не заперты (стартдеки не трогаем) → видны при пустых unlocks.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
-    # 12 стартовых generic + 3 классовых Воина (С57: ось Дисц, старая ось вычищена) = 15.
-    assert len(ids) == 15
+    # 11 стартовых generic + 3 классовых Воина (С57: ось Дисц, старая ось вычищена) = 14.
+    assert len(ids) == 14

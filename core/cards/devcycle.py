@@ -8,10 +8,12 @@
 # (щит + несгораемый Барьер). ACCRUE/DEBUG = РАЙДЕР идентичности (одна доп.строка),
 # не второй движок — лаконичность под ковку/майлстоуны.
 #
-# Регистрация: RAW_FACTORIES (catalog) — сейв-совместимость. В стартдеки/GENERIC-пул
-# переезжают в задаче 4 (снос флата). Имена согласованы с юзером (С60).
+# Регистрация: GENERIC_FACTORIES (catalog) — пол общего пула (задача 4, снос флата).
+# Коммит/Пуш в прод/Код-ревью = COMMON в стартдеках тройки; Песочница = UNCOMMON
+# Locked (награда за прогресс, в стартер НЕ входит). Имена согласованы с юзером (С60).
 from core.cards.base import Card, DamageEffect, ShieldEffect, BarrierEffect
 from core.cards.bug import AccrueBugEffect, DebugBugEffect
+from core.rarity import Rarity
 
 
 def create_commit():
@@ -58,4 +60,5 @@ def create_sandbox():
         card_type="defense",
         description="Щит 12(18). Барьер 6(9).",
         effects=[ShieldEffect(12, 18), BarrierEffect(6, 9)],
+        rarity=Rarity.UNCOMMON,
     )

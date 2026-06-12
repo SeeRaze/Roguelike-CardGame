@@ -136,6 +136,9 @@ def newly_unlocked(meta: dict) -> list:
 # Новые стихии — пол (6 COMMON-applier'ов) стартовый, UNCOMMON/RARE заперты.
 LOCKED_CARDS: set = {
     "catalyst",
+    # Песочница (С60, задача 4): UNCOMMON-награда за прогресс; открытый пол цикла
+    # разработки = Коммит/Пуш в прод/Код-ревью (COMMON, в стартдеках тройки).
+    "sandbox",
     # Новые стихии (С58): UNCOMMON/RARE заперты (пол = простейшие COMMON-карты семей).
     "tech_debt", "coffee_flood", "overload", "mass_short", "overtime",
     "infinite_loop", "reverse_engineer",
