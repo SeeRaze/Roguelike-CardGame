@@ -399,7 +399,8 @@ class PasteEffect:
 
 class Card:
     def __init__(self, name, cost, card_type, description, effects,
-                 rarity=Rarity.COMMON, exile=False, card_class=None):
+                 rarity=Rarity.COMMON, exile=False, card_class=None,
+                 unplayable=False):
         self.name = name
         self.cost = cost
         self.card_type = card_type
@@ -411,6 +412,10 @@ class Card:
         # Принадлежность классу: None = нейтральная (generic), иначе имя класса
         # (напр. "Warrior"). Проставляется централизованно в core/cards/catalog.py.
         self.card_class = card_class
+        # Слой БАГОВ (ярус 1): несыгрываемая карта-долг (модель StS Wound). Занимает
+        # слот руки, дилютит добор, но play_card_by_index её НЕ разыгрывает. Counterplay —
+        # DEBUG-эффект (карта «Код-ревью»), не энергия. Персист в gm.current_deck.
+        self.unplayable = unplayable
 
     def upgrade(self):
         if not self.upgraded:

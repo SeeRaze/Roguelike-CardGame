@@ -31,6 +31,11 @@ def _elemental_key(effects):
 
 def classify_card(card) -> str:
     """Определяет класс карты по составу эффектов. Возвращает ключ для card_palette."""
+    # Слой БАГОВ (ярус 1): несыгрываемая карта-долг — отдельный «проклятый» вид,
+    # независимо от эффектов (у Бага их нет). Проверяем ПЕРВЫМ.
+    if getattr(card, "unplayable", False):
+        return "bug"
+
     effects = card.effects
     has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
     has_cache_hit = any(isinstance(e, VampireBuffEffect) for e in effects)

@@ -37,6 +37,10 @@ from core.cards.shortcuts import (
     create_hard_delete, create_stack_trace,
     create_task_manager, create_undo, create_copy, create_paste,
 )
+# Слой БАГОВ (ярус 1, С59): карта-Баг НЕ драфтится (вне GENERIC_FACTORIES/наград) —
+# только навешивается через ACCRUE. Импортируется сюда РАДИ регистрации в RAW_FACTORIES
+# (сейв/загрузка current_deck: Баг персистит между боями, нужен стабильный card_id).
+from core.cards.bug import create_bug
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
 GENERIC_FACTORIES = [
@@ -130,6 +134,9 @@ for _f in GENERIC_FACTORIES:
 for _cls_facs in _TAGGED_CLASS_FACTORIES.values():
     for _f in _cls_facs:
         RAW_FACTORIES[card_id_for(_f)] = _f
+# Баг — НЕ в пулах выдачи, но в реестре воссоздания: навешанный долг лежит в
+# gm.current_deck и обязан пережить сейв/загрузку (card_id='bug').
+RAW_FACTORIES[card_id_for(create_bug)] = create_bug
 
 # name → [(card_id, card_class)]: определяет id уже созданной карты для сохранения БЕЗ
 # origin-поля на инстансе (не трогаем точки создания). В ЖИВОЙ колоде card_class почти

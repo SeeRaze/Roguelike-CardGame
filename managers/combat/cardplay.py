@@ -20,6 +20,16 @@ class CardPlayMixin:
             return False
 
         selected_card = self.deck_manager.hand[card_index]
+
+        # Слой БАГОВ (ярус 1): несыгрываемая карта-долг. Гейт ДО любой траты ресурса —
+        # Баг занимает слот, но разыграть нельзя («задебажь»). Counterplay = DEBUG-эффект
+        # карты «Код-ревью» (изгоняет Баг из руки), не энергия.
+        if getattr(selected_card, 'unplayable', False):
+            self.add_log_message(
+                f"[!] '{selected_card.name}' нельзя сыграть — задебажь (Код-ревью)."
+            )
+            return False
+
         effective_cost = getattr(selected_card, 'temp_cost', selected_card.cost)
 
         # БЕЗУМИЕ (Берсерк): карта стоит 0 энергии, но берёт HP (стоимость × % max HP,
