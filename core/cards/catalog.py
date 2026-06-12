@@ -15,11 +15,11 @@ from core.cards import (
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
-    create_punishing_formation, create_shield_wall, create_warrior_stance,
+    create_critical_bug, create_release_candidate, create_test_plan,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
     create_echo_resonance, create_echo_cascade,
-    create_blood_rage, create_reckless_blow, create_blood_thirst, create_crunch,
+    create_escalation, create_force_push, create_refactoring, create_crunch,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
 )
 # Новые стихии (С58, айти-передел) — PAYLOAD-семья, импорт из модулей напрямую.
@@ -79,15 +79,15 @@ GENERIC_FACTORIES = [
 # ─── Классовые карты — выдаются только своему классу ─────────────────────────
 CLASS_FACTORIES = {
     # Воин = чисто ось Дисциплины (С57, чистка под единый формат): старая ось «щит=атака»
-    # убрана из классового пула. Барьер (Failover/Кластер) → generic; Возмездие → из выдачи
-    # (фабрика жива для совместимости/тестов, но не выдаётся — дублировала Карающий строй).
-    "Warrior":   [create_punishing_formation, create_shield_wall, create_warrior_stance],
+    # убрана из классового пула. Барьер (Failover/Кластер) → generic; Регрессионка → из выдачи
+    # (фабрика жива для совместимости/тестов, но не выдаётся — дублировала Критический баг).
+    "Warrior":   [create_critical_bug, create_release_candidate, create_test_plan],
     # Маг = ось Мастерства/Нестабильности (С57, чистка под единый формат): «Залить в прод»
     # (чистый ПАР, 0 Мастерства) → generic. Остальные 4 трогают Мастерство (Стихийный
     # всплеск = мост стихии→ось через MasteryEffect).
     "Mage":      [create_overclock, create_resonant_discharge,
                   create_arcane_focus, create_elemental_surge],
-    "Berserker": [create_blood_rage, create_reckless_blow, create_blood_thirst,
+    "Berserker": [create_escalation, create_force_push, create_refactoring,
                   create_crunch],
 }
 

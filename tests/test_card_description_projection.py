@@ -143,7 +143,7 @@ def test_card_base_damage_detects_echo_payoff():
 def test_card_base_damage_skips_shield_damage():
     from ui.cards.renderer import CardRenderer
     from core.cards.warrior import ShieldDamageEffect
-    c = Card("Возмездие", 1, "attack", "Урон = щиту (130%).",
+    c = Card("Регрессионка", 1, "attack", "Урон = щиту (130%).",
              [ShieldDamageEffect(1.0, 1.3)])
     assert CardRenderer._card_base_damage(c) is None
 
@@ -168,7 +168,7 @@ def test_card_base_damage_scaling_uses_player_resource():
     from core.cards.catalog import get_class_cards
     from core.players import Warrior
     card = next(f() for f in get_class_cards("Warrior")
-                if f().name == "Карающий строй")
+                if f().name == "Критический баг")
     eff = card.effects[0]
     p = Warrior()
     # без Дисциплины → база (множитель ×1)

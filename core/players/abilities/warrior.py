@@ -4,8 +4,8 @@ from core.players.ability import ClassAbility
 
 class WarriorAbility(ClassAbility):
     """
-    «Щитовой удар»
-    Наносит врагу урон равный 50% текущего щита Воина.
+    «Откат релиза»
+    Наносит врагу урон равный 50% текущего щита Тестировщика.
     Один раз за бой.
     """
 

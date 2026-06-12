@@ -20,7 +20,7 @@ COMBO_HEAL_PCT            = 0.08
 def instability_cost(max_hp: int, mastery: int) -> int:
     """Цена Нестабильности за ход (HP сквозь щит) при данных max_hp и Мастерстве.
     0 ниже порога перегруза; на пороге = base%, далее +per_stack% за каждый стак сверх.
-    Чистая функция — зовут пассив Мага И бот-политика (оценка риска гамбла)."""
+    Чистая функция — зовут пассив Вайб-кодера И бот-политика (оценка риска гамбла)."""
     threshold = EffectCalculator.MASTERY_INSTABILITY_THRESHOLD
     if mastery < threshold:
         return 0
@@ -49,7 +49,7 @@ def get_mage_deck():
 class Mage(Player):
     def __init__(self):
         super().__init__(
-            name="Маг",
+            name="Вайб-кодер",
             max_hp=70,
             max_energy=3,
             gold=90,
@@ -59,7 +59,7 @@ class Mage(Player):
 
     def on_turn_start_passive(self, combat_manager) -> None:
         """НЕСТАБИЛЬНОСТЬ (ступень «Гни»): при перегрузе Мастерства (≥ порога) «интерфейс
-        искрит» — Маг теряет HP сквозь щит в начале хода. Цена в % max HP, ЭСКАЛИРУЕТ с
+        искрит» — Вайб-кодер теряет HP сквозь щит в начале хода. Цена в % max HP, ЭСКАЛИРУЕТ с
         глубиной Мастерства (чем дальше гнёшь — тем больнее). Цена за усиленный бонус
         Мастерства (EffectCalculator шаг 2c). Сеет Контекстное Окно Демиурга. NO-OP ниже
         порога."""

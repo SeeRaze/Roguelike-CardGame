@@ -10,11 +10,12 @@
 import random
 
 from core.cards import (
-    create_iron_wall, create_bastion,
-    create_punishing_formation, create_warrior_stance,
+    create_sandbox, create_bastion,
+    create_critical_bug, create_test_plan,
     create_arcane_focus, create_coffee_spill,
     create_overclock, create_resonant_discharge,
-    create_legacy_patch, create_battle_cry,
+    create_legacy_patch,
+    create_escalation, create_refactoring, create_crunch,
 )
 from core.cards.base import (
     DamageEffect, ShieldEffect, StatusEffect,
@@ -58,8 +59,8 @@ CLASS_CORES = {
     "Warrior": (
         # Движок Дисциплины: держим строй (барьер/железная воля → щит на конец хода
         # → пассив копит Дисц каждый ход) + билдеры → сжигаем в бурст/стену.
-        [create_warrior_stance, create_warrior_stance, create_bastion,
-         create_iron_wall, create_punishing_formation],
+        [create_test_plan, create_test_plan, create_bastion,
+         create_sandbox, create_critical_bug],
         [Кэш, Санитайзер, Оверклокинг],
     ),
     "Mage": (
@@ -70,7 +71,8 @@ CLASS_CORES = {
         [Дебаггер, Оверклокинг, Линтер],
     ),
     "Berserker": (
-        [create_battle_cry],
+        # Стажёр: нырок в долг через Аврал (HP в мощь).
+        [create_escalation, create_refactoring, create_crunch],
         [Оверклокинг, ОткатКБэкапу, Линтер, Овердрафт],
     ),
 }

@@ -2,7 +2,7 @@
 # Проверяем механику Барьера: несгораемый щит между ходами, карты Воина.
 from core.cards.base import BarrierEffect
 from core.cards.warrior import (
-    create_steel_barricade, create_bastion, create_retribution,
+    create_steel_barricade, create_bastion, create_regression_test,
 )
 from core.players import Warrior
 from core.enemies import Cultist
@@ -104,7 +104,7 @@ def test_барьер_суммируется_с_carry_воина():
 
 
 def test_барьер_работает_как_движок_возмездия():
-    """Полный цикл: барьер→щит→Возмездие. Моделируем 2 хода."""
+    """Полный цикл: барьер→щит→Регрессионка. Моделируем 2 хода."""
     cm = FakeBarrierCombat()
 
     # Ход 1: играем Стальной заслон (барьер 2) + Защиту (щит 6)
@@ -118,9 +118,9 @@ def test_барьер_работает_как_движок_возмездия():
     carry = int(cm.player.shield * 0.5)  # 3
     cm.player.shield = carry + cm.player.barrier  # 3 + 2 = 5
 
-    # Ход 2: начинаем с 5 щита. Играем Возмездие.
+    # Ход 2: начинаем с 5 щита. Играем Регрессионку.
     assert cm.player.shield == 5
-    card = create_retribution()
+    card = create_regression_test()
     hp_before = cm.enemy.hp
     card.apply(cm.player, cm.enemy, cm)
     dmg = hp_before - cm.enemy.hp
@@ -140,4 +140,4 @@ def test_барьер_в_generic_не_в_классе_воина():
     # И УЖЕ НЕ в классовом пуле Воина (старая ось вычищена)
     assert "create_steel_barricade" not in warrior_names
     assert "create_bastion" not in warrior_names
-    assert "create_retribution" not in warrior_names   # Возмездие убрано из выдачи
+    assert "create_regression_test" not in warrior_names   # Регрессионка убрана из выдачи

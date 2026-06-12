@@ -74,7 +74,7 @@ def test_use_energy_не_уходит_ниже_нуля():
 
 def test_воин_имеет_правильные_статы():
     w = Warrior()
-    assert w.name == "Воин"
+    assert w.name == "Тестировщик"
     assert w.max_hp == 90
     assert w.max_energy == 3
     assert w.gold == 100
@@ -83,7 +83,7 @@ def test_воин_имеет_правильные_статы():
 
 def test_маг_имеет_правильные_статы():
     m = Mage()
-    assert m.name == "Маг"
+    assert m.name == "Вайб-кодер"
     assert m.max_hp == 70
     assert m.max_energy == 3
     assert m.gold == 90
@@ -116,11 +116,11 @@ def test_воин_стартдек_содержит_два_спендера_ди
     # в-стартере билдера/старой оси (они в драфт-пуле).
     deck = Warrior().get_starter_deck()
     names = [c.name for c in deck]
-    assert "Карающий строй" in names        # грань Дисц → бурст
-    assert "Стена щитов" in names           # грань Дисц → выживаемость
-    assert "Возмездие" not in names         # старая ось → драфт-пул
+    assert "Критический баг" in names       # грань Дисц → бурст
+    assert "Релиз-кандидат" in names        # грань Дисц → выживаемость
+    assert "Регрессионка" not in names      # старая ось → драфт-пул
     assert "Failover" not in names
-    assert "Стойка" not in names            # билдер тоже в пул (нет замкнутого лупа)
+    assert "Тест-план" not in names         # билдер тоже в пул (нет замкнутого лупа)
     assert len(deck) == 11
     assert names.count("Коммит") == 4
     assert names.count("Код-ревью") == 4

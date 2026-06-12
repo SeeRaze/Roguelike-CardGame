@@ -107,7 +107,7 @@ class StatusEffect:
 class BarrierEffect:
     """Накладывает Барьер на игрока — несгораемый щит, не сбрасывается между ходами.
     Каждый стак барьера = +1 к щиту при СБРОСЕ в начале хода (см. CombatManager).
-    Это движок кат.4 для Воина: «защита = атака» через Возмездие."""
+    Это движок кат.4 для Воина: «защита = атака» через Регрессионку."""
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val
         self.upgrade_val = upgrade_val

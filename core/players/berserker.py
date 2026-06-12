@@ -4,7 +4,7 @@ from core.players.abilities.berserker import OVERDRIVE_HP_PCT_PER_COST
 from core.cards import (
     create_commit, create_push_to_prod,
     create_flex, create_battle_cry,
-    create_blood_rage, create_blood_thirst, create_crunch,
+    create_escalation, create_refactoring, create_crunch,
 )
 
 
@@ -22,8 +22,8 @@ def get_berserker_deck():
         create_push_to_prod(), create_push_to_prod(),
         create_flex(),
         create_battle_cry(),
-        create_blood_rage(),
-        create_blood_thirst(),
+        create_escalation(),
+        create_refactoring(),
         create_crunch(),
     ]
 
@@ -39,7 +39,7 @@ class Berserker(Player):
 
     def __init__(self):
         super().__init__(
-            name="Берсерк",
+            name="Стажёр",
             max_hp=60,
             max_energy=3,
             gold=80,
@@ -54,7 +54,7 @@ class Berserker(Player):
 
     def on_hp_debt_settle(self, combat_manager) -> None:
         """СТРОГАЯ расплата (вызывается в конце хода ядром, когда hp<0): если бой НЕ
-        выигран (есть живые враги) — Берсерк падает замертво. Форсируем пол-смерть;
+        выигран (есть живые враги) — Стажёр падает замертво. Форсируем пол-смерть;
         end_turn_phase прервётся через check_player_defeat ДО действий врагов. Победа «в
         коме» сюда НЕ доходит: _check_victory срабатывает в момент килла (hp уже ≥0 после
         on_combat_won)."""
@@ -63,7 +63,7 @@ class Berserker(Player):
 
     def on_combat_won(self, combat_manager) -> None:
         """ПИК «Отрицание Смерти»: победа в минусе → |минус HP| → Forge Points (кормит
-        ковку колоды), Берсерк выживает (hp=1). NO-OP при hp>=0 (победил не в коме)."""
+        ковку колоды), Стажёр выживает (hp=1). NO-OP при hp>=0 (победил не в коме)."""
         if self.hp < 0:
             gained = -self.hp
             self.forge_points += gained

@@ -62,7 +62,7 @@ class CombatInterface:
     @staticmethod
     def _card_projection(combat, player, card):
         """{враг: полный_урон наведённой карты} для проекции на HP-барах. Прямой
-        урон (DamageEffect, мульти-хит складываем) → текущая цель; AoE-Возмездие
+        урон (DamageEffect, мульти-хит складываем) → текущая цель; AoE-Регрессионка
         (ShieldDamageEffect, база = щит×ratio) → все живые враги. Полный урон
         (с комбо/ковкой) = что реально снимется, через единый EffectCalculator."""
         from core.cards.base import DamageEffect

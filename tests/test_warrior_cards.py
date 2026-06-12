@@ -7,7 +7,7 @@ from core.cards.warrior import (
 )
 from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class, get_class_cards
 
-_SIGNATURES = {"Карающий строй", "Стена щитов", "Стойка"}
+_SIGNATURES = {"Критический баг", "Релиз-кандидат", "Тест-план"}
 
 
 def _warrior(make_creature, hp=90, max_hp=90):
@@ -89,12 +89,12 @@ def test_спендер_тратит_всю_дисциплину_второй_б
     player = _warrior(make_creature)
     player.set_status("discipline", 6)
     enemy = make_creature("Враг", 99, 99)
-    burst = Card("Карающий строй", 1, "attack", "",
+    burst = Card("Критический баг", 1, "attack", "",
                  [DisciplineBurstDamageEffect(6, 9, 0.30, 0.40)])
     burst.apply(player, enemy)
     assert enemy.hp == 99 - int(6 * (1 + 0.30 * 6))   # ×2.8 → 16 урона
     # Дисциплина обнулена — второй спендер бьёт только базой (×1.0).
-    burst2 = Card("Карающий строй", 1, "attack", "",
+    burst2 = Card("Критический баг", 1, "attack", "",
                   [DisciplineBurstDamageEffect(6, 9, 0.30, 0.40)])
     burst2.apply(player, enemy)
     assert player.discipline == 0
@@ -142,13 +142,13 @@ class _StubCombat:
 
 
 def _burst():
-    return Card("Карающий строй", 1, "attack", "",
+    return Card("Критический баг", 1, "attack", "",
                 [DisciplineBurstDamageEffect(6, 9, 2, 3)])
 
 
 def _stance():
     from core.cards.base import ShieldEffect
-    return Card("Стойка", 1, "skill", "",
+    return Card("Тест-план", 1, "skill", "",
                 [ShieldEffect(5, 8), DisciplineGainEffect(2, 3)])
 
 

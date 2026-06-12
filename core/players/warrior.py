@@ -2,29 +2,29 @@ from core.players.base import Player
 from core.players.abilities import WarriorAbility
 from core.cards import (
     create_commit, create_code_review, create_push_to_prod,
-    create_punishing_formation, create_shield_wall,
+    create_critical_bug, create_release_candidate,
 )
 
 
 def get_warrior_deck():
     # Де-рельсенный стартер (С56): 2 спендера Дисциплины-учителя, БЕЗ в-стартере
-    # генератора стаков (кроме пассива «держи строй») → не замкнутый луп. Возмездие/
-    # Failover/Стойка (старая ось + билдер) — в драфт-пуле класса (catalog).
+    # генератора стаков (кроме пассива «держи строй») → не замкнутый луп. Регрессионка/
+    # Failover/Тест-план (старая ось + билдер) — в драфт-пуле класса (catalog).
     # С60 (задача 4): флат → пол цикла разработки 1:1 (Удар→Коммит, Защита→Код-ревью,
     # Тяж.Клинок→Пуш в прод). Числа идентичны, у Пуша в прод райдер ACCRUE (+1 Баг).
     return [
         create_commit(), create_commit(), create_commit(), create_commit(),
         create_code_review(), create_code_review(), create_code_review(), create_code_review(),
         create_push_to_prod(),
-        create_punishing_formation(),   # Дисц → бурст (роль Возмездия)
-        create_shield_wall(),           # Дисц → щит-стена (ось выживаемости)
+        create_critical_bug(),   # Дисц → бурст (роль Возмездия)
+        create_release_candidate(),           # Дисц → щит-стена (ось выживаемости)
     ]
 
 
 class Warrior(Player):
     def __init__(self):
         super().__init__(
-            name="Воин",
+            name="Тестировщик",
             max_hp=90,
             max_energy=3,
             gold=100,
@@ -39,7 +39,7 @@ class Warrior(Player):
             combat_manager.add_log_message(
                 f" [ТЕСТИРОВЩИК] Боевой дух: +{healed} HP в начале хода."
             )
-        # ДИСЦИПЛИНА (ступень «Соблюдай»): если Воин начал ход со щитом (держал строй
+        # ДИСЦИПЛИНА (ступень «Соблюдай»): если Тестировщик начал ход со щитом (держал строй
         # с прошлого хода — этот хук зовётся ДО сброса щита), копит +1 Дисциплины.
         # Каждый стак = +1 к урону всех атак (EffectCalculator шаг 2d) → защита
         # компаундит в атаку. Стабильный накопитель яруса 1 (без побочек).

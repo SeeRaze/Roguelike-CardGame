@@ -21,8 +21,8 @@ from core.cards.shortcircuit import (
 )
 from core.cards.buff.regen import create_regenerate, create_vitality, create_triage
 from core.cards.warrior import (
-    create_retribution, create_steel_barricade, create_bastion,
-    create_punishing_formation, create_shield_wall, create_warrior_stance,
+    create_regression_test, create_steel_barricade, create_bastion,
+    create_critical_bug, create_release_candidate, create_test_plan,
 )
 from core.cards.mage import (
     create_boil, create_arcane_focus, create_elemental_surge,
@@ -32,7 +32,7 @@ from core.cards.echo import create_echo_resonance, create_echo_cascade
 from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
     LifestealOnKillEffect,
-    create_blood_rage, create_reckless_blow, create_blood_thirst, create_crunch,
+    create_escalation, create_force_push, create_refactoring, create_crunch,
 )
 from core.cards.cleave import (
     SplashDamageEffect, ColumnStrikeEffect, RankStrikeEffect,
