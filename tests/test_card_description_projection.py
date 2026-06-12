@@ -155,7 +155,7 @@ def test_resolve_pairs_collapses_percent_pairs():
     s = "урон 6(9) ×(1 + 30%(40%) за стак)"
     assert _resolve_pairs(s, False) == "урон 6 ×(1 + 30% за стак)"
     assert _resolve_pairs(s, True) == "урон 9 ×(1 + 40% за стак)"
-    # процент-цена в начале (Жажда крови)
+    # процент-цена в начале (Переработка)
     assert _resolve_pairs("Платите 7%(5%) макс. HP", False) == "Платите 7% макс. HP"
     # формульная скобка ×(1 + ...) без пары — не трогаем
     assert _resolve_pairs("урон 6 + 1 за долг", False) == "урон 6 + 1 за долг"

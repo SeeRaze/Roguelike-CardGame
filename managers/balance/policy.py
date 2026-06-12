@@ -30,7 +30,7 @@ _WARRIOR_RETRIBUTION_MIN = 10 # «Возмездие»: придержать, п
 _WARRIOR_DISCIPLINE_MIN = 4   # спендер Дисциплины окупается, когда накоплено ≥ стаков
 _MAGE_ELEMENTAL_MIN     = 4   # «Стихийный барьер»: щит = стихийные стаки * 3
 _MAGE_OVERCLOCK_HP_FRAC = 0.5 # «Разгон»: гэмблить HP→Мастерство только при HP ≥ доли max
-# Берсерк «Безумие» = ставка дисперсии: дамп руки за 0 энергии ценой HP (нырок в
+# Берсерк «Аврал» = ставка дисперсии: дамп руки за 0 энергии ценой HP (нырок в
 # минус → множитель урона), НО конец хода в минусе без победы = строгая смерть.
 # Компетентный пилот ныряет ТОЛЬКО когда оба условия сошлись: (1) полный буфер HP,
 # чтобы пережить нырок, И (2) залп добиваем (суммарный HP врагов ≤ доли max_hp) —
@@ -38,7 +38,7 @@ _MAGE_OVERCLOCK_HP_FRAC = 0.5 # «Разгон»: гэмблить HP→Маст
 # пушкой-ловушкой); умный газ раскручивает движок |HP|→FP (см. память glasscannon).
 _BERSERK_HP_FRACTION    = 0.9 # нырять только с почти полным буфером HP
 _BERSERK_KILLABLE_RATIO = 0.6 # ...и только когда залп врагов добиваем (≤ доля max_hp)
-_BERSERK_FINISHER_HP    = 8   # «Жажда крови»: цель добиваема (≤ урона карты) → самоурон окупается
+_BERSERK_FINISHER_HP    = 8   # «Переработка»: цель добиваема (≤ урона карты) → самоурон окупается
 
 # Стихийные статусы для подсчёта (как в MageAbility).
 _ELEMENTAL_STATUSES = ("coffee", "legacy")
@@ -138,11 +138,11 @@ class BerserkerPolicy(BotPolicy):
             return
         enemy_hp = sum(e.hp for e in combat.enemies if e.hp > 0)
         if 0 < enemy_hp <= player.max_hp * _BERSERK_KILLABLE_RATIO:
-            ab.activate(combat)              # Безумие: карты за 0 энергии ценой HP
+            ab.activate(combat)              # Аврал: карты за 0 энергии ценой HP
 
     def _class_pick(self, playable, combat):
-        """Самоурон («Жажда крови») приберегаем: сначала играем безопасные карты, а
-        кровавую — лишь когда нырок ОПРАВДАН (Безумие / полный буфер HP / добивание).
+        """Самоурон («Переработка») приберегаем: сначала играем безопасные карты, а
+        кровавую — лишь когда нырок ОПРАВДАН (Аврал / полный буфер HP / добивание).
         Если осталась только опасная — ЗАВЕРШАЕМ ход (None), а не суицидим. Так замер
         видит движок |HP|→FP, а не дилюцию слепого самоурона (см. shock-dilution)."""
         risky = [c for c in playable if _has_effect(c, SelfHarmEffect)]
@@ -153,7 +153,7 @@ class BerserkerPolicy(BotPolicy):
         player = combat.player
         target = combat.get_target_enemy()
         safe_to_dive = (
-            getattr(player, "madness_active", False)
+            getattr(player, "overdrive_active", False)
             or player.hp >= player.max_hp * _BERSERK_HP_FRACTION
             or (target is not None and 0 < target.hp <= _BERSERK_FINISHER_HP)
         )

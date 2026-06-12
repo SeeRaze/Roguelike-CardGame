@@ -35,8 +35,8 @@ class CardPlayMixin:
         # БЕЗУМИЕ (Берсерк): карта стоит 0 энергии, но берёт HP (стоимость × % max HP,
         # сквозь щит). Для hp_overdraft уходит в МИНУС → множитель урона. Энергия не тронута.
         # С57: цена в ПРОЦЕНТАХ от max HP (масштаб-инвариантно к росту max HP).
-        if getattr(self.player, 'madness_active', False):
-            pct = getattr(self.player, 'madness_hp_pct_per_cost', 0)
+        if getattr(self.player, 'overdrive_active', False):
+            pct = getattr(self.player, 'overdrive_hp_pct_per_cost', 0)
             hp_cost = int(effective_cost * pct * self.player.max_hp)
             if hp_cost > 0:
                 self.player.lose_hp(hp_cost)

@@ -1,6 +1,6 @@
 from core.players.base import Player
 from core.players.abilities import BerserkerAbility
-from core.players.abilities.berserker import MADNESS_HP_PCT_PER_COST
+from core.players.abilities.berserker import OVERDRIVE_HP_PCT_PER_COST
 from core.cards import (
     create_commit, create_push_to_prod,
     create_flex, create_battle_cry,
@@ -10,9 +10,9 @@ from core.cards import (
 
 def get_berserker_deck():
     # Стартер РАСКРЫВАЕТ пассив, не запирает билд ([[starter-deck-reveals-passive]]):
-    # 3 сигнатурки-«учителя» граней долга (Кровавая ярость = долг→урон, Жажда крови =
+    # 3 сигнатурки-«учителя» граней долга (Эскалация = долг→урон, Переработка =
     # долг→FP, Кранч = добил-в-долге→второе дыхание/сустейн) + generic-основа = открытый
-    # холст. 4-я сигнатурка (Безрассудный удар) — в драфт-пул, не в стартер. Один Коммит
+    # холст. 4-я сигнатурка (Форс-пуш) — в драфт-пул, не в стартер. Один Коммит
     # уступил место Кранчу: цепочка «нырнул→добил→откачался» видна с 1-го боя (закрывает
     # дыру аутопсии «нырок не окупается в бою»). Замкнутого комбо-лупа нет.
     # С60 (задача 4): флат → пол 1:1 (Удар→Коммит, Тяж.Клинок→Пуш в прод). Пуш в
@@ -48,9 +48,9 @@ class Berserker(Player):
         self.active_ability = BerserkerAbility()
         # Класс ВКЛЮЧАЕТ долг HP всегда — это его движок (не Ставка/опт-ин).
         self.hp_overdraft = True
-        # Ставка «Безумия»: HP за единицу стоимости карты = % max HP (карты за 0 энергии
+        # Ставка «Аврала»: HP за единицу стоимости карты = % max HP (карты за 0 энергии
         # ценой крови; С57 — процент, масштаб-инвариантно к росту max HP).
-        self.madness_hp_pct_per_cost = MADNESS_HP_PCT_PER_COST
+        self.overdrive_hp_pct_per_cost = OVERDRIVE_HP_PCT_PER_COST
 
     def on_hp_debt_settle(self, combat_manager) -> None:
         """СТРОГАЯ расплата (вызывается в конце хода ядром, когда hp<0): если бой НЕ

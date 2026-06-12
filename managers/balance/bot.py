@@ -37,10 +37,10 @@ class BotCombatManager(CombatManager):
 
             # Ход игрока: разыгрываем доступные карты, пока есть чем
             overdraft = getattr(self.player, 'energy_overdraft', False)
-            madness = getattr(self.player, 'madness_active', False)
+            overdrive = getattr(self.player, 'overdrive_active', False)
             while self.player.hp > self.player._hp_floor():
                 hand = self.deck_manager.hand
-                if madness:
+                if overdrive:
                     # БЕЗУМИЕ (Берсерк): карты за 0 энергии → все доступны (цена = HP,
                     # пол HP ограничит). Дамп руки ради темпо/нырка в множитель.
                     playable = list(hand)
@@ -66,7 +66,7 @@ class BotCombatManager(CombatManager):
                 if all(e.hp <= 0 for e in self.enemies):
                     self.player.on_combat_won(self)   # пик победы (Берсерк: |HP|→FP)
                     return True
-                if madness and card in self.deck_manager.hand:
+                if overdrive and card in self.deck_manager.hand:
                     break        # в безумии карта не ушла из руки (нет цели) → анти-зацикл
 
             policy.on_turn_end(self)      # реактивные способности (по набранным стакам)

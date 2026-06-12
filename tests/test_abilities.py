@@ -45,10 +45,10 @@ def test_маг_стихийный_барьер_даёт_щит(make_combat):
 
 
 def test_берсерк_безумие(make_combat):
-    # Передел (этап 1): активка теперь «Безумие» — карты за 0 энергии ценой HP.
+    # Передел (этап 1): активка теперь «Аврал» — карты за 0 энергии ценой HP.
     player = Berserker()
     cm = make_combat(player=player)
     ab = BerserkerAbility()
     assert ab.activate(cm) is True
-    assert player.madness_active is True
+    assert player.overdrive_active is True
     assert ab.activate(cm) is False        # уже в безумии в этот ход — повтор не активирует

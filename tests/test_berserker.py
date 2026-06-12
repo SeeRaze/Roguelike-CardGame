@@ -1,6 +1,6 @@
 # tests/test_berserker.py
 # Передел Берсерка «Отрицание Смерти» (этап 1) на долговом фундаменте (§4):
-# hp_overdraft + строгая смерть + пик |HP|→FP + «Кровавая ярость» через lose_hp.
+# hp_overdraft + строгая смерть + пик |HP|→FP + «Эскалация» через lose_hp.
 import core.debt as debt
 from core.players import Berserker
 from core.enemies.cultist import Cultist
@@ -56,14 +56,14 @@ def test_пик_ноп_в_плюсе():
     assert p.forge_points == fp0 and p.hp == 20
 
 
-# ── «Безумие»: карты за 0 энергии ценой HP (проактивный нырок) ────────────────
+# ── «Аврал»: карты за 0 энергии ценой HP (проактивный нырок) ────────────────
 def test_безумие_ставит_флаг_и_сбрасывается_за_ход():
     cm, p = _cm()
     assert p.active_ability.activate(cm) is True
-    assert p.madness_active is True
+    assert p.overdrive_active is True
     assert p.active_ability.activate(cm) is False   # уже в безумии — повтор не активирует
     cm.start_turn_phase()
-    assert p.madness_active is False                 # длится один ход
+    assert p.overdrive_active is False                 # длится один ход
 
 
 def test_безумие_карта_берёт_hp_не_энергию():
@@ -76,7 +76,7 @@ def test_безумие_карта_берёт_hp_не_энергию():
     hp0, e0 = p.hp, p.energy
     cm.play_card_by_index(idx)
     assert p.energy == e0                            # энергия НЕ тронута
-    expected = int(cost * p.madness_hp_pct_per_cost * p.max_hp)  # % max HP × стоимость
+    expected = int(cost * p.overdrive_hp_pct_per_cost * p.max_hp)  # % max HP × стоимость
     assert p.hp == hp0 - expected                    # HP-цена (стоимость × % max HP)
 
 
