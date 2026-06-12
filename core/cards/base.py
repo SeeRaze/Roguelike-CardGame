@@ -302,21 +302,6 @@ class ScryEffect:
                 )
 
 
-class DispatcherEffect:
-    """«Диспетчер задач» (Task Manager) — ПРЕД-коммит: следующая сыгранная в этот ход
-    карта срабатывает ×2 (повторно). Ставит флаг на CM; срабатывание — в play_card_by_index
-    (мост к PAYLOAD, гнездо петель → под гардом)."""
-    def __init__(self, *_):
-        pass
-
-    def execute(self, player, enemy, combat_manager, is_upgraded):
-        if combat_manager is not None:
-            combat_manager._dispatcher_pending = True
-            combat_manager.add_log_message(
-                " -> Диспетчер: следующая карта сработает ×2."
-            )
-
-
 class UndoEffect:
     """«Отменить» (Ctrl+Z) — РЕТРОАКТИВ: вернуть последнюю сыгранную карту из сброса в
     руку (переиграть). Берёт верх discard (на момент розыгрыша = ПРЕДЫДУЩАЯ карта).

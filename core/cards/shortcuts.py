@@ -9,8 +9,9 @@
 from core.cards.base import (
     Card, DrawEffect, EnergyEffect, DiscardRedrawEffect,
     ExileFromHandEffect, ScryEffect,
-    DispatcherEffect, UndoEffect, CopyEffect, PasteEffect,
+    UndoEffect, CopyEffect, PasteEffect,
 )
+from core.cards.echo import EchoEffect
 from core.rarity import Rarity
 
 
@@ -76,13 +77,15 @@ def create_stack_trace():
 
 # ─── ✖️ МНОЖИТЕЛИ (мало, под гардом — мост к PAYLOAD + гнездо петель) ─────────
 def create_task_manager():
-    """«Диспетчер задач» (Task Manager) — ПРЕД-коммит: следующая карта ×2."""
+    """«Диспетчер задач» (Task Manager) — ПРЕД-коммит: Эхо 1 → следующая карта ×2.
+    E5: собственный механизм (_dispatcher_pending) снесён, ретриггер унифицирован
+    на Эхо — один кодовый путь в play_card_by_index, один предохранитель."""
     return Card(
         name="Диспетчер задач",
         cost=1,
         card_type="skill",
-        description="Следующая сыгранная в этот ход карта срабатывает ×2.",
-        effects=[DispatcherEffect()],
+        description="Эхо 1: следующая сыгранная карта срабатывает ×2.",
+        effects=[EchoEffect(1, 1)],
         rarity=Rarity.UNCOMMON,
     )
 

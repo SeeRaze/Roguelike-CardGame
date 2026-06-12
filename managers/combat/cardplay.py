@@ -72,39 +72,27 @@ class CardPlayMixin:
         # Сброс предохранителя на новый розыгрыш: детонации/Эхо этой карты считаются
         # с нуля (§10.2). Первичный apply — не триггер, бюджет не тратит.
         self._trigger_guard.depth = 0
-        # ENGINE: «Диспетчер задач» — следующая карта ×2. Флаг захватываем ДО apply
-        # (карта-Диспетчер ставит его в своём apply → сама себя не дублирует).
-        double_pending = getattr(self, "_dispatcher_pending", False)
+        # Эхо (ретриггер): каждый снятый заряд заставляет карту сработать повторно.
+        # Заряды снимаются ДО apply — карта, дающая эхо (Ретрай/Диспетчер задач),
+        # заряжает СЛЕДУЮЩУЮ карту, не себя (E5: было чтение после apply → Резонанс
+        # ретриггерил сам себя и давал 4 заряда вместо заявленных 2).
+        echo_stacks = self.player.echo
+        self.player.echo = 0
         selected_card.apply(self.player, target, self)
 
-        # Эхо (ретриггер): каждый заряд эха на игроке заставляет карту
-        # сработать повторно. Заряды снимаются ДО повторов — карта, генерирующая
-        # эхо сама, НЕ зациклится (новые заряды лягут уже после всех повторов).
-        echo_stacks = self.player.echo
-        if echo_stacks > 0:
-            self.player.echo = 0
-            for i in range(echo_stacks):
-                # Каждый ретриггер — событие триггера: предохранитель обрывает
-                # цепочку на MAX_TRIGGER_DEPTH (суммарно с детонациями розыгрыша).
-                if not self._trigger_guard.enter():
-                    self.add_log_message(
-                        "[ПРЕДОХРАНИТЕЛЬ] Каскад триггеров оборван (глубина)."
-                    )
-                    break
-                selected_card.apply(self.player, target, self)
+        for i in range(echo_stacks):
+            # Каждый ретриггер — событие триггера: предохранитель обрывает
+            # цепочку на MAX_TRIGGER_DEPTH (суммарно с детонациями розыгрыша).
+            if not self._trigger_guard.enter():
                 self.add_log_message(
-                    f"[ЭХО] {selected_card.name} срабатывает повторно "
-                    f"({i + 1}/{echo_stacks})!"
+                    "[ПРЕДОХРАНИТЕЛЬ] Каскад триггеров оборван (глубина)."
                 )
-
-        # ENGINE: «Диспетчер задач» ×2 — повтор карты под гардом (как Эхо).
-        if double_pending:
-            self._dispatcher_pending = False
-            if self._trigger_guard.enter():
-                selected_card.apply(self.player, target, self)
-                self.add_log_message(
-                    f"[ДИСПЕТЧЕР] {selected_card.name} срабатывает ×2!"
-                )
+                break
+            selected_card.apply(self.player, target, self)
+            self.add_log_message(
+                f"[ЭХО] {selected_card.name} срабатывает повторно "
+                f"({i + 1}/{echo_stacks})!"
+            )
 
         self._card_being_played = None
         self._play_snapshot = None

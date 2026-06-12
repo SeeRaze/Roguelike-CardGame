@@ -13,18 +13,18 @@ def _cm():
     return CombatManager(Warrior(), Cultist("K", 100, 100), [create_strike()])
 
 
-# ─── Диспетчер задач: следующая карта ×2 ─────────────────────────────────────
+# ─── Диспетчер задач: Эхо 1 → следующая карта ×2 (E5: унифицировано на эхо) ──
 def test_task_manager_doubles_next_card():
     cm = _cm()
     e = cm.enemies[0]
     e.hp = 100
     cm.player.energy = 3
     cm.deck_manager.hand = [create_task_manager(), create_strike()]
-    cm.play_card_by_index(0)        # Диспетчер → флаг
-    assert cm._dispatcher_pending is True
+    cm.play_card_by_index(0)        # Диспетчер → Эхо 1
+    assert cm.player.echo == 1
     cm.play_card_by_index(0)        # Удар (теперь index 0) → ×2 = 12 урона
     assert e.hp == 88
-    assert cm._dispatcher_pending is False   # флаг потрачен
+    assert cm.player.echo == 0      # заряд потрачен
 
 
 def test_dispatcher_does_not_double_itself():
@@ -32,8 +32,22 @@ def test_dispatcher_does_not_double_itself():
     cm.player.energy = 3
     cm.deck_manager.hand = [create_task_manager()]
     cm.play_card_by_index(0)
-    # Диспетчер сам себя не дублирует — флаг остался для СЛЕДУЮЩЕЙ карты.
-    assert cm._dispatcher_pending is True
+    # Диспетчер сам себя не дублирует: заряды снимаются ДО apply (E5),
+    # его собственное Эхо ложится уже ПОСЛЕ — остаётся для СЛЕДУЮЩЕЙ карты.
+    assert cm.player.echo == 1
+
+
+def test_echo_giver_does_not_retrigger_itself():
+    """Регресс-гард E5 (фикс порядка зарядов): карта, дающая Эхо N, при розыгрыше
+    БЕЗ эха на игроке кладёт ровно N зарядов — не ретриггерит сама себя.
+    До фикса Резонанс(Эхо 2) самоповторялся и давал 4."""
+    from core.cards.echo import create_echo_resonance
+    cm = _cm()
+    cm.player.energy = 3
+    cm.player.echo = 0
+    cm.deck_manager.hand = [create_echo_resonance()]
+    cm.play_card_by_index(0)
+    assert cm.player.echo == 2      # ровно по описанию, не 4
 
 
 # ─── Отменить: вернуть последнюю сыгранную из сброса ─────────────────────────
