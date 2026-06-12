@@ -11,6 +11,11 @@ from core.cards.heal import create_bandage, create_second_wind, create_elixir
 # Новые стихии (С58) — реэкспорт для стартовых колод классов
 from core.cards.coffee import create_coffee_spill, create_coffee_flood
 from core.cards.legacy import create_legacy_patch, create_tech_debt
+# Пол стартового пула = цикл разработки (С60): Коммит/Пуш в прод/Код-ревью/Песочница.
+# Заменяют флат под IT; в стартдеки/GENERIC переезжают в задаче 4 (снос флата).
+from core.cards.devcycle import (
+    create_commit, create_push_to_prod, create_code_review, create_sandbox,
+)
 from core.cards.shortcircuit import (
     create_voltage_spike, create_overload, create_mass_short,
 )

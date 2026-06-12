@@ -41,6 +41,12 @@ from core.cards.shortcuts import (
 # только навешивается через ACCRUE. Импортируется сюда РАДИ регистрации в RAW_FACTORIES
 # (сейв/загрузка current_deck: Баг персистит между боями, нужен стабильный card_id).
 from core.cards.bug import create_bug
+# Пол цикла разработки (С60): 4 карты пола. В RAW_FACTORIES (сейв-совместимость),
+# но НЕ в GENERIC_FACTORIES — в драфт/стартдеки переезжают в задаче 4 (снос флата),
+# чтобы сейчас не дублировать ещё живой флат в пуле выдачи.
+from core.cards.devcycle import (
+    create_commit, create_push_to_prod, create_code_review, create_sandbox,
+)
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
 GENERIC_FACTORIES = [
@@ -137,6 +143,10 @@ for _cls_facs in _TAGGED_CLASS_FACTORIES.values():
 # Баг — НЕ в пулах выдачи, но в реестре воссоздания: навешанный долг лежит в
 # gm.current_deck и обязан пережить сейв/загрузку (card_id='bug').
 RAW_FACTORIES[card_id_for(create_bug)] = create_bug
+# Карты пола цикла разработки (С60) — НЕ в пулах выдачи (задача 4), но в реестре
+# воссоздания: лягут в стартдеки/колоду забега и обязаны пережить сейв/загрузку.
+for _f in (create_commit, create_push_to_prod, create_code_review, create_sandbox):
+    RAW_FACTORIES[card_id_for(_f)] = _f
 
 # name → [(card_id, card_class)]: определяет id уже созданной карты для сохранения БЕЗ
 # origin-поля на инстансе (не трогаем точки создания). В ЖИВОЙ колоде card_class почти
