@@ -1,5 +1,5 @@
 # core/cards/buff/regen.py
-# Карты, накладывающие статус регенерации на игрока.
+# Карты, накладывающие статус Хелсчек (healthcheck) на игрока.
 # RegenEffect живёт в base.py -- здесь только фабрики карт.
 
 from core.cards.base import Card, RegenEffect, ShieldEffect
@@ -7,9 +7,9 @@ from core.rarity import Rarity
 
 
 def create_regenerate():
-    """Базовая регенерация. Изгоняется после использования."""
+    """Базовый хелсчек. Изгоняется после использования."""
     return Card(
-        name="Регенерация",
+        name="Ребут",
         cost=1,
         card_type="skill",
         description="Получить Хелсчек (2). Изгнание.",
@@ -20,9 +20,9 @@ def create_regenerate():
 
 
 def create_vitality():
-    """Долгая регенерация без изгнания."""
+    """Долгий хелсчек без изгнания."""
     return Card(
-        name="Живучесть",
+        name="Отказоустойчивость",
         cost=2,
         card_type="skill",
         description="Получить Хелсчек (3).",
@@ -32,9 +32,9 @@ def create_vitality():
 
 
 def create_triage():
-    """Быстрая регенерация + щит. Для Воина."""
+    """Быстрый хелсчек + щит. Для Воина."""
     return Card(
-        name="Полевая Медицина",
+        name="Техподдержка",
         cost=1,
         card_type="skill",
         description="Получить Хелсчек (2) и 4 щита.",
