@@ -39,7 +39,6 @@ def _get_card_factory(name: str):
     from core.cards.legacy import create_legacy_patch, create_tech_debt
     from core.cards.heal   import create_bandage, create_second_wind, create_elixir
     from core.cards.buff.regen     import create_regenerate, create_vitality, create_triage
-    from core.cards.buff.vampirism import create_drain, create_blood_feast, create_life_tap
     registry = {
         "create_strike":       create_strike,
         "create_defend":       create_defend,
@@ -57,9 +56,6 @@ def _get_card_factory(name: str):
         "create_regenerate":   create_regenerate,
         "create_vitality":     create_vitality,
         "create_triage":       create_triage,
-        "create_drain":        create_drain,
-        "create_blood_feast":  create_blood_feast,
-        "create_life_tap":     create_life_tap,
     }
     return registry[name]
 

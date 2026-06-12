@@ -5,7 +5,6 @@ from core.cards.base import (
     StatusEffect, RegenEffect, HealEffect, DetonateEffect,
     BarrierEffect,
 )
-from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect, SpreadEffect
 from core.cards.echo import EchoEffect
 from core.cards.mage import MasteryEffect
@@ -25,9 +24,6 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
             val = effect.upgrade_turns if card.upgraded else effect.base_turns
         elif isinstance(effect, RegenEffect):
             key = "healthcheck"
-            val = effect.upgrade_val if card.upgraded else effect.base_val
-        elif isinstance(effect, VampireBuffEffect):
-            key = "cache_hit"
             val = effect.upgrade_val if card.upgraded else effect.base_val
         elif isinstance(effect, HealEffect):
             key = "heal"

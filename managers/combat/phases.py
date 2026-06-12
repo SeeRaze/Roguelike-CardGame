@@ -94,7 +94,7 @@ class TurnPhaseMixin:
         """CRASH REBOOT (Утечка+Токс, С58): «перезагрузка» — снос щита и баффов врага +
         блокировка восстановления/регена на CRASH_REBOOT_TURNS ходов. Анти-сустейн через
         ШАТДАУН состояния (не невидимое число). Со-присутственный свип, раз/ход."""
-        BUFF_KEYS = ("optimize", "healthcheck", "firewall", "barrier", "cache_hit",
+        BUFF_KEYS = ("optimize", "healthcheck", "firewall", "barrier",
                      "mastery", "discipline", "instability", "echo")
         for e in list(self.enemies):
             if e.hp <= 0:

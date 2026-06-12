@@ -2,12 +2,11 @@
 # Классификация карты по составу эффектов -> ключ палитры (см. data.card_palette).
 from core.cards.base import (
     StatusEffect, AoEStatusEffect, DecompEffect, RegenEffect, HealEffect,
-    VampireDamageEffect, DamageEffect, ShieldEffect,
+    DamageEffect, ShieldEffect,
     BarrierEffect,
 )
 from ui.cards.data import _ELEMENTAL_CARD_KEYS
 from core.cards.buff.strength import BuffEffect
-from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.air import FlowEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import MasteryEffect
@@ -37,8 +36,7 @@ def classify_card(card) -> str:
         return "bug"
 
     effects = card.effects
-    has_damage   = any(isinstance(e, (DamageEffect, VampireDamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
-    has_cache_hit = any(isinstance(e, VampireBuffEffect) for e in effects)
+    has_damage   = any(isinstance(e, (DamageEffect, EchoPayoffEffect, DebtScalingDamageEffect, DisciplineBurstDamageEffect, MasteryScalingDamageEffect)) for e in effects)
     has_shield   = any(isinstance(e, (ShieldEffect, DisciplineToShieldEffect)) for e in effects)
     has_heal     = any(isinstance(e, HealEffect) for e in effects)
     has_healthcheck = any(isinstance(e, RegenEffect) for e in effects)
@@ -52,8 +50,6 @@ def classify_card(card) -> str:
     # status_type, DecompEffect → "decomp"). Рамка карты = цвет этой стихии.
     elemental = _elemental_key(effects)
 
-    if has_cache_hit:
-        return "cache_hit"
     if elemental:
         return elemental
     if has_flow:

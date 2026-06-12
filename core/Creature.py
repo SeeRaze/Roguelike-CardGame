@@ -113,7 +113,7 @@ class Creature:
         """Прямой урон СКВОЗЬ ЩИТ — напрямую в HP, минуя shield.
         Идиом из berserker.py / DetonationRegistry / яд («сквозь щит»).
         Переиспользуется вне боя (Ритуал крови костра, Проклятый сундук)
-        и не дёргает боевые хуки (файрвол/вампир). Возвращает фактический урон."""
+        и не дёргает боевые хуки (файрвол). Возвращает фактический урон."""
         lost = max(0, min(amount, self.hp - self._hp_floor()))
         self.hp -= lost
         print(f"[{self.name}] теряет {lost} HP сквозь щит. "
@@ -162,24 +162,6 @@ class Creature:
             print(f" [ФАЙРВОЛ] {self.name} отражает "
                   f"{self.statuses['firewall']} урона на {attacker.name}!")
             attacker.hp = max(attacker.hp - self.statuses['firewall'], attacker._hp_floor())
-
-        if amount > 0 and attacker is not None:
-            vamp = attacker.statuses.get('cache_hit', 0)
-            if vamp > 0:
-                # Кэш-хит лечит на 40% нанесённого урона (было 50%). Доля
-                # снижена, чтобы sustain не перекрывал урон врага
-                # на поздних этажах.
-                heal_amount = max(1, amount * 2 // 5)
-                attacker.heal(heal_amount, combat_manager)
-                # Стак кэш-хита гаснет ВТРОЕ за триггер (а не вдвое): меньше
-                # «бесплатных» лечащих ударов с одного наложения.
-                decayed = vamp // 3
-                attacker.statuses['cache_hit'] = decayed
-                if combat_manager:
-                    combat_manager.add_log_message(
-                        f" [КЭШ-ХИТ] Вы восстанавливаете {heal_amount} HP. "
-                        f"Кэш-хит: {vamp} → {decayed}."
-                    )
 
     def tick_statuses(self, combat_manager=None):
         s = self.statuses

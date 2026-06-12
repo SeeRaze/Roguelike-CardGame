@@ -1,5 +1,5 @@
 # tests/test_creature_statuses.py
-# Проверяем существо (Creature): получение урона, щит, шипы, вампиризм, кровотечение
+# Проверяем существо (Creature): получение урона, щит, шипы
 # и «тик» статусов в конце хода (яд/горение/реген/спад временных эффектов).
 from core.Creature import Creature
 from core.relics import ЗомбиПроцесс
@@ -31,18 +31,6 @@ def test_файрвол_отражает_урон_в_атакующего():
     target.firewall = 2
     target.take_damage(5, attacker=attacker)
     assert attacker.hp == 48    # 2 урона отражено файрволом
-
-
-def test_вампиризм_лечит_атакующего_и_гаснет_втрое():
-    target = Creature("Цель", 50, 50)
-    attacker = Creature("Вампир", 40, 50)
-    attacker.cache_hit = 4
-    target.take_damage(10, attacker=attacker)
-    # хил = max(1, 10*2//5) = 4 -> 40 + 4 = 44; кэш-хит 4 -> 4//3 = 1
-    assert attacker.hp == 44
-    assert attacker.cache_hit == 1
-
-
 
 
 def test_тик_legacy_наносит_урон_и_уменьшает_стак():

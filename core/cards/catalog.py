@@ -15,7 +15,6 @@ from core.cards import (
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
-    create_drain, create_blood_feast, create_life_tap,
     create_punishing_formation, create_shield_wall, create_warrior_stance,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
@@ -69,7 +68,6 @@ GENERIC_FACTORIES = [
     create_flex, create_battle_cry, create_thorn_armor,
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
-    create_drain, create_blood_feast, create_life_tap,
     create_echo_resonance, create_echo_strike, create_echo_cascade,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
     # Барьер (несгораемый щит) — универсальная защита (С57). LOCKED (за прогресс).

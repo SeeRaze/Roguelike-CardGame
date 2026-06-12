@@ -31,18 +31,6 @@ class DamageEffect:
             )
 
 
-class VampireDamageEffect:
-    """DEPRECATED: заменён на VampireBuffEffect в vampirism.py.
-    Оставлен для обратной совместимости импортов в CardRenderer.py."""
-    def __init__(self, base_val, upgrade_val):
-        self.base_val    = base_val
-        self.upgrade_val = upgrade_val
-
-    def execute(self, player, enemy, combat_manager, is_upgraded):
-        # Старая логика — больше не используется в картах
-        pass
-
-
 class ShieldEffect:
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val

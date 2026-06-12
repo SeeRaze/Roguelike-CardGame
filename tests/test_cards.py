@@ -1,14 +1,12 @@
 # tests/test_cards.py
 # Проверяем класс Card и все классы эффектов (DamageEffect, ShieldEffect,
-# HealEffect, StatusEffect, PoisonEffect, RegenEffect, BuffEffect,
-# BleedEffect, VampireBuffEffect).
+# HealEffect, StatusEffect, PoisonEffect, RegenEffect, BuffEffect).
 # Эффекты — фундамент боя: если execute() работает неверно, ломаются все карты.
 from core.cards.base import (
     Card, DamageEffect, ShieldEffect, HealEffect,
     StatusEffect,
 )
 from core.cards.buff.strength import BuffEffect
-from core.cards.buff.vampirism import VampireBuffEffect
 from core.cards.warrior import ShieldDamageEffect
 from core.rarity import Rarity
 
@@ -178,17 +176,6 @@ def test_buff_effect_улучшенный(make_creature):
     assert player.firewall == 5
 
 
-
-
-# ═══════════════════════════════════════════════════════════
-# VampireBuffEffect (вампиризм на игрока)
-# ═══════════════════════════════════════════════════════════
-
-def test_vampire_effect_накладывает_вампиризм(make_creature):
-    player = make_creature("Игрок", 50, 50)
-    enemy  = make_creature("Враг", 50, 50)
-    VampireBuffEffect(4, 6).execute(player, enemy, combat_manager=None, is_upgraded=False)
-    assert player.cache_hit == 4
 
 
 # ═══════════════════════════════════════════════════════════

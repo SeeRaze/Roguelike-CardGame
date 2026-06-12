@@ -114,7 +114,7 @@ def test_relic_id_это_имя_класса():
 
 def test_реестры_locked_наполнены_разметкой():
     # К3: разметка страманом — узкий стартовый пул (часть заперта за мета-прогрессию).
-    assert len(LOCKED_CARDS) == 37      # С60: +sandbox (UNCOMMON-награда, задача 4)
+    assert len(LOCKED_CARDS) == 34      # С61 (E1): −drain/blood_feast/life_tap (снос вампиризма)
     assert len(LOCKED_RELICS) == 26     # 26 из 33 артефактов заперты
     # Пол цикла разработки (С60) НЕ заперт (стартовые COMMON), Песочница — заперта.
     for starter in ("commit", "push_to_prod", "code_review"):

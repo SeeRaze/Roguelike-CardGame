@@ -144,7 +144,6 @@ LOCKED_CARDS: set = {
     "infinite_loop", "reverse_engineer",
     "flex", "battle_cry",
     "thorn_armor", "second_wind", "elixir", "regenerate", "vitality", "triage",
-    "drain", "blood_feast", "life_tap",
     "echo_resonance", "echo_strike", "echo_cascade", "piercing_thrust", "wide_swing",
     # Барьер: переехал из классового пула Воина (С57); мощный (несгораемый щит) → за прогресс.
     "steel_barricade", "bastion",

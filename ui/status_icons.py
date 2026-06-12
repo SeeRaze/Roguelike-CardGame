@@ -138,16 +138,6 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
         # Шипастая звезда (отражение).
         _star(screen, cx, cy, r, color, points=6)
 
-    elif key == "cache_hit":
-        # Два клыка под дугой.
-        pygame.draw.arc(screen, color,
-                        (cx - r, cy - r, r * 2, r * 2), 0.2, 2.94, lw)
-        for fx in (cx - int(r * 0.35), cx + int(r * 0.35)):
-            pygame.draw.polygon(screen, color, [
-                (fx - int(r * 0.18), cy),
-                (fx + int(r * 0.18), cy),
-                (fx, cy + r)])
-
     elif key == "echo":
         # Звуковые дуги-эхо (рябь вправо).
         for i, rad in enumerate((int(r * 0.45), int(r * 0.75), r)):
