@@ -147,7 +147,7 @@ LOCKED_CARDS: set = {
     "echo_resonance", "echo_cascade", "piercing_thrust", "wide_swing",
     # Барьер: переехал из классового пула Воина (С57); мощный (несгораемый щит) → за прогресс.
     "steel_barricade", "bastion",
-    # Закипание: ПАР-сетап Мага (мигрирует в C4) → за прогресс.
+    # Залить в прод: ПАР-сетап Мага (мигрирует в C4) → за прогресс.
     "boil",
     # ENGINE-карты (С58): шорткаты-движок = награда за прогресс, не стартдек.
     "window_swap", "refresh", "coffee_break", "hard_delete", "stack_trace",

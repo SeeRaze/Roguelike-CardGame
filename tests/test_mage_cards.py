@@ -1,12 +1,12 @@
 # tests/test_mage_cards.py
-# Эффект-кирпичи передела Мага «Гни» (С56): гамбл HP→Мастерство (Разгон) и payoff
-# глубины (Резонансный разряд). Тестируются НАПРЯМУЮ (combat_manager=None → шаг 2c
+# Эффект-кирпичи передела Мага «Гни» (С56): гамбл HP→Мастерство (Автопилот) и payoff
+# глубины (Сгенерить фичу). Тестируются НАПРЯМУЮ (combat_manager=None → шаг 2c
 # Мастерства НЕ срабатывает, ассерты урона чистые; двойной учёт — только в живом бою).
 from core.cards.base import Card
 from core.cards.mage import OverclockEffect, MasteryScalingDamageEffect
 from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class, get_class_cards
 
-_SIGNATURES = {"Разгон", "Резонансный разряд"}
+_SIGNATURES = {"Автопилот", "Сгенерить фичу"}
 
 
 def _mage(make_creature, hp=70, max_hp=70):
@@ -73,15 +73,15 @@ def test_разряд_улучшенный_сильнее(make_creature):
 
 
 # ═══════════════════════════════════════════════════════════
-# Композиция: Разгон копит Мастерство → Разряд его выжимает (держит)
+# Композиция: Автопилот копит Мастерство → Разряд его выжимает (держит)
 # ═══════════════════════════════════════════════════════════
 
 def test_разгон_затем_разряд(make_creature):
     player = _mage(make_creature)
     enemy = make_creature("Враг", 99, 99)
-    Card("Разгон", 1, "skill", "", [OverclockEffect(0.10, 3, 4)]).apply(player, enemy)
+    Card("Автопилот", 1, "skill", "", [OverclockEffect(0.10, 3, 4)]).apply(player, enemy)
     assert player.mastery == 3
-    Card("Резонансный разряд", 2, "attack", "",
+    Card("Сгенерить фичу", 2, "attack", "",
          [MasteryScalingDamageEffect(6, 9, 0.25, 0.35)]).apply(player, enemy)
     assert enemy.hp == 99 - int(6 * (1 + 0.25 * 3))   # ×1.75 с накопленным Мастерством 3
     assert player.mastery == 3                        # Разряд Мастерство не сжёг
@@ -114,7 +114,7 @@ def test_маг_сигнатурки_не_в_generic():
 
 
 # ═══════════════════════════════════════════════════════════
-# MagePolicy — пилотирование (ХОТФИКС первично, Разгон = дотолчок при безопасном HP)
+# MagePolicy — пилотирование (ХОТФИКС первично, Автопилот = дотолчок при безопасном HP)
 # ═══════════════════════════════════════════════════════════
 
 class _StubCombat:
@@ -128,7 +128,7 @@ class _StubCombat:
 
 
 def _overclock():
-    return Card("Разгон", 1, "skill", "", [OverclockEffect(0.10, 3, 4)])
+    return Card("Автопилот", 1, "skill", "", [OverclockEffect(0.10, 3, 4)])
 
 
 def _splash():
@@ -137,33 +137,33 @@ def _splash():
 
 
 def test_политика_собирает_хотфикс_прежде_разгона(make_creature):
-    # ХОТФИКС даёт Мастерство бесплатно (комбо) → не платим HP Разгоном, пока есть стихия.
+    # ХОТФИКС даёт Мастерство бесплатно (комбо) → не платим HP Автопилотом, пока есть стихия.
     from managers.balance.policy import MagePolicy
     player = _mage(make_creature)                     # HP полон
     enemy = make_creature("Враг", 50, 50)             # без стихий
     pick = MagePolicy()._class_pick([_overclock(), _splash()], enemy and _StubCombat(player, enemy))
-    assert pick.name == "Всплеск"                     # собираем ХОТФИКС, Разгон придержан
+    assert pick.name == "Всплеск"                     # собираем ХОТФИКС, Автопилот придержан
 
 
 def test_политика_не_гэмблит_при_низком_hp(make_creature):
-    # Разгон (−HP) НЕ льётся при низком HP — не суицид.
+    # Автопилот (−HP) НЕ льётся при низком HP — не суицид.
     from managers.balance.policy import MagePolicy
     from core.cards.base import DamageEffect
     player = _mage(make_creature, hp=10, max_hp=70)   # HP < половины
     enemy = make_creature("Враг", 50, 50)
     enemy.set_status("coffee", 3)
-    enemy.set_status("legacy", 3)                     # ХОТФИКС уже готов → Разгон не нужен
+    enemy.set_status("legacy", 3)                     # ХОТФИКС уже готов → Автопилот не нужен
     strike = Card("Удар", 1, "attack", "", [DamageEffect(6, 9)])
     pick = MagePolicy()._class_pick([_overclock(), strike], _StubCombat(player, enemy))
     assert pick is not None
-    assert "Разгон" not in pick.name                  # гамбл при дефиците HP запрещён
+    assert "Автопилот" not in pick.name                  # гамбл при дефиците HP запрещён
 
 
 def test_политика_гэмблит_разгоном_при_избытке_hp(make_creature):
     # ХОТФИКС в этот ход не собрать (нет стихийных карт), HP в избытке, Мастерство ниже
-    # порога → Разгон дотолкивает к перегрузу ×1.5.
+    # порога → Автопилот дотолкивает к перегрузу ×1.5.
     from managers.balance.policy import MagePolicy
     player = _mage(make_creature)                     # HP полон
     enemy = make_creature("Враг", 50, 50)
     pick = MagePolicy()._class_pick([_overclock()], _StubCombat(player, enemy))
-    assert pick.name == "Разгон"
+    assert pick.name == "Автопилот"

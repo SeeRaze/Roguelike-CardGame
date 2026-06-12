@@ -72,7 +72,7 @@ GENERIC_FACTORIES = [
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
     # Барьер (несгораемый щит) — универсальная защита (С57). LOCKED (за прогресс).
     create_steel_barricade, create_bastion,
-    # «Закипание» — Мага ПАР-сетап (мигрирует в C4 вместе с Магом). LOCKED.
+    # «Залить в прод» — Мага ПАР-сетап (мигрирует в C4 вместе с Магом). LOCKED.
     create_boil,
 ]
 
@@ -82,7 +82,7 @@ CLASS_FACTORIES = {
     # убрана из классового пула. Барьер (Failover/Кластер) → generic; Возмездие → из выдачи
     # (фабрика жива для совместимости/тестов, но не выдаётся — дублировала Карающий строй).
     "Warrior":   [create_punishing_formation, create_shield_wall, create_warrior_stance],
-    # Маг = ось Мастерства/Нестабильности (С57, чистка под единый формат): «Закипание»
+    # Маг = ось Мастерства/Нестабильности (С57, чистка под единый формат): «Залить в прод»
     # (чистый ПАР, 0 Мастерства) → generic. Остальные 4 трогают Мастерство (Стихийный
     # всплеск = мост стихии→ось через MasteryEffect).
     "Mage":      [create_overclock, create_resonant_discharge,

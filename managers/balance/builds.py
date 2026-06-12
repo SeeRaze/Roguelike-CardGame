@@ -63,8 +63,8 @@ CLASS_CORES = {
         [Кэш, Санитайзер, Оверклокинг],
     ),
     "Mage": (
-        # Движок Мастерства: гамбл Разгоном + комбо ХОТФИКС (Кофе/Legacy) растят
-        # Мастерство → перегруз ×1.5 → Резонансный разряд выжимает глубину. HP-churn.
+        # Движок Мастерства: гамбл Автопилотом + комбо ХОТФИКС (Кофе/Legacy) растят
+        # Мастерство → перегруз ×1.5 → Сгенерить фичу выжимает глубину. HP-churn.
         [create_overclock, create_resonant_discharge, create_arcane_focus,
          create_coffee_spill, create_legacy_patch],
         [Дебаггер, Оверклокинг, Линтер],
@@ -93,7 +93,7 @@ def _card_themes(card) -> set:
         elif isinstance(e, (DetonateEffect, FlowEffect)):
             t.add("synergy")
         elif isinstance(e, (MasteryEffect, OverclockEffect)):
-            t.add("mastery")                    # копит Мастерство (Разгон — гамблом)
+            t.add("mastery")                    # копит Мастерство (Автопилот — гамблом)
         elif isinstance(e, MasteryScalingDamageEffect):
             t.update(("attack", "mastery"))     # атака, масштаб от Мастерства (Маг)
         elif isinstance(e, BarrierEffect):
