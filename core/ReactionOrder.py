@@ -41,7 +41,7 @@ class ReactionPriority(IntEnum):
     ECHO        = 50   # Эхо-ретриггер всей карты
     STATUS_TICK = 60   # Тики статусов в фазе врага (горение/яд/кровь/реген)
     RELIC_HOOK  = 70   # Хуки реликвий (on_card_played и т.п.)
-    ENEMY_HOOK  = 80   # Хуки врагов/боссов (on_card_played: Архивариус +щит)
+    ENEMY_HOOK  = 80   # Хуки врагов/боссов (on_card_played: Скоуп-крип +щит)
 
 
 def order_keyed(records: dict, priority) -> list:

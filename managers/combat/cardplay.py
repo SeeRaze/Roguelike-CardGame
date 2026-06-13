@@ -116,7 +116,7 @@ class CardPlayMixin:
                     lambda relic=relic: relic.on_card_played(selected_card, self),
                 )
 
-        # Хук боссов/врагов: реакция на розыгрыш карты (Архивариус: +щит за карту).
+        # Хук боссов/врагов: реакция на розыгрыш карты (Скоуп-крип: +щит за карту).
         for e in self.enemies:
             if e.hp > 0 and hasattr(e, 'on_card_played'):
                 self._guarded(
