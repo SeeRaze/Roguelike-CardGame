@@ -24,19 +24,43 @@ GROUP_3_FROM = 26   # с этого этажа возможны 3 врага
 GROUP_HP_MULT  = {2: 0.55, 3: 0.40}
 GROUP_DMG_MULT = {2: 0.60, 3: 0.50}
 
-# Реестр типов рядовых врагов: имя -> класс.
+# Реестр типов рядовых врагов: имя -> класс (поведение).
 # Добавление нового врага: класс в core/enemies/ + строка сюда.
+#   Cultist         — копит щит, потом разгоняет урон → «нарастающая угроза»
+#                     (чем дольше игнорируешь — тем больнее).
+#   SlimeAndGoblins — чередует атаку/защиту через ход → «мерцающая, нестабильная»
+#                     (то бьёт, то прячется).
 ENEMY_REGISTRY = {
-    "Культист": Cultist,
-    "Страж":    Cultist,
-    "Слизень":  SlimeAndGoblins,
-    "Гоблин":   SlimeAndGoblins,
-    "Орк":      SlimeAndGoblins,
+    # Мерцающие
+    "Глюк":             SlimeAndGoblins,
+    "Флаки-тест":       SlimeAndGoblins,
+    "Спам-бот":         SlimeAndGoblins,
+    # Нарастающие
+    "Зависший процесс": Cultist,
+    "Дедлок":           Cultist,
+    "Краш":             Cultist,
 }
 
 _BOSS_TITLES   = ["Древний Страж Башни", "Верховный Культист Неона", "Гидра Стихий"]
-# Имена элиток теперь дают сами архетипы (random_title), префиксы не нужны.
-_COMMON_PREFIX = ["Дикий", "Проклятый", "Чумной", "Стальной", "Адский"]
+# Имена элиток дают сами архетипы (random_title), префиксы им не нужны.
+
+# Префиксы рядовых: (имя, бафф). Бафф = (status_key, base, step) или None.
+# Бафф реализуется как ОБЫЧНЫЙ статус, выданный на спавне → рисуется иконкой
+# (видимое число, не невидимая аттриция) и ездит на СУЩЕСТВУЮЩИХ правилах
+# (ноль нового). Имя префикса телеграфит механику («Оптимизированный» бьёт
+# сильнее и т.д.). floor-aware: итог N = base + floor//step — остаётся «специей»
+# на фоне экспоненты статов, не превращаясь в стену. status_key "shield" =
+# стартовый щит-стена (живёт до фазы врага, phases.py обнуляет), иначе add_status.
+# Смесь бафнутых + пустых: напряжение (модификатор) + передышки (чистый флейвор).
+_COMMON_PREFIX = [
+    ("Оптимизированный", ("optimize",    2, 15)),  # +N к урону всех атак
+    ("Проксированный",   ("firewall",    2, 18)),  # отражает N урона атакующему (пер-хит → консервативно)
+    ("Отказоустойчивый", ("healthcheck", 3, 15)),  # реген N/ход (тает −1/ход)
+    ("Закэшированный",   ("shield",      4,  8)),  # стартовый щит +N (стена на ход 1)
+    ("Незакрытый",       None),                     # передышка
+    ("Сырой",            None),                     # передышка
+    ("Кривой",           None),                     # передышка
+]
 
 
 def build_enemy(current_floor: int, is_elite: bool = False):
@@ -58,6 +82,8 @@ def build_enemy(current_floor: int, is_elite: bool = False):
         enemy_dmg  = int(enemy_dmg  * 1.4)
         enemy_shld = int(enemy_shld * 1.5)
 
+    prefix_buff = None   # бафф префикса рядового (см. _COMMON_PREFIX); None у боссов/элит
+
     if is_boss:
         enemy_hp   = int(enemy_hp   * 2.2)
         enemy_dmg  = int(enemy_dmg  * 1.3)
@@ -74,9 +100,10 @@ def build_enemy(current_floor: int, is_elite: bool = False):
         enemy_class = random.choice(ELITE_REGISTRY)
         e_name      = f"{enemy_class.random_title()} [Элита, Этаж {floor}]"
     else:
-        e_type      = random.choice(list(ENEMY_REGISTRY.keys()))
-        e_name      = f"{random.choice(_COMMON_PREFIX)} {e_type} [Этаж {floor}]"
-        enemy_class = ENEMY_REGISTRY.get(e_type, Enemy)
+        e_type              = random.choice(list(ENEMY_REGISTRY.keys()))
+        prefix, prefix_buff = random.choice(_COMMON_PREFIX)
+        e_name              = f"{prefix} {e_type} [Этаж {floor}]"
+        enemy_class         = ENEMY_REGISTRY.get(e_type, Enemy)
 
     enemy = enemy_class(name=e_name, hp=enemy_hp, max_hp=enemy_hp)
     enemy.base_test_damage = enemy_dmg
@@ -88,6 +115,16 @@ def build_enemy(current_floor: int, is_elite: bool = False):
         enemy.shield = enemy_shld * 2
     elif is_elite:
         enemy.shield = enemy_shld
+
+    # Префикс-бафф рядового — видимый статус на проверенных правилах (имя
+    # префикса = подсказка игроку). floor-aware «специя»: N = base + floor//step.
+    if prefix_buff is not None:
+        key, base, step = prefix_buff
+        amount = base + floor // step
+        if key == "shield":
+            enemy.shield += amount
+        else:
+            enemy.add_status(key, amount)
 
     return enemy
 
