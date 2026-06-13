@@ -187,6 +187,10 @@ cython_debug/
 dumper.py
 .vscode/settings.json
 
+# Continue (AI-расширение) — локальный конфиг исключений, не для репо
+.continueignore
+.continueignore.txt
+
 # Локальные файлы разработки (дизайн, идеи)
 Идеи.xlsx
 # Временные лок-файлы Office (Excel/Word плодят их рядом с открытыми книгами)
