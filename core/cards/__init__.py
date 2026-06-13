@@ -9,7 +9,9 @@ from core.cards.buff import create_flex, create_battle_cry, create_thorn_armor
 # Новые механики
 from core.cards.heal import create_bandage, create_second_wind, create_elixir
 # Новые стихии (С58) — реэкспорт для стартовых колод классов
-from core.cards.coffee import create_coffee_spill, create_coffee_flood
+from core.cards.coffee import (
+    create_coffee_spill, create_coffee_flood, create_caffeine_overdose,
+)
 from core.cards.legacy import create_legacy_patch, create_tech_debt
 # Пол стартового пула = цикл разработки (С60): Коммит/Пуш в прод/Код-ревью/Песочница.
 # Заменяют флат под IT; в стартдеки/GENERIC переезжают в задаче 4 (снос флата).
@@ -33,6 +35,7 @@ from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
     LifestealOnKillEffect,
     create_escalation, create_force_push, create_refactoring, create_crunch,
+    create_burning_sprint,
 )
 from core.cards.cleave import (
     SplashDamageEffect, ColumnStrikeEffect, RankStrikeEffect,

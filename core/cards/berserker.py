@@ -6,7 +6,7 @@
 # собирает по ходу забега; пассив (hp_overdraft + Аврал) — сквозная нить.
 #
 # Числа — ЗАГЛУШКИ; калибровка тройки = отдельный капстоун на финальном контенте.
-from core.cards.base import Card, DamageEffect
+from core.cards.base import Card, DamageEffect, DrawEffect
 from core.EffectCalculator import EffectCalculator
 from core.rarity import Rarity
 
@@ -103,7 +103,7 @@ class DebtToForgeOnKillEffect:
         player.hp += gained                     # гасим часть долга (к 0)
         if combat_manager:
             combat_manager.add_log_message(
-                f" -> Добивание! {gained} HP-долга → +{gained} FP."
+                f" -> Добивание! {gained} HP-долга → +{gained} CR."
             )
 
 
@@ -175,7 +175,7 @@ def create_refactoring():
         cost=1,
         card_type="attack",
         description="Платите 7%(5%) макс. HP, наносите 8(11) урона. При добивании: "
-                    "половина HP-долга → Forge Power.",
+                    "половина HP-долга → CR.",
         effects=[SelfHarmEffect(0.07, 0.05), DamageEffect(8, 11),
                  DebtToForgeOnKillEffect(0.5, 0.5)],
         rarity=Rarity.UNCOMMON,
@@ -195,5 +195,22 @@ def create_crunch():
         description="Наносите 7(10) урона. При добивании: восстановите 20%(25%) макс. HP "
                     "(второе дыхание — выход из долга).",
         effects=[DamageEffect(7, 10), LifestealOnKillEffect(0.20, 0.25)],
+        rarity=Rarity.COMMON,
+    )
+
+
+def create_burning_sprint():
+    """«Горящий Спринт» — cost 0: платишь кровью (нырок в HP-долг) → добор карты.
+    КЛАССОВАЯ СТАРТОВАЯ Стажёра. Грань «кровь → темп»: SelfHarm ставит свежий долг
+    (кормит 8-ter и сигнатурки долга), Draw даёт топливо. Энергию НЕ даёт — осознанная
+    анти-синергия с Авралом (Аврал — отдельная педаль, не складываем «бесплатный темп»).
+    Развод с generic-«Кофеин-овердосом»: класс = добор 1 + синергия долга, generic =
+    добор 2. Числа = ЗАГЛУШКИ. COMMON."""
+    return Card(
+        name="Горящий Спринт",
+        cost=0,
+        card_type="skill",
+        description="Платите 7%(5%) макс. HP, доберите 1(2) карту.",
+        effects=[SelfHarmEffect(0.07, 0.05), DrawEffect(1, 2)],
         rarity=Rarity.COMMON,
     )

@@ -63,14 +63,16 @@ def test_все_locked_артефакты_существуют():
     assert not bogus, f"LOCKED_RELICS содержит несуществующие id: {bogus}"
 
 
-def test_стартовый_generic_пул_ровно_11_карт():
-    # Новый игрок (пустые unlocks) видит только стартовые generic (11) + класс.
+def test_стартовый_generic_пул_ровно_12_карт():
+    # Новый игрок (пустые unlocks) видит только стартовые generic (12) + класс.
     # С60 (задача 4): флат (4) ушёл, пол цикла разработки — 3 COMMON открыты,
-    # Песочница (4-я) заперта → 12−4+3 = 11.
+    # Песочница (4-я) заперта → 12−4+3 = 11; +1 Кофеин-овердос (контент-волна
+    # Стажёр, Этап 1: generic СТАРТОВАЯ) = 12.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
     generic_ids = ids & {card_id_for(f) for f in GENERIC_FACTORIES}
-    assert len(generic_ids) == 11
+    assert len(generic_ids) == 12
     assert "commit" in generic_ids
+    assert "caffeine_overdose" in generic_ids   # Этап 1: новая generic СТАРТОВАЯ
     assert "sandbox" not in generic_ids     # locked (UNCOMMON-награда)
     assert "tech_debt" not in generic_ids   # locked
 
@@ -78,5 +80,6 @@ def test_стартовый_generic_пул_ровно_11_карт():
 def test_классовые_сигнатурки_остаются_у_нового_игрока():
     # Тир-1 сигнатурки не заперты (стартдеки не трогаем) → видны при пустых unlocks.
     ids = {card_id_for(f) for f in get_pool_for_class("Warrior", meta=_meta())}
-    # 11 стартовых generic + 3 классовых Воина (С57: ось Дисц, старая ось вычищена) = 14.
-    assert len(ids) == 14
+    # 12 стартовых generic (+Кофеин-овердос, Этап 1) + 3 классовых Воина
+    # (С57: ось Дисц, старая ось вычищена) = 15.
+    assert len(ids) == 15

@@ -20,11 +20,14 @@ from core.cards import (
     create_overclock, create_resonant_discharge,
     create_echo_resonance, create_echo_cascade,
     create_escalation, create_force_push, create_refactoring, create_crunch,
+    create_burning_sprint,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
 )
 # Новые стихии (С58, айти-передел) — PAYLOAD-семья, импорт из модулей напрямую.
 from core.cards.legacy import create_legacy_patch, create_tech_debt
-from core.cards.coffee import create_coffee_spill, create_coffee_flood
+from core.cards.coffee import (
+    create_coffee_spill, create_coffee_flood, create_caffeine_overdose,
+)
 from core.cards.shortcircuit import (
     create_voltage_spike, create_overload, create_mass_short,
 )
@@ -56,6 +59,9 @@ GENERIC_FACTORIES = [
     # ── НОВЫЕ СТИХИИ (С58) — PAYLOAD: наложи Кофе/Legacy/Замыкание, детонируй ──
     create_legacy_patch, create_tech_debt,
     create_coffee_spill, create_coffee_flood,
+    # Кофеин-овердос (контент-волна Стажёр, Этап 1) — generic СТАРТОВАЯ: cost0
+    # кровь → добор 2. SelfHarm инертно-безопасен вне овердрафта (клампит на 0).
+    create_caffeine_overdose,
     create_voltage_spike, create_overload, create_mass_short,
     create_micromanage, create_overtime,
     create_memory_leak, create_infinite_loop,
@@ -88,7 +94,7 @@ CLASS_FACTORIES = {
     "Mage":      [create_overclock, create_resonant_discharge,
                   create_arcane_focus, create_elemental_surge],
     "Berserker": [create_escalation, create_force_push, create_refactoring,
-                  create_crunch],
+                  create_crunch, create_burning_sprint],
 }
 
 
