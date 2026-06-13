@@ -60,7 +60,7 @@ class TestSpellEater:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Чумной Гнойник — Legacy-код, ×2 +Токс (Кислотный дождь) при щите
+# Легаси-монолит — Legacy-код/ход; щит → мягкий +Токс (ОСЛАБЛЕНА, без ×2/пробития)
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestPlaguePustule:
@@ -68,23 +68,24 @@ class TestPlaguePustule:
         e = PlaguePustule("PP", 100, 100)
         p = Creature("p", 50, 50)
         e.on_turn_start(p, None)
-        assert p.legacy == PlaguePustule.PLAGUE_POISON
+        assert p.legacy == PlaguePustule.LEGACY_PER_TURN
         assert p.tox == 0                      # без щита токса нет
 
-    def test_legacy_doubled_with_shield_and_tox(self):
+    def test_shield_adds_tox_no_doubling(self):
+        # Ослабление: щит даёт мягкий Токс-налог, но НЕ удваивает Legacy.
         e = PlaguePustule("PP", 100, 100)
         p = Creature("p", 50, 50)
         p.shield = 5
         e.on_turn_start(p, None)
-        assert p.legacy == PlaguePustule.PLAGUE_POISON * 2
-        assert p.tox == PlaguePustule.PLAGUE_TOX   # щит провоцирует Кислотный дождь
+        assert p.legacy == PlaguePustule.LEGACY_PER_TURN   # БЕЗ ×2
+        assert p.tox == PlaguePustule.SHIELD_TOX
 
     def test_legacy_stacks_over_turns(self):
         e = PlaguePustule("PP", 100, 100)
         p = Creature("p", 50, 50)
         e.on_turn_start(p, None)
         e.on_turn_start(p, None)
-        assert p.legacy == PlaguePustule.PLAGUE_POISON * 2
+        assert p.legacy == PlaguePustule.LEGACY_PER_TURN * 2
 
 
 # ═══════════════════════════════════════════════════════════════════════════
