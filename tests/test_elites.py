@@ -89,42 +89,44 @@ class TestPlaguePustule:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Мясник-Истязатель — Шипы + Токсичность при росте HP
+# Анти-DDoS — анти-бёрст: %-отлуп размера удара + флат-файрвол (иконка)
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestButcherTorturer:
-    def test_firewall_set_on_init(self):
+    def test_flat_firewall_set_on_init(self):
         e = ButcherTorturer("BT", 100, 100)
-        assert e.firewall == ButcherTorturer.BUTCHER_FIREWALL
+        assert e.firewall == ButcherTorturer.FLAT_FIREWALL
 
-    def test_first_observation_no_weakness(self):
+    def test_reflect_is_flat_plus_percent(self):
+        # Отлуп = флат-файрвол (Creature) + %-доля размера удара (override).
         e = ButcherTorturer("BT", 100, 100)
-        p = Creature("p", 50, 80)
-        e.on_turn_start(p, None)
-        assert p.tox == 0
+        attacker = Creature("a", 100, 100)
+        e.take_damage(20, attacker=attacker)
+        expected = ButcherTorturer.FLAT_FIREWALL + int(20 * ButcherTorturer.REFLECT_PCT)
+        assert attacker.hp == 100 - expected
 
-    def test_weakness_on_hp_increase(self):
-        e = ButcherTorturer("BT", 100, 100)
-        p = Creature("p", 50, 80)
-        e.on_turn_start(p, None)   # снимок 50
-        p.hp = 60                  # лечение
-        e.on_turn_start(p, None)
-        assert p.tox == 1
+    def test_percent_reflect_scales_with_burst(self):
+        # Анти-бёрст: крупный удар отражает БОЛЬШЕ мелкого (на единицу — тот же %,
+        # но абсолют выше → бьёт по гласс-пушке).
+        small = Creature("s", 100, 100)
+        big = Creature("b", 100, 100)
+        ButcherTorturer("BT", 100, 100).take_damage(8, attacker=small)
+        ButcherTorturer("BT", 100, 100).take_damage(40, attacker=big)
+        assert (100 - big.hp) > (100 - small.hp)
 
-    def test_no_weakness_on_hp_decrease(self):
+    def test_reflect_disabled_when_firewall_zeroed(self):
+        # Crash Reboot (leak+tox) обнуляет файрвол → весь отлуп выключен (контра).
         e = ButcherTorturer("BT", 100, 100)
-        p = Creature("p", 50, 80)
-        e.on_turn_start(p, None)   # снимок 50
-        p.hp = 40                  # урон
-        e.on_turn_start(p, None)
-        assert p.tox == 0
+        e.firewall = 0
+        attacker = Creature("a", 100, 100)
+        e.take_damage(40, attacker=attacker)
+        assert attacker.hp == 100   # ни флата, ни %-отлупа
 
-    def test_firewall_reflect_via_take_damage(self):
-        # Интеграция: Файрвол отражает урон атакующему (Creature.take_damage).
+    def test_no_reflect_without_attacker(self):
+        # DoT/безатакующий урон не триггерит отлуп.
         e = ButcherTorturer("BT", 100, 100)
-        attacker = Creature("a", 30, 30)
-        e.take_damage(10, attacker=attacker)
-        assert attacker.hp == 30 - ButcherTorturer.BUTCHER_FIREWALL
+        e.take_damage(20, attacker=None)   # не должно падать
+        assert e.hp < 100
 
 
 # ═══════════════════════════════════════════════════════════════════════════
