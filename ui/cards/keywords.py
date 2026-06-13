@@ -125,9 +125,9 @@ def draw_card_keyword_tooltip(screen, font_title, font_desc, card, card_rect,
         max_w = max(max_w, block_w)
         blocks.append((key, title_surf, desc_lines))
 
-    # Блок пассивок ковки: по строке на тег (золото=легендарная, серебро=ранняя).
+    # Блок пассивок доработки: по строке на тег (золото=легендарная, серебро=ранняя).
     if passives:
-        head = font_title.render("Ковка", True, (255, 220, 80))
+        head = font_title.render("Доработка", True, (255, 220, 80))
         desc_lines = []
         for label, tier in passives:
             col = (245, 210, 90) if tier == "legendary" else (200, 200, 210)

@@ -184,16 +184,16 @@ class EffectCalculator:
                     mult = forge_damage_multiplier(rec["slots"], snapshot)
                     if mult != 1.0:
                         final_damage = int(final_damage * mult)
-                        _rec("Ковка", "×", mult)
+                        _rec("Доработка", "×", mult)
 
-        # 8. ЗАТОЧКА (Сессия 39.4) — player-level компаунд-множитель на ВСЕ атаки
+        # 8. ТЮНИНГ (Сессия 39.4) — player-level компаунд-множитель на ВСЕ атаки
         # игрока (player.atk_mult). Без побочек → считается и в превью (dry_run).
-        # Инертно без ковки (atk_mult=1.0).
+        # Инертно без тюнинга (atk_mult=1.0).
         if is_player_attack:
             atk_mult = getattr(player, "atk_mult", 1.0)
             if atk_mult != 1.0:
                 final_damage = int(final_damage * atk_mult)
-                _rec("Заточка", "×", atk_mult)
+                _rec("Тюнинг", "×", atk_mult)
 
         # 8-bis. ДОЛГ ЭНЕРГИИ (§7) — овердрафт: глубже минус энергии → больше урон
         # (power now, pay later; гашение HP в end_turn_phase). Инертно при energy>=0

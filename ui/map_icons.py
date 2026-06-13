@@ -23,7 +23,7 @@ NODE_COLORS = {
 NODE_LABELS = {
     "COMBAT":   "Битва",
     "ELITE":    "Элита",
-    "CAMPFIRE": "Привал",
+    "CAMPFIRE": "Лестница",
     "SHOP":     "Магазин",
     "CHEST":    "Сундук",
     "EVENT":    "Событие",

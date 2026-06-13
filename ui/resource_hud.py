@@ -31,7 +31,7 @@ def draw_resource_hud(view):
     parts = [
         (f"HP {player.hp}/{player.max_hp}",          _HP_COLOR),
         (f"Золото {getattr(gm, 'player_gold', 0)}",  _GOLD_COLOR),
-        (f"FP {getattr(player, 'forge_points', 0)}", _FP_COLOR),
+        (f"CR {getattr(player, 'forge_points', 0)}", _FP_COLOR),
     ]
     surfs = [font.render(t, True, c) for t, c in parts]
     sep   = font.render("  •  ", True, _SEP_COLOR)

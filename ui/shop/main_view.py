@@ -106,7 +106,7 @@ def _draw_rob_button(shop, view, screen, fonts, mouse_pos):
     pygame.draw.rect(screen, (200, 90, 180), rect, 2, border_radius=10)
     pct = int(ROB_SUCCESS_CHANCE * 100)
     lbl = fonts["btn"].render(
-        f"ОГРАБИТЬ  ({pct}%, провал → элитка)", True, (230, 140, 210))
+        f"ВЗЛОМАТЬ  ({pct}%, провал → элитка)", True, (230, 140, 210))
     screen.blit(lbl, (rect.centerx - lbl.get_width() // 2,
                       rect.centery - lbl.get_height() // 2))
 
@@ -161,7 +161,7 @@ def draw_main(shop, view, screen, fonts):
     pygame.draw.rect(screen, _BTN_BORDER,  panel, 2, border_radius=16)
 
     title = fonts["title"].render(
-        f"ЭТАЖ {view.gm.current_floor}: ЛАВКА ТОРГОВЦА", True, _TITLE_COLOR)
+        f"ЭТАЖ {view.gm.current_floor}: ТЕХ-МАРКЕТ", True, _TITLE_COLOR)
     screen.blit(title, (W // 2 - title.get_width() // 2, 90))
     gold = fonts["text"].render(
         f"Золото: {view.gm.player_gold} монет", True, _GOLD_COLOR)

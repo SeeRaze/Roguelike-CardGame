@@ -4,9 +4,9 @@ from core import forge as forge_mod
 
 
 class Campfire:
-    """Экран Костра -- тёплая тема, стиль EventView.
-    Опции: Отдых (30% недостающего HP) / Кузница (ковка карт за FP) /
-    Ритуал крови (удалить карту ценой HP)."""
+    """Экран Лестничной клетки -- передышка между этажами, стиль EventView.
+    Опции: Перекур (30% недостающего HP) / Доработка (улучшение карт за CR) /
+    Тюнинг (компаунд-урон за CR) / Выпиливание (удалить карту ценой HP)."""
     sub_state          = "MAIN"
     is_rest_hovered    = False
     is_forge_hovered   = False
@@ -22,7 +22,7 @@ class Campfire:
     # Цвет тира тега в драфте (юзер: тир выделяем цветом текста).
     _TIER_COLORS = {"early": (140, 200, 255), "legendary": (255, 200, 80)}
 
-    # Цена «Ритуала крови»: HP сквозь щит за удаление одной карты из колоды.
+    # Цена «Выпиливания»: HP сквозь щит за удаление одной карты из колоды.
     _BLOOD_RITUAL_COST = 10
 
     _BG_COLOR        = (15,  10,  10)
@@ -53,7 +53,7 @@ class Campfire:
 
     @staticmethod
     def _ritual_available(view) -> bool:
-        """Ритуал доступен, только если HP хватает пережить цену и в колоде
+        """Выпиливание доступно, только если HP хватает пережить цену и в колоде
         есть что приносить в жертву (защита от суицида / пустой колоды)."""
         return (view.gm.player.hp > Campfire._BLOOD_RITUAL_COST
                 and len(view.gm.current_deck) > 1)
@@ -74,14 +74,14 @@ class Campfire:
         elif Campfire.sub_state == "FORGE":
             Campfire._draw_card_grid(
                 view, screen, title_font, text_font, small_font,
-                title="КУЗНИЦА: КОВКА КАРТ",
-                hint="Клик по карте: +1 уровень за FP  |  Колесо мыши -- прокрутка",
+                title="ДОРАБОТКА: УЛУЧШЕНИЕ КАРТ",
+                hint="Клик по карте: +1 уровень за CR  |  Колесо мыши -- прокрутка",
                 mark_upgraded=False, forge_view=True,
             )
         elif Campfire.sub_state == "SACRIFICE":
             Campfire._draw_card_grid(
                 view, screen, title_font, text_font, small_font,
-                title="РИТУАЛ КРОВИ: ВЫБЕРИТЕ ЖЕРТВУ",
+                title="ВЫПИЛИВАНИЕ: ВЫБЕРИТЕ КАРТУ",
                 hint=f"Удалить карту из колоды ценой -{Campfire._BLOOD_RITUAL_COST} HP"
                      "  |  Колесо мыши -- прокрутка",
                 mark_upgraded=False,
@@ -103,7 +103,7 @@ class Campfire:
         pygame.draw.rect(screen, C._BTN_BORDER,  panel, 2, border_radius=16)
 
         title = title_font.render(
-            f"ЭТАЖ {view.gm.current_floor}: У КОСТРА", True, C._TITLE_COLOR)
+            f"ЭТАЖ {view.gm.current_floor}: ЛЕСТНИЧНАЯ КЛЕТКА", True, C._TITLE_COLOR)
         screen.blit(title, (W // 2 - title.get_width() // 2, 130))
 
         hp_surf = text_font.render(
@@ -117,9 +117,9 @@ class Campfire:
         player = view.gm.player
         fp     = player.forge_points
 
-        # 4 опции: Отдых / Кузница / Заточка / Ритуал. Костёр = чистый FP-узел
-        # (С57: Закалка переехала на ось ЗОЛОТА → в магазин, economy-axis-trinity).
-        # Стоки FP (Кузница/Заточка) не продвигают этаж — продвижение за Отдыхом/Ритуалом.
+        # 4 опции: Перекур / Доработка / Тюнинг / Выпиливание. Лестничная клетка =
+        # чистый CR-узел (С57: Закалка переехала на ось ЗОЛОТА → в магазин, economy-axis-trinity).
+        # Стоки CR (Доработка/Тюнинг) не продвигают этаж — продвижение за Перекуром/Выпиливанием.
         x = W // 2 - 300
         view.btn_rest_rect    = pygame.Rect(x, 250, 600, 64)
         view.btn_forge_rect   = pygame.Rect(x, 346, 600, 64)
@@ -137,17 +137,17 @@ class Campfire:
                                        and view.btn_ritual_rect.collidepoint(mouse_pos))
 
         Campfire._draw_button(screen, btn_font, view.btn_rest_rect,
-                              f"ОТДОХНУТЬ  (+{heal_preview} HP, 30% недостающего)",
+                              f"ПЕРЕКУР  (+{heal_preview} HP, 30% недостающего)",
                               Campfire.is_rest_hovered, True)
         Campfire._draw_button(screen, btn_font, view.btn_forge_rect,
-                              f"КУЗНИЦА  (Ковка за FP: {fp})",
+                              f"ДОРАБОТКА  (Улучшение за CR: {fp})",
                               Campfire.is_forge_hovered, True)
         sharpen_pct = int(forge_mod.SHARPEN_ATK_PCT * 100)
         Campfire._draw_button(screen, btn_font, view.btn_sharpen_rect,
-                              f"ЗАТОЧКА  (+{sharpen_pct}% урон ×{player.atk_mult:.2f}, {sharpen_cost} FP)",
+                              f"ТЮНИНГ  (+{sharpen_pct}% урон ×{player.atk_mult:.2f}, {sharpen_cost} CR)",
                               Campfire.is_sharpen_hovered, sharpen_ok)
-        ritual_lbl = (f"РИТУАЛ КРОВИ  (Удалить карту, -{Campfire._BLOOD_RITUAL_COST} HP)"
-                      if ritual_ok else "РИТУАЛ КРОВИ  (недоступно)")
+        ritual_lbl = (f"ВЫПИЛИВАНИЕ  (Удалить карту, -{Campfire._BLOOD_RITUAL_COST} HP)"
+                      if ritual_ok else "ВЫПИЛИВАНИЕ  (недоступно)")
         Campfire._draw_button(screen, btn_font, view.btn_ritual_rect,
                               ritual_lbl, Campfire.is_ritual_hovered, ritual_ok,
                               border=Campfire._BLOOD_COLOR)
@@ -191,7 +191,7 @@ class Campfire:
         # Режим ковки: шапка с балансом FP/капом + кнопка «Завершить» (вне клипа).
         if forge_view:
             info = text_font.render(
-                f"FP: {player.forge_points}    Кап уровня: {player.forge_level_cap}",
+                f"CR: {player.forge_points}    Кап уровня: {player.forge_level_cap}",
                 True, C._TITLE_COLOR)
             screen.blit(info, (W // 2 - info.get_width() // 2, 138))
             view.btn_forge_done_rect = pygame.Rect(W - 40 - 226, 42, 210, 56)
@@ -201,9 +201,9 @@ class Campfire:
             view.btn_campfire_back_rect = None
         else:
             view.btn_forge_done_rect = None
-            # Ритуал/жертва — кнопка «Назад»: выйти без удаления (игрок мог зайти
+            # Выпиливание — кнопка «Назад»: выйти без удаления (игрок мог зайти
             # просто посмотреть колоду; не наказываем за любопытство).
-            # Справа — симметрично «← ГОТОВО» Кузницы, чтобы не налезать на HUD ресурсов.
+            # Справа — симметрично «← ГОТОВО» Доработки, чтобы не налезать на HUD ресурсов.
             view.btn_campfire_back_rect = pygame.Rect(W - 40 - 226, 42, 210, 56)
             back_hov = view.btn_campfire_back_rect.collidepoint(mouse_pos)
             Campfire._draw_button(screen, small_font, view.btn_campfire_back_rect,
@@ -256,7 +256,7 @@ class Campfire:
     @staticmethod
     def _draw_forge_overlay(screen, font, player, card, card_x, draw_y,
                             card_w, card_h):
-        """Поверх карты в Кузнице: бейдж уровня (сверху) + цена/статус следующей
+        """Поверх карты в Доработке: бейдж уровня (сверху) + цена/статус следующей
         ковки (снизу). Зелёный — по карману, красный — не хватает FP, золотой —
         упёрлись в кап. Звезда — следующий уровень открывает теговый слот."""
         C     = Campfire
@@ -276,7 +276,7 @@ class Campfire:
             cost = forge_mod.level_cost(level)
             affordable = player.forge_points >= cost
             star = " *" if forge_mod.milestone_tier(level + 1) else ""
-            txt  = f"+ур: {cost} FP{star}"
+            txt  = f"+ур: {cost} CR{star}"
             col  = C._HP_COLOR if affordable else C._BLOOD_COLOR
         line = font.render(txt, True, col)
         lbg = pygame.Rect(card_x + 4, draw_y + card_h - 26,
@@ -311,7 +311,7 @@ class Campfire:
             Campfire.sub_state = "FORGE"
 
         # Заточка (FP) — мгновенный сток, НЕ продвигает этаж. Закалка (С57) ушла
-        # в магазин на ось ЗОЛОТА (economy-axis-trinity) — костёр = чистый FP-узел.
+        # в магазин на ось ЗОЛОТА (economy-axis-trinity) — лестн. клетка = чистый CR-узел.
         elif hasattr(view, 'btn_sharpen_rect') and view.btn_sharpen_rect.collidepoint(mouse_pos):
             forge_mod.sharpen(view.gm.player)
 
@@ -323,8 +323,8 @@ class Campfire:
 
     @staticmethod
     def _handle_forge(view, mouse_pos):
-        # «Готово» — вернуться к выбору на костре (продвижение по этажу — за
-        # Отдыхом/Ритуалом на главном экране; ковка FP параллельна, как в симе).
+        # «Готово» — вернуться к выбору в лестничной клетке (продвижение по этажу — за
+        # Перекуром/Выпиливанием на главном экране; доработка CR параллельна, как в симе).
         done = getattr(view, 'btn_forge_done_rect', None)
         if done is not None and done.collidepoint(mouse_pos):
             view.scroll_y = 0
@@ -416,7 +416,7 @@ class Campfire:
 
     @staticmethod
     def _handle_draft(view, mouse_pos):
-        """Клик по тегу-кандидату → ковка с выбранным тегом, возврат в Кузницу."""
+        """Клик по тегу-кандидату → ковка с выбранным тегом, возврат в Доработку."""
         player = view.gm.player
         for rect, tag_id in getattr(view, 'draft_choice_rects', []):
             if rect.collidepoint(mouse_pos):
@@ -429,7 +429,7 @@ class Campfire:
 
     @staticmethod
     def _handle_sacrifice(view, mouse_pos):
-        # «Назад» — вернуться на главный экран костра без жертвы (HP не теряется).
+        # «Назад» — вернуться на главный экран лестничной клетки без удаления (HP цел).
         back = getattr(view, 'btn_campfire_back_rect', None)
         if back is not None and back.collidepoint(mouse_pos):
             view.scroll_y = 0
@@ -439,13 +439,13 @@ class Campfire:
             if card_rect.collidepoint(mouse_pos):
                 removed = view.gm.current_deck.pop(index)
                 view.gm.player.lose_hp(Campfire._BLOOD_RITUAL_COST)
-                print(f"[РИТУАЛ КРОВИ] Карта '{removed.name}' принесена в жертву.")
+                print(f"[ВЫПИЛИВАНИЕ] Карта '{removed.name}' выпилена из колоды.")
                 Campfire._advance(view)
                 break
 
     @staticmethod
     def _advance(view):
-        """Костёр -- одно действие за визит: применили и идём на след. этаж."""
+        """Лестничная клетка -- одно действие за визит: применили и идём на след. этаж."""
         Campfire.sub_state = "MAIN"
         view.gm.current_floor += 1
         view.gm.setup_next_floor()
