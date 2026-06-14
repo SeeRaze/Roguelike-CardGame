@@ -4,7 +4,7 @@ from core.cards.catalog import get_pool_for_class
 
 CURSED_BUFF_POOL = [
     (
-        "+3 Ярости",
+        "+3 Оптимизации",
         "Постоянный бонус +3 к урону всех атак.",
         15,
         lambda gm: setattr(gm.player, "optimize",
@@ -41,6 +41,20 @@ CURSED_BUFF_POOL = [
         18,
         lambda gm: setattr(gm.player, "bonus_draw",
                            getattr(gm.player, "bonus_draw", 0) + 1),
+    ),
+    # ── Блок 5-стретч (С65): cursed-баффы под недокормленные оси (FP / max HP) ──
+    (
+        "+8 FP",
+        "Постоянный бонус: +8 очков ковки (FP) для прокачки карт.",
+        12,
+        lambda gm: setattr(gm.player, "forge_points",
+                           getattr(gm.player, "forge_points", 0) + 8),
+    ),
+    (
+        "+30 к макс. HP",
+        "Поднять потолок здоровья на 30 навсегда (без лечения).",
+        25,
+        lambda gm: setattr(gm.player, "max_hp", gm.player.max_hp + 30),
     ),
 ]
 
