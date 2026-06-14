@@ -188,14 +188,6 @@ def draw_status_icon(screen, key: str, cx: int, cy: int, r: int, color) -> None:
         _star(screen, cx, cy, r, color, points=8)
         pygame.draw.circle(screen, color, (cx, cy), max(2, int(r * 0.3)))
 
-    elif key == "spread":
-        # Распространение: центр + 4 разлетающиеся точки-стрелки.
-        pygame.draw.circle(screen, color, (cx, cy), max(2, int(r * 0.28)))
-        for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
-            ex, ey = cx + dx * r, cy + dy * r
-            pygame.draw.line(screen, color, (cx, cy), (ex, ey), max(1, lw - 1))
-            pygame.draw.circle(screen, color, (ex, ey), max(1, int(r * 0.18)))
-
     elif key == "coffee":
         # Разлитый кофе: чашка (полукруг-чаша + ручка) + струйка пара.
         cup_top = cy - int(r * 0.1)

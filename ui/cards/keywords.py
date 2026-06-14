@@ -5,7 +5,7 @@ from core.cards.base import (
     StatusEffect, RegenEffect, HealEffect, DetonateEffect,
     BarrierEffect,
 )
-from core.cards.air import FlowEffect, SpreadEffect
+from core.cards.flow import FlowEffect
 from core.cards.echo import EchoEffect
 from core.cards.mage import MasteryEffect
 from core.StatusRegistry import STATUSES
@@ -33,9 +33,6 @@ def get_card_keywords(card) -> list[tuple[str, int]]:
             val = effect.upgrade_val if card.upgraded else effect.base_val
         elif isinstance(effect, DetonateEffect):
             key = "detonate"
-            val = 0
-        elif isinstance(effect, SpreadEffect):
-            key = "spread"
             val = 0
         elif isinstance(effect, EchoEffect):
             key = "echo"

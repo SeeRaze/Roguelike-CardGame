@@ -15,7 +15,7 @@ import random
 from core.cards.base import (
     ShieldEffect, DamageEffect, StatusEffect, DetonateEffect,
 )
-from core.cards.air import FlowEffect
+from core.cards.flow import FlowEffect
 from core.cards.warrior import (
     ShieldDamageEffect, DisciplineBurstDamageEffect, DisciplineToShieldEffect,
     DisciplineGainEffect,

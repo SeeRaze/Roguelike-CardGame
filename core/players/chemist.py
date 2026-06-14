@@ -2,7 +2,7 @@ from core.players.base import Player
 from core.players.abilities import ChemistAbility
 from core.cards import (
     create_strike, create_defend, create_coffee_spill, create_voltage_spike,
-    create_poison_stab,
+    create_legacy_patch,
 )
 
 # Приток Реагента в начало хода (ТОРМОЗ/баланс-ручка класса, _balance_knobs.md).
@@ -20,7 +20,8 @@ def get_chemist_deck():
         create_defend(), create_defend(),
         create_coffee_spill(),   # Разлитый кофе — сырьё стихии (усилитель)
         create_voltage_spike(),  # Короткое замыкание — сырьё стихии (детонатор)
-        create_poison_stab(),    # Legacy-код — сырьё стихии (DoT)
+        create_legacy_patch(),   # Legacy-код — сырьё стихии (DoT). [С61: Яд влит в Legacy,
+                                 #   стартдек переведён на канон-applier create_legacy_patch.]
     ]
 
 

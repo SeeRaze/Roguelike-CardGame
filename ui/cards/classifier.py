@@ -7,7 +7,7 @@ from core.cards.base import (
 )
 from ui.cards.data import _ELEMENTAL_CARD_KEYS
 from core.cards.buff.strength import BuffEffect
-from core.cards.air import FlowEffect
+from core.cards.flow import FlowEffect
 from core.cards.echo import EchoEffect, EchoPayoffEffect
 from core.cards.mage import MasteryEffect
 from core.cards.berserker import DebtScalingDamageEffect

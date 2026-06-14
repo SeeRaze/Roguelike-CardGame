@@ -35,7 +35,6 @@ def _get_relic_class(name: str):
 def _get_card_factory(name: str):
     from core.cards.basic  import create_strike, create_defend, create_heavy_blade, create_iron_wall
     from core.cards.coffee import create_coffee_spill, create_coffee_flood
-    from core.cards.poison import create_poison_stab, create_toxic_cloud
     from core.cards.legacy import create_legacy_patch, create_tech_debt
     from core.cards.heal   import create_bandage, create_second_wind, create_elixir
     from core.cards.buff.regen     import create_regenerate, create_vitality, create_triage
@@ -46,8 +45,6 @@ def _get_card_factory(name: str):
         "create_iron_wall":    create_iron_wall,
         "create_coffee_spill": create_coffee_spill,
         "create_coffee_flood": create_coffee_flood,
-        "create_poison_stab":  create_poison_stab,
-        "create_toxic_cloud":  create_toxic_cloud,
         "create_legacy_patch": create_legacy_patch,
         "create_tech_debt":    create_tech_debt,
         "create_bandage":      create_bandage,
