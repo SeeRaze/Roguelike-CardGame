@@ -115,7 +115,7 @@ def test_relic_id_это_имя_класса():
 def test_реестры_locked_наполнены_разметкой():
     # К3: разметка страманом — узкий стартовый пул (часть заперта за мета-прогрессию).
     assert len(LOCKED_CARDS) == 46      # С61 −echo_strike; Этап 3 +final_deploy +prod_crutch; Блок 2 (С65) +7 синергия +4 движок-четвёрка
-    assert len(LOCKED_RELICS) == 26     # 26 из 33 артефактов заперты
+    assert len(LOCKED_RELICS) == 36     # +10 синергия-реликвий (Блок 3, С65) к прежним 26
     # Пол цикла разработки (С60) НЕ заперт (стартовые COMMON), Песочница — заперта.
     for starter in ("commit", "push_to_prod", "code_review"):
         assert starter not in LOCKED_CARDS

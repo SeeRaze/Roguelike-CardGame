@@ -11,14 +11,14 @@ from core.relics import (
 )
 
 
-def test_в_пуле_33_уникальные_реликвии():
+def test_в_пуле_43_уникальные_реликвии():
     # С57 (1d-pre): −Марш смерти (32→31). 2b/2c HP-ось: +ДМС (платиновый пакет)
     # (UNCOMMON), +Аптайм (EPIC) → 31→33. Срез Берсерка: +Овердрафт
     # (UNCOMMON, классовый компаунд) → 33→34. C3b: −Грозовая Батарея
-    # (shock удалён) → 34→33.
-    assert len(ALL_RELICS) == 33
+    # (shock удалён) → 34→33. Блок 3 (С65): +10 синергия-реликвий → 33→43.
+    assert len(ALL_RELICS) == 43
     имена = [r().name for r in ALL_RELICS]
-    assert len(set(имена)) == 33
+    assert len(set(имена)) == 43
 
 
 def test_флакон_с_желчью_травит_врага_в_начале_боя(make_combat):
@@ -262,3 +262,43 @@ def test_точка_отказа_не_затирает_чужую_оптимиз
     cm.player.shield = 30
     relic.on_turn_end(cm)
     assert cm.player.optimize == 5 + 3       # 30//10 поверх внешних 5
+
+
+# ── Блок 3 (С65): синергия-реликвии ───────────────────────────────────────────
+def test_тестовый_сервер_сеет_замыкание(make_combat):
+    from core.relics import ТестовыйСервер
+    cm = make_combat()
+    ТестовыйСервер().on_combat_start(cm)
+    assert cm.enemy.get_status("shortcircuit") == 2
+
+
+def test_пайплайн_подаёт_заряд_замыкания(make_combat):
+    from core.relics import Пайплайн
+    cm = make_combat()
+    Пайплайн().on_turn_start(cm)
+    assert cm.enemy.get_status("shortcircuit") == 1
+
+
+def test_микросервисы_сеют_три_разных_стихии(make_combat):
+    from core.relics import Микросервисы
+    from core.StatusRegistry import ELEMENT_KEYS
+    cm = make_combat()
+    Микросервисы().on_turn_start(cm)
+    активные = [k for k in ELEMENT_KEYS if cm.enemy.get_status(k) > 0]
+    assert len(активные) == 3                 # 3 РАЗНЫХ стихии по 1 стаку
+    assert all(cm.enemy.get_status(k) == 1 for k in активные)
+
+
+def test_зеро_даунтайм_снежный_ком_и_самоурон(make_combat):
+    from core.relics import ЗероДаунтайм
+    cm = make_combat()
+    cm.enemy.set_status("legacy", 2)
+    cm.enemy.set_status("coffee", 3)
+    relic = ЗероДаунтайм()
+    relic.on_turn_start(cm)
+    assert cm.enemy.get_status("legacy") == 3     # +1 снежный ком
+    assert cm.enemy.get_status("coffee") == 4
+    cm.player.hp = 100
+    cm.player.shield = 0
+    relic.on_turn_end(cm)
+    assert cm.player.hp == 98                       # урон = 2 РАЗНЫХ типа стихий

@@ -164,6 +164,13 @@ STATUSES = {
 }
 
 
+# 6 канон-стихий (С61, закреплены под сеттинг, НЕ расширяем) — подмножество STATUSES:
+# полезные нагрузки/дебаффы НА ВРАГЕ. Это НЕ ось-статусы игрока (mastery/discipline/
+# optimize…) и не duration-нестихии (stunned/heal_block). Единый источник для
+# кросс-элемент логики карт (core/cards/synergy.py) и реликвий (relics/advanced/synergy.py).
+ELEMENT_KEYS = ("legacy", "coffee", "shortcircuit", "tox", "leak", "decomp")
+
+
 def get(key: str) -> dict:
     """Возвращает данные статуса по ключу. KeyError если не найден."""
     return STATUSES[key]

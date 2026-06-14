@@ -10,14 +10,9 @@ from core.cards.base import (
     Card, StatusEffect, DecompEffect, DrawEffect, EnergyEffect,
 )
 from core.EffectCalculator import EffectCalculator
+from core.StatusRegistry import ELEMENT_KEYS
 from core.rarity import Rarity
 import random
-
-# 6 канон-стихий (StatusRegistry), С65 — закреплены под сеттинг, НЕ расширяем:
-# legacy=DoT, coffee=уязвимость, shortcircuit=детонатор, tox=ослабление,
-# leak=утечка, decomp=окно. Это НЕ ось-статусы (mastery/discipline) и не
-# duration-нестихии (stunned/heal_block). Источник кросс-элемент payoff'ов ниже.
-ELEMENT_KEYS = ("legacy", "coffee", "shortcircuit", "tox", "leak", "decomp")
 
 
 # ─── ЭФФЕКТ-КИРПИЧИ движок-четвёрки (Блок 2, С65) ────────────────────────────
