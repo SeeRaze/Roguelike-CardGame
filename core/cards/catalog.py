@@ -59,6 +59,8 @@ from core.cards.devcycle import (
 from core.cards.synergy import (
     create_code_archaeology, create_bottleneck, create_spilled_espresso,
     create_breakpoint, create_planning, create_monitoring,
+    create_memory_dump, create_tech_regression, create_version_control,
+    create_fan_out,
 )
 from core.cards.flow import create_in_the_flow
 
@@ -82,6 +84,9 @@ GENERIC_FACTORIES = [
     # + достройка decomp + leak-движок + Поток + топливо. Все LOCKED (награда). ──
     create_code_archaeology, create_bottleneck, create_spilled_espresso,
     create_breakpoint, create_monitoring, create_in_the_flow, create_planning,
+    # Движок-четвёрка: decomp-payoff / кросс-элемент-урон / удвоитель стихий / хаос-AoE.
+    create_memory_dump, create_tech_regression, create_version_control,
+    create_fan_out,
     # ── ENGINE (С58): шорткаты-движок (манипуляция своими ресурсами). LOCKED. ──
     create_window_swap, create_refresh, create_coffee_break,
     create_hard_delete, create_stack_trace,

@@ -146,6 +146,8 @@ LOCKED_CARDS: set = {
     # + Поток + топливо. Углубляют 6 стихий, выдаются как награда за прогресс.
     "code_archaeology", "bottleneck", "spilled_espresso", "breakpoint",
     "monitoring", "in_the_flow", "planning",
+    # Движок-четвёрка (Блок 2): decomp-payoff / кросс-элемент / удвоитель / хаос-AoE.
+    "memory_dump", "tech_regression", "version_control", "fan_out",
     "flex", "battle_cry",
     "thorn_armor", "second_wind", "elixir", "regenerate", "vitality", "triage",
     "echo_resonance", "echo_cascade", "piercing_thrust", "wide_swing",
