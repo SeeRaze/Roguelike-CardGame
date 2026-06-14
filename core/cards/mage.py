@@ -92,6 +92,75 @@ class MasteryEffect:
             )
 
 
+class MasterySpenderDamageEffect:
+    """Грань «слей глубину» («Релиз в пятницу»): СЖИГАЕТ ВСЁ Мастерство и наносит урон
+    = base × (1 + mult×сожжено) — МУЛЬТИПЛИКАТИВНО (единый формат со спендером Воина
+    «Критический баг»). Спендер-противовес компаунду «Сгенерить фичу» (та ЧИТАЕТ, не жжёт):
+    выбор «копи (Сгенерить фичу) vs слей (Релиз в пятницу)». Трата ОБНУЛЯЕТ Мастерство ДО
+    EffectCalculator → шаг 2c (+N урона за стак) И шаг 4b (перегруз-множитель) не задваивают
+    и не доплачивают этому удару: своя ×-формула карты = весь payoff. ПОБОЧКА (фича-противовес,
+    апрув Жеки): слив роняет Мастерство ниже порога → гасит HP-искру следующего хода
+    («обналичь + остынь»). Вне Мастерства → просто base. Числа = ЗАГЛУШКИ под капстоун."""
+
+    def __init__(self, base_val, upgrade_val, mult_per, upgrade_mult_per):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+        self.mult_per = mult_per                 # доля множителя за каждый сожжённый стак
+        self.upgrade_mult_per = upgrade_mult_per
+
+    def projected_damage(self, player, is_upgraded):
+        """База урона ДО общих модификаторов (для проекции на карте) = base × текущий
+        множитель Мастерства. Совпадает с amount в execute → preview == фактический удар."""
+        base = self.upgrade_val if is_upgraded else self.base_val
+        mult_per = self.upgrade_mult_per if is_upgraded else self.mult_per
+        spent = max(0, getattr(player, "mastery", 0)) if player else 0
+        return int(base * (1.0 + mult_per * spent))
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        mult_per = self.upgrade_mult_per if is_upgraded else self.mult_per
+        spent = max(0, getattr(player, "mastery", 0))
+        player.set_status("mastery", 0)          # сжечь стак ДО расчёта (без задвоя 2c/4b)
+        mult = 1.0 + mult_per * spent
+        amount = int(base * mult)
+        gm_ref = combat_manager.gm if combat_manager is not None else None
+        final = EffectCalculator.calculate_damage(
+            player, enemy, amount, gm_ref, combat_manager
+        )
+        enemy.take_damage(final, attacker=player, combat_manager=combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Релиз в пятницу: {final} урона "
+                f"(сожжено {spent} Мастерства → ×{mult:.2f}; перегруз сброшен)."
+            )
+
+
+class MasteryScaledHealEffect:
+    """Грань «сустейн» («Дебаг-сессия»): хил = base + per×(текущее Мастерство), Мастерство
+    НЕ тратит. Зеркало Тестировщикова «Чеклиста» (DisciplineScaledShieldEffect), но по оси
+    HP — ресурсу Мага, а не щита: компенсирует HP-churn/искру перегруза. Чем глубже понимание
+    (Мастерство), тем быстрее чинишь баг. ⚠️ Баланс: per-за-стак держать скромным, иначе
+    хрупкий HP-churn превращается в неубиваемость. Числа = ЗАГЛУШКИ под капстоун."""
+
+    def __init__(self, base_val, upgrade_val, per_mastery, upgrade_per_mastery):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+        self.per_mastery = per_mastery
+        self.upgrade_per_mastery = upgrade_per_mastery
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        per = self.upgrade_per_mastery if is_upgraded else self.per_mastery
+        mastery = max(0, getattr(player, "mastery", 0))
+        amount = base + per * mastery
+        healed = player.heal(amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Дебаг-сессия: +{healed} HP "
+                f"(база {base} + {per}×{mastery} Мастерства)."
+            )
+
+
 def create_overclock():
     """«Автопилот» — заплати 10% max HP → +3(4) Мастерства разом. Грань гамбл/Нестабильность:
     активная ручка «Гни» — игрок САМ перешагивает порог перегруза (≥5 → ×1.5 + эскалир.
@@ -171,4 +240,34 @@ def create_elemental_surge():
             MasteryEffect(1, 1),
         ],
         rarity=Rarity.RARE,
+    )
+
+
+def create_friday_release():
+    """«Релиз в пятницу» — урон 8(11) ×(1 + 40%(55%) за каждый сожжённый стак Мастерства),
+    затем СЖИГАЕТ всё Мастерство → 0. Спендер-противовес компаунду «Сгенерить фичу»
+    (выбор «копи vs слей»). Слив роняет ниже порога перегруза → гасит HP-искру след. хода
+    (cool-down «обналичь + остыть» = противовес мощному свингу). RARE."""
+    return Card(
+        name="Релиз в пятницу",
+        cost=2,
+        card_type="attack",
+        description="Урон 8(11) ×(1 + 40%(55%) за каждый стак Мастерства). "
+                    "Сжигает всё Мастерство.",
+        effects=[MasterySpenderDamageEffect(8, 11, 0.40, 0.55)],
+        rarity=Rarity.RARE,
+    )
+
+
+def create_debug_session():
+    """«Дебаг-сессия» — лечит 5(7) + 1(2) за каждый стак Мастерства. Мастерство не тратит.
+    Классовый сустейн хрупкого HP-churn: компенсирует искру перегруза, масштабируется
+    с глубиной билда. Зеркало Тестировщикова «Чеклиста» по оси HP. UNCOMMON."""
+    return Card(
+        name="Дебаг-сессия",
+        cost=1,
+        card_type="skill",
+        description="Лечит 5(7) + 1(2) за каждый стак Мастерства. Мастерство не тратится.",
+        effects=[MasteryScaledHealEffect(5, 7, 1, 2)],
+        rarity=Rarity.UNCOMMON,
     )

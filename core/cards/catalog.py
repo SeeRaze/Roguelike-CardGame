@@ -20,6 +20,7 @@ from core.cards import (
     create_smoke_test, create_release_freeze,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
+    create_friday_release, create_debug_session,
     create_echo_resonance, create_echo_cascade,
     create_escalation, create_force_push, create_refactoring, create_crunch,
     create_burning_sprint, create_ci_bypass,
@@ -97,7 +98,8 @@ CLASS_FACTORIES = {
     # (чистый ПАР, 0 Мастерства) → generic. Остальные 4 трогают Мастерство (Стихийный
     # всплеск = мост стихии→ось через MasteryEffect).
     "Mage":      [create_overclock, create_resonant_discharge,
-                  create_arcane_focus, create_elemental_surge],
+                  create_arcane_focus, create_elemental_surge,
+                  create_friday_release, create_debug_session],
     "Berserker": [create_escalation, create_force_push, create_refactoring,
                   create_crunch, create_burning_sprint, create_ci_bypass,
                   create_final_deploy, create_prod_crutch],

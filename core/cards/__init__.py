@@ -31,6 +31,7 @@ from core.cards.warrior import (
 from core.cards.mage import (
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
+    create_friday_release, create_debug_session,
 )
 from core.cards.echo import create_echo_resonance, create_echo_cascade
 from core.cards.berserker import (
