@@ -142,6 +142,10 @@ LOCKED_CARDS: set = {
     # Новые стихии (С58): UNCOMMON/RARE заперты (пол = простейшие COMMON-карты семей).
     "tech_debt", "coffee_flood", "overload", "mass_short", "overtime",
     "infinite_loop", "reverse_engineer",
+    # Синергия общего пула (Блок 2, С65): комбо-сетапы + достройка decomp + leak-движок
+    # + Поток + топливо. Углубляют 6 стихий, выдаются как награда за прогресс.
+    "code_archaeology", "bottleneck", "spilled_espresso", "breakpoint",
+    "monitoring", "in_the_flow", "planning",
     "flex", "battle_cry",
     "thorn_armor", "second_wind", "elixir", "regenerate", "vitality", "triage",
     "echo_resonance", "echo_cascade", "piercing_thrust", "wide_swing",

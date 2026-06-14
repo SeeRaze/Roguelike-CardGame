@@ -54,6 +54,13 @@ from core.cards.bug import create_bug
 from core.cards.devcycle import (
     create_commit, create_push_to_prod, create_code_review, create_sandbox,
 )
+# Синергия общего пула (Блок 2, С65): комбо-сетапы + достройка decomp + топливо.
+# Углубляют взаимодействие 6 стихий (мост кросс-классовости). Все LOCKED.
+from core.cards.synergy import (
+    create_code_archaeology, create_bottleneck, create_spilled_espresso,
+    create_breakpoint, create_planning, create_monitoring,
+)
+from core.cards.flow import create_in_the_flow
 
 # ─── Нейтральные карты (generic) — общий пул для всех классов ────────────────
 GENERIC_FACTORIES = [
@@ -71,6 +78,10 @@ GENERIC_FACTORIES = [
     create_micromanage, create_overtime,
     create_memory_leak, create_infinite_loop,
     create_disassembler, create_reverse_engineer,
+    # ── СИНЕРГИЯ Блока 2 (С65): комбо-сетапы (decomp+legacy / tox+leak / coffee+decomp)
+    # + достройка decomp + leak-движок + Поток + топливо. Все LOCKED (награда). ──
+    create_code_archaeology, create_bottleneck, create_spilled_espresso,
+    create_breakpoint, create_monitoring, create_in_the_flow, create_planning,
     # ── ENGINE (С58): шорткаты-движок (манипуляция своими ресурсами). LOCKED. ──
     create_window_swap, create_refresh, create_coffee_break,
     create_hard_delete, create_stack_trace,

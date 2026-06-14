@@ -44,3 +44,22 @@ class FlowEffect:
             combat_manager.add_log_message(
                 f" -> Поток: {card.name} дешевле на 1 (={card.temp_cost})."
             )
+
+
+def create_in_the_flow():
+    """«В потоке» — оживляет движок Потока (С65, Блок 2): cost0 темпо-карта. Войти в
+    поток = удешевить 2(3) случайные карты в руке на 1 + добрать 1. Нейтральный
+    носитель FlowEffect (после выреза ВОЗДУХА движок жил без карт). LOCKED."""
+    from core.cards.base import Card, DrawEffect
+    from core.rarity import Rarity
+    return Card(
+        name="В потоке",
+        cost=0,
+        card_type="skill",
+        description="Поток 2(3): удешевляет случайные карты в руке на 1. Добор 1.",
+        effects=[
+            FlowEffect(2, 3),
+            DrawEffect(1, 1),
+        ],
+        rarity=Rarity.UNCOMMON,
+    )
