@@ -31,8 +31,15 @@ class Warrior(Player):
             starter_deck_factory=get_warrior_deck,
         )
         self.active_ability = WarriorAbility()
+        # Флаги добора Тестировщика (инертны без соответствующих карт):
+        self._started_turn_with_shield = False   # «Смоук-тест» (#1): держал ли строй
+        self._pending_full_carry = False         # «Заморозка релиза» (#4): 100% перенос щита
+        self._pending_freeze_bonus = 0           # «Заморозка релиза» (#4): +Дисциплина на след. ход
 
     def on_turn_start_passive(self, combat_manager) -> None:
+        # Снимок «начал ход со щитом» (держал строй с прошлого хода — хук ДО сброса щита).
+        # Читается атакой «Смоук-тест»: бонус-щит за поддержание оборонного лупа.
+        self._started_turn_with_shield = self.shield > 0
         # Пассивный хил: 3 HP в начале хода (боевой дух танка).
         healed = self.heal(3, combat_manager)
         if healed > 0 and combat_manager:
@@ -49,9 +56,27 @@ class Warrior(Player):
                 combat_manager.add_log_message(
                     f" [ТЕСТИРОВЩИК] Дисциплина: строй держится, +1 (всего {self.discipline})."
                 )
-        carry = int(self.shield * 0.5)
+        # Заморозка релиза (#4): отложенный бонус Дисциплины срабатывает на этом старте хода.
+        freeze_bonus = getattr(self, "_pending_freeze_bonus", 0)
+        if freeze_bonus > 0:
+            self.add_status("discipline", freeze_bonus, combat_manager)
+            self._pending_freeze_bonus = 0
+            if combat_manager:
+                combat_manager.add_log_message(
+                    f" [ТЕСТИРОВЩИК] Заморозка релиза: +{freeze_bonus} Дисциплины "
+                    f"(всего {self.discipline})."
+                )
+        # Перенос щита: штатно 50% (Железный задел); Заморозка релиза разово даёт 100%.
+        full_carry = getattr(self, "_pending_full_carry", False)
+        carry = int(self.shield * (1.0 if full_carry else 0.5))
         self._passive_shield_carry = carry
-        if carry > 0 and combat_manager:
+        if full_carry:
+            self._pending_full_carry = False
+            if carry > 0 and combat_manager:
+                combat_manager.add_log_message(
+                    f" [ТЕСТИРОВЩИК] Заморозка релиза: 100% щита ({carry}) перенесено на новый ход!"
+                )
+        elif carry > 0 and combat_manager:
             combat_manager.add_log_message(
                 f" [ТЕСТИРОВЩИК] Железный задел: {carry} щита перенесено на новый ход."
             )

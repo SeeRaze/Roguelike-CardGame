@@ -11,7 +11,7 @@
 #
 # Прежняя ось «защита=атака» (Регрессионка = щит→урон, Барьер) сохранена как ДРАФТ-ПУЛ
 # класса (ниже) — достижима, но вне стартера. Числа = ЗАГЛУШКИ под капстоун-калибровку.
-from core.cards.base import Card, ShieldEffect, BarrierEffect, HealEffect, StatusEffect
+from core.cards.base import Card, DamageEffect, ShieldEffect, BarrierEffect, HealEffect, StatusEffect
 from core.EffectCalculator import EffectCalculator
 from core.rarity import Rarity
 
@@ -151,6 +151,50 @@ class ShieldGatedDrawEffect:
             )
 
 
+class HeldFormBonusShieldEffect:
+    """Бонус-щит, если игрок НАЧАЛ ход со щитом (держал строй) — иначе ничего. Награждает
+    поддержание оборонного лупа (атака, что его не ломает). Читает флаг пассива
+    `_started_turn_with_shield`. Числа = ЗАГЛУШКИ."""
+
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        if not getattr(player, "_started_turn_with_shield", False):
+            if combat_manager:
+                combat_manager.add_log_message(
+                    " -> Смоук-тест: строй не держался — бонус-щита нет."
+                )
+            return
+        amount = self.upgrade_val if is_upgraded else self.base_val
+        player.gain_shield(amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Смоук-тест: строй держался → +{amount} щита."
+            )
+
+
+class FreezeReleaseEffect:
+    """«Заморозка релиза» (#4): разово 100% перенос текущего щита на след. ход (вместо
+    штатных 50% Железного задела) + N Дисциплины на следующем старте хода. Реализация =
+    отложенные флаги пассива (_pending_full_carry / _pending_freeze_bonus). Карта EXHAUST
+    (один раз за бой) — иначе бесконечная стена. Числа = ЗАГЛУШКИ."""
+
+    def __init__(self, disc_base, disc_upgrade):
+        self.disc_base = disc_base
+        self.disc_upgrade = disc_upgrade
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        player._pending_full_carry = True
+        bonus = self.disc_upgrade if is_upgraded else self.disc_base
+        player._pending_freeze_bonus = getattr(player, "_pending_freeze_bonus", 0) + bonus
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Заморозка релиза: след. ход — 100% переноса щита + {bonus} Дисциплины."
+            )
+
+
 class ShieldDamageEffect:
     """Урон ПО ВСЕМ живым врагам, равный текущему щиту игрока × коэффициент.
     Щит НЕ тратится — это payoff танка: чем больше накопил защиты, тем сильнее
@@ -267,6 +311,36 @@ def create_bug_report():
                     "Если у вас есть щит — бесплатно доберите 1 карту.",
         effects=[StatusEffect("legacy", 3, 4), ShieldGatedDrawEffect(1, 1)],
         rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_smoke_test():
+    """«Смоук-тест» — урон 5(7); если начал ход со щитом (держал строй) → ещё +4(6) щита.
+    Атака, которая НЕ ломает оборонный луп Тестировщика. Имя без коллизии со спящей
+    «Регрессонкой». Трогает пассив (флаг _started_turn_with_shield). COMMON. Заглушки."""
+    return Card(
+        name="Смоук-тест",
+        cost=1,
+        card_type="attack",
+        description="Урон 5(7). Если вы начали ход со щитом — получите ещё 4(6) щита.",
+        effects=[DamageEffect(5, 7), HeldFormBonusShieldEffect(4, 6)],
+        rarity=Rarity.COMMON,
+    )
+
+
+def create_release_freeze():
+    """«Заморозка релиза» — одноходовый ломатель: на след. ход 100% перенос щита (вместо
+    50% Железного задела) + 2(3) Дисциплины. EXHAUST (изгнание до конца боя) закрывает
+    бесконечный оборонный луп — играется раз за бой. LEGENDARY, cost 2. Заглушки."""
+    return Card(
+        name="Заморозка релиза",
+        cost=2,
+        card_type="skill",
+        description="Следующий ход: весь текущий щит переносится (100%) + 2(3) Дисциплины. "
+                    "Изгоняется после игры.",
+        effects=[FreezeReleaseEffect(2, 3)],
+        rarity=Rarity.LEGENDARY,
+        exile=True,
     )
 
 
