@@ -16,6 +16,7 @@ from core.cards import (
     create_bandage, create_second_wind, create_elixir,
     create_regenerate, create_vitality, create_triage,
     create_critical_bug, create_release_candidate, create_test_plan,
+    create_checklist_drafting, create_bug_report,
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
     create_echo_resonance, create_echo_cascade,
@@ -88,7 +89,8 @@ CLASS_FACTORIES = {
     # Воин = чисто ось Дисциплины (С57, чистка под единый формат): старая ось «щит=атака»
     # убрана из классового пула. Барьер (Failover/Кластер) → generic; Регрессионка → из выдачи
     # (фабрика жива для совместимости/тестов, но не выдаётся — дублировала Критический баг).
-    "Warrior":   [create_critical_bug, create_release_candidate, create_test_plan],
+    "Warrior":   [create_critical_bug, create_release_candidate, create_test_plan,
+                  create_checklist_drafting, create_bug_report],
     # Маг = ось Мастерства/Нестабильности (С57, чистка под единый формат): «Залить в прод»
     # (чистый ПАР, 0 Мастерства) → generic. Остальные 4 трогают Мастерство (Стихийный
     # всплеск = мост стихии→ось через MasteryEffect).

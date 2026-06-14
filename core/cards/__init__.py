@@ -25,6 +25,7 @@ from core.cards.buff.regen import create_regenerate, create_vitality, create_tri
 from core.cards.warrior import (
     create_regression_test, create_steel_barricade, create_bastion,
     create_critical_bug, create_release_candidate, create_test_plan,
+    create_checklist_drafting, create_bug_report,
 )
 from core.cards.mage import (
     create_boil, create_arcane_focus, create_elemental_surge,

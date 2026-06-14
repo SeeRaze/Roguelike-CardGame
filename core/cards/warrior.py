@@ -11,7 +11,7 @@
 #
 # Прежняя ось «защита=атака» (Регрессионка = щит→урон, Барьер) сохранена как ДРАФТ-ПУЛ
 # класса (ниже) — достижима, но вне стартера. Числа = ЗАГЛУШКИ под капстоун-калибровку.
-from core.cards.base import Card, ShieldEffect, BarrierEffect, HealEffect
+from core.cards.base import Card, ShieldEffect, BarrierEffect, HealEffect, StatusEffect
 from core.EffectCalculator import EffectCalculator
 from core.rarity import Rarity
 
@@ -97,6 +97,57 @@ class DisciplineGainEffect:
         if combat_manager:
             combat_manager.add_log_message(
                 f" -> Тест-план: +{amount} Дисциплины (всего {player.discipline})."
+            )
+
+
+class DisciplineScaledShieldEffect:
+    """Грань «компаунд» (С-добор Тестировщика): щит = base + per×(текущая Дисциплина),
+    Дисциплину НЕ тратит. Пара-противовес спендеру «Релиз-кандидат» (тот СЖИГАЕТ стак):
+    выбор «копить (Чеклист читает, не жжёт) vs слить (Релиз-кандидат жжёт в пик)».
+    Зеркало Маговой «Сгенерить фичу» (читает Мастерство) — трио классов симметрично.
+    ⚠️ Баланс: payoff-за-стак ДОЛЖЕН быть слабее спендера, иначе выбор «копи/слей»
+    умирает (Дисциплина = чистый value). Числа = ЗАГЛУШКИ под капстоун."""
+
+    def __init__(self, base_val, upgrade_val, per_disc, upgrade_per_disc):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+        self.per_disc = per_disc
+        self.upgrade_per_disc = upgrade_per_disc
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        per = self.upgrade_per_disc if is_upgraded else self.per_disc
+        stacks = max(0, getattr(player, "discipline", 0))
+        amount = base + per * stacks
+        player.gain_shield(amount, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Чеклист: +{amount} щита "
+                f"(Дисциплина {stacks} НЕ тратится, +{per * stacks})."
+            )
+
+
+class ShieldGatedDrawEffect:
+    """Условный темп: если у игрока есть щит (держит оборону) → бесплатный добор N карт.
+    Награда за стабильное состояние (off-axis утилита, прокрутка колоды). Без щита —
+    ничего. Числа = ЗАГЛУШКИ под капстоун."""
+
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        n = self.upgrade_val if is_upgraded else self.base_val
+        has_shield = getattr(player, "shield", 0) > 0
+        if has_shield and combat_manager is not None and \
+                hasattr(combat_manager, "deck_manager"):
+            drew = combat_manager.deck_manager.draw_cards(n)
+            combat_manager.add_log_message(
+                f" -> Отчёт о баге: щит держит → бесплатный добор {drew} карт(ы)."
+            )
+        elif combat_manager:
+            combat_manager.add_log_message(
+                " -> Отчёт о баге: нет щита — добора нет."
             )
 
 
@@ -186,6 +237,36 @@ def create_test_plan():
         description="Щит 5(8). +2(3) Дисциплины.",
         effects=[ShieldEffect(5, 8), DisciplineGainEffect(2, 3)],
         rarity=Rarity.COMMON,
+    )
+
+
+def create_checklist_drafting():
+    """«Написание чеклиста» — щит base + per×Дисциплина, Дисциплину НЕ тратит.
+    Компаунд-payoff накопителя (пара к спендеру «Релиз-кандидат», как Маг «Сгенерить
+    фичу»). Без хуков в ядро. Тематика: длиннее чеклист → собраннее тестировщик.
+    UNCOMMON. Числа = ЗАГЛУШКИ."""
+    return Card(
+        name="Написание чеклиста",
+        cost=1,
+        card_type="defense",
+        description="Щит 4(6) + 1(2) за каждый стак Дисциплины. Дисциплина не тратится.",
+        effects=[DisciplineScaledShieldEffect(4, 6, 1, 2)],
+        rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_bug_report():
+    """«Отчёт о баге» — legacy 3(4) на врага; если у игрока есть щит → бесплатный добор 1.
+    Off-axis утилита (legacy-DoT + прокрутка колоды) — одобрено как кросс-классовая
+    вариативность (не всё замыкать строго в пассив). Без хуков в ядро. UNCOMMON. Заглушки."""
+    return Card(
+        name="Отчёт о баге",
+        cost=1,
+        card_type="skill",
+        description="Накладывает Legacy-код 3(4) на врага. "
+                    "Если у вас есть щит — бесплатно доберите 1 карту.",
+        effects=[StatusEffect("legacy", 3, 4), ShieldGatedDrawEffect(1, 1)],
+        rarity=Rarity.UNCOMMON,
     )
 
 
