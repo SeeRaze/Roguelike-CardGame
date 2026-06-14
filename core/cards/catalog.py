@@ -21,6 +21,7 @@ from core.cards import (
     create_boil, create_arcane_focus, create_elemental_surge,
     create_overclock, create_resonant_discharge,
     create_friday_release, create_debug_session,
+    create_breakthrough, create_pair_programming,
     create_echo_resonance, create_echo_cascade,
     create_escalation, create_force_push, create_refactoring, create_crunch,
     create_burning_sprint, create_ci_bypass,
@@ -99,7 +100,8 @@ CLASS_FACTORIES = {
     # всплеск = мост стихии→ось через MasteryEffect).
     "Mage":      [create_overclock, create_resonant_discharge,
                   create_arcane_focus, create_elemental_surge,
-                  create_friday_release, create_debug_session],
+                  create_friday_release, create_debug_session,
+                  create_breakthrough, create_pair_programming],
     "Berserker": [create_escalation, create_force_push, create_refactoring,
                   create_crunch, create_burning_sprint, create_ci_bypass,
                   create_final_deploy, create_prod_crutch],

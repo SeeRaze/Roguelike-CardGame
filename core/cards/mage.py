@@ -161,6 +161,41 @@ class MasteryScaledHealEffect:
             )
 
 
+class SparkControlEffect:
+    """Грань «перегруз-эксплойтер» («Прорыв» #2): ставит флаг «Контроль искры» — следующая
+    HP-искра Нестабильности перенаправляется во ВРАГА, а не в игрока (хук в Mage
+    .on_turn_start_passive). Превращает минус перегруза в урон. Доп. даёт Мастерство, чтобы
+    гарантировать саму искру (надо ≥ порога) и углубить перегруз. ЗАГЛУШКИ под капстоун."""
+
+    def __init__(self, mastery_gain, upgrade_mastery_gain):
+        self.mastery_gain = mastery_gain
+        self.upgrade_mastery_gain = upgrade_mastery_gain
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        gain = self.upgrade_mastery_gain if is_upgraded else self.mastery_gain
+        player._redirect_next_spark = True
+        if gain > 0:
+            player.add_status("mastery", gain, combat_manager)
+        if combat_manager:
+            combat_manager.add_log_message(
+                f" -> Прорыв: +{gain} Мастерства; Контроль искры — следующий глитч "
+                f"перегруза уйдёт во врага."
+            )
+
+
+class ResonanceDoubleEffect:
+    """Грань «комбо-движок» («Парное программирование» #4): ставит флаг «удвоенный резонанс»
+    — следующее комбо в этот ход даёт +2 Мастерства вместо +1 (хук в Mage
+    .on_card_played_passive). Усиливает источник Мастерства, а не урон напрямую."""
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        player._pair_doubled_resonance = True
+        if combat_manager:
+            combat_manager.add_log_message(
+                " -> Парное программирование: следующее комбо даст двойной резонанс (+2 Мастерства)."
+            )
+
+
 def create_overclock():
     """«Автопилот» — заплати 10% max HP → +3(4) Мастерства разом. Грань гамбл/Нестабильность:
     активная ручка «Гни» — игрок САМ перешагивает порог перегруза (≥5 → ×1.5 + эскалир.
@@ -270,4 +305,39 @@ def create_debug_session():
         description="Лечит 5(7) + 1(2) за каждый стак Мастерства. Мастерство не тратится.",
         effects=[MasteryScaledHealEffect(5, 7, 1, 2)],
         rarity=Rarity.UNCOMMON,
+    )
+
+
+def create_breakthrough():
+    """«Прорыв» — Мастерство +1(2) и «Контроль искры»: следующая HP-искра перегруза
+    бьёт по врагу, а не по тебе (минус → урон). Перегруз-эксплойтер: награда за жизнь
+    в опасной зоне. Трогает пассив (Mage.on_turn_start_passive). RARE."""
+    return Card(
+        name="Прорыв",
+        cost=1,
+        card_type="skill",
+        description="Мастерство +1(2). Контроль искры: следующий глитч перегруза "
+                    "наносит урон врагу вместо вас.",
+        effects=[SparkControlEffect(1, 2)],
+        rarity=Rarity.RARE,
+    )
+
+
+def create_pair_programming():
+    """«Парное программирование» — вешает Разлитый кофе 2(3) и Legacy-код 2(3) на врага
+    (сетап ХОТФИКС) и удваивает резонанс: следующее комбо в этот ход даёт +2 Мастерства
+    вместо +1. Дешёвый комбо-движок/кросс-класс (кофе/legacy — общие стихии). Трогает
+    пассив (Mage.on_card_played_passive). COMMON."""
+    return Card(
+        name="Парное программирование",
+        cost=1,
+        card_type="skill",
+        description="Разлитый кофе 2(3) + Legacy-код 2(3) на врага. Следующее комбо "
+                    "в этот ход даёт +2 Мастерства вместо +1.",
+        effects=[
+            StatusEffect("coffee", 2, 3),
+            StatusEffect("legacy", 2, 3),
+            ResonanceDoubleEffect(),
+        ],
+        rarity=Rarity.COMMON,
     )

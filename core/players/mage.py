@@ -56,6 +56,11 @@ class Mage(Player):
             starter_deck_factory=get_mage_deck,
         )
         self.active_ability = MageAbility()
+        # Флаги классовых карт-доборов (волна контента):
+        self._redirect_next_spark = False      # «Прорыв» (#2): «Контроль искры» —
+        #   следующая HP-искра перегруза летит во ВРАГА, а не в игрока (одноразово).
+        self._pair_doubled_resonance = False   # «Парное программирование» (#4): следующее
+        #   комбо в этот ход даёт +2 Мастерства вместо +1 (одноразово, скидывается на ходе).
 
     def on_turn_start_passive(self, combat_manager) -> None:
         """НЕСТАБИЛЬНОСТЬ (ступень «Гни»): при перегрузе Мастерства (≥ порога) «интерфейс
@@ -63,8 +68,30 @@ class Mage(Player):
         глубиной Мастерства (чем дальше гнёшь — тем больнее). Цена за усиленный бонус
         Мастерства (EffectCalculator шаг 2c). Сеет Контекстное Окно Демиурга. NO-OP ниже
         порога."""
+        # «Парное программирование» (#4): окно удвоенного резонанса живёт только в свой ход —
+        # скидываем стейл-флаг в начале нового хода (если комбо так и не случилось).
+        self._pair_doubled_resonance = False
+
         cost = instability_cost(self.max_hp, self.mastery)
         if cost > 0:
+            # «Прорыв» (#2) «Контроль искры»: перенаправить искру во врага вместо себя.
+            if getattr(self, "_redirect_next_spark", False):
+                self._redirect_next_spark = False
+                target = None
+                if combat_manager:
+                    target = next((e for e in combat_manager.enemies if e.hp > 0), None)
+                if target is not None:
+                    target.take_damage(cost, attacker=self, combat_manager=combat_manager)
+                    if combat_manager:
+                        combat_manager.add_log_message(
+                            f" [ВАЙБ-КОДЕР] Контроль искры: глитч перенаправлен в "
+                            f"{target.name} — {cost} урона врагу (Мастерство {self.mastery})!"
+                        )
+                elif combat_manager:
+                    combat_manager.add_log_message(
+                        " [ВАЙБ-КОДЕР] Контроль искры: цели нет — искра рассеяна."
+                    )
+                return
             lost = self.lose_hp(cost)
             if lost > 0 and combat_manager:
                 combat_manager.add_log_message(
@@ -78,7 +105,14 @@ class Mage(Player):
         if getattr(combat_manager, '_combo_triggered', False):
             combat_manager._combo_triggered = False
             # Мастерство стихий: каждое комбо усиливает ВСЕ будущие атаки (кат.4).
-            self.add_status("mastery", 1, combat_manager)
+            # «Парное программирование» (#4): окно удвоенного резонанса → +2 за это комбо.
+            gain = 2 if getattr(self, "_pair_doubled_resonance", False) else 1
+            if gain > 1:
+                self._pair_doubled_resonance = False   # одноразово — потрачено первым комбо
+                combat_manager.add_log_message(
+                    " [ВАЙБ-КОДЕР] Парное программирование: резонанс удвоен!"
+                )
+            self.add_status("mastery", gain, combat_manager)
             drawn = combat_manager.deck_manager.draw_cards(1)
             if drawn > 0:
                 combat_manager.add_log_message(
