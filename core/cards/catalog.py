@@ -20,7 +20,7 @@ from core.cards import (
     create_overclock, create_resonant_discharge,
     create_echo_resonance, create_echo_cascade,
     create_escalation, create_force_push, create_refactoring, create_crunch,
-    create_burning_sprint,
+    create_burning_sprint, create_ci_bypass,
     create_cleaving_strike, create_piercing_thrust, create_wide_swing,
 )
 # Новые стихии (С58, айти-передел) — PAYLOAD-семья, импорт из модулей напрямую.
@@ -94,7 +94,7 @@ CLASS_FACTORIES = {
     "Mage":      [create_overclock, create_resonant_discharge,
                   create_arcane_focus, create_elemental_surge],
     "Berserker": [create_escalation, create_force_push, create_refactoring,
-                  create_crunch, create_burning_sprint],
+                  create_crunch, create_burning_sprint, create_ci_bypass],
 }
 
 

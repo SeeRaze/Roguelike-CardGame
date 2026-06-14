@@ -35,7 +35,7 @@ from core.cards.berserker import (
     DebtScalingDamageEffect, SelfHarmEffect, DebtToForgeOnKillEffect,
     LifestealOnKillEffect,
     create_escalation, create_force_push, create_refactoring, create_crunch,
-    create_burning_sprint,
+    create_burning_sprint, create_ci_bypass,
 )
 from core.cards.cleave import (
     SplashDamageEffect, ColumnStrikeEffect, RankStrikeEffect,

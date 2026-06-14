@@ -53,6 +53,60 @@ class DebtScalingDamageEffect:
             )
 
 
+class DebtPierceDamageEffect:
+    """Урон с ПРОБИТИЕМ ЩИТА, растущим с ГЛУБИНОЙ HP-долга (вторая, ОТДЕЛЬНАЯ грань
+    долга — «обход защиты», в пару к DebtScalingDamageEffect = «голый рост базы»).
+    Тема «Коммита в обход CI»: чем глубже ты в долге, тем больше удара проходит МИМО
+    щита врага (как коммит, проскользнувший мимо гейта CI).
+
+    Развод с Эскалацией: там долг растит ЧИСЛО урона, тут число фиксировано, а долг
+    растит ДОЛЮ, идущую СКВОЗЬ ЩИТ. Вне долга (hp >= 0) → пробитие 0 → обычная атака,
+    полностью блокируемая щитом. Так карта «учит грань» долг=пробитие, не запирая билд.
+
+    База прогоняется через EffectCalculator (универсальные моды + множитель долга 8-ter
+    как у любой атаки — это НЕ сигнатура карты). Затем `pierce = per_depth × depth` единиц
+    итогового урона уходят СКВОЗЬ щит (идиом `lose_hp` — как яд/детонации), остаток бьёт
+    щит штатно (`take_damage`). Двойного счёта нет: 8-ter масштабирует ЧИСЛО, долг здесь
+    решает только КУДА (сквозь щит vs в щит)."""
+
+    def __init__(self, base_val, upgrade_val, per_depth, upgrade_per_depth):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+        self.per_depth = per_depth
+        self.upgrade_per_depth = upgrade_per_depth
+
+    def projected_damage(self, player, is_upgraded):
+        """База урона для проекции на карте (ДО общих модов). Число НЕ зависит от долга
+        (долг меняет лишь пробитие, не урон) → совпадает с base; универсальные моды
+        наложит preview сверх, как у обычной атаки."""
+        return self.upgrade_val if is_upgraded else self.base_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        per = self.upgrade_per_depth if is_upgraded else self.per_depth
+        depth = max(0, -getattr(player, "hp", 0))
+        gm_ref = combat_manager.gm if combat_manager is not None else None
+        final = EffectCalculator.calculate_damage(
+            player, enemy, base, gm_ref, combat_manager
+        )
+        pierce = min(final, per * depth)        # сколько итогового урона идёт сквозь щит
+        direct = final - pierce                 # остаток бьёт щит штатно
+        if pierce > 0:
+            enemy.lose_hp(pierce)               # сквозь щит, как яд/детонации
+        if direct > 0:
+            enemy.take_damage(direct, attacker=player, combat_manager=combat_manager)
+        if combat_manager:
+            if pierce > 0:
+                combat_manager.add_log_message(
+                    f" -> {enemy.name} получает {final} урона "
+                    f"(долг {depth} → {pierce} сквозь щит)."
+                )
+            else:
+                combat_manager.add_log_message(
+                    f" -> {enemy.name} получает {final} урона."
+                )
+
+
 class SelfHarmEffect:
     """Игрок теряет % MAX HP СКВОЗЬ ЩИТ (`player.lose_hp`). Для Берсерка (hp_overdraft)
     уводит в МИНУС (долг жизни). Однофункциональный кирпич «заплати кровью»: ставится ПЕРЕД
@@ -196,6 +250,23 @@ def create_crunch():
                     "(второе дыхание — выход из долга).",
         effects=[DamageEffect(7, 10), LifestealOnKillEffect(0.20, 0.25)],
         rarity=Rarity.COMMON,
+    )
+
+
+def create_ci_bypass():
+    """«Коммит в обход CI» — атака с ПРОБИТИЕМ ЩИТА по глубине HP-долга. КЛАССОВАЯ
+    СТАРТОВАЯ Стажёра (Этап 2). Грань «долг = обход защиты» (отлична от Эскалации =
+    «долг = больше урона»): число урона фиксировано, но чем глубже долг, тем больше
+    удара проходит МИМО щита врага. Вне долга → обычная блокируемая атака → учит грань,
+    не запирает билд. Числа = ЗАГЛУШКИ. UNCOMMON."""
+    return Card(
+        name="Коммит в обход CI",
+        cost=1,
+        card_type="attack",
+        description="Урон 8(11). За каждую единицу HP-долга 1(2) урона проходит "
+                    "сквозь щит врага.",
+        effects=[DebtPierceDamageEffect(8, 11, 1, 2)],
+        rarity=Rarity.UNCOMMON,
     )
 
 
