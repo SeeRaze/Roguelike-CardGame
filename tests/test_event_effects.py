@@ -120,3 +120,43 @@ def test_данные_событий_перешли_на_проценты():
                 assert key not in flat_hp_gold, (
                     f"{event['title']}: плоский ключ '{key}' должен быть %-вариантом")
 
+
+# ── Блок 4 (С65): новые примитивы (FP-ось / случайная реликвия / Баг-цена) ────
+def _gm_full():
+    from core.players import Warrior
+    return SimpleNamespace(
+        player=Warrior(), player_gold=100, current_floor=10,
+        event_result="", event_result_card=None,
+        relics=[], meta=None, deck=[],
+    )
+
+
+def test_gain_forge_растит_fp():
+    gm = _gm_full()
+    gm.player.forge_points = 0
+    apply_effect("gain_forge:5", gm)
+    assert gm.player.forge_points == 5
+
+
+def test_gain_random_relic_выдаёт_реликвию():
+    gm = _gm_full()
+    apply_effect("gain_random_relic", gm)
+    assert len(gm.relics) == 1                 # одна реликвия добавлена в инвентарь
+
+
+def test_gain_random_relic_не_дублирует():
+    # Дедуп: реликвия, которая уже есть, не выдаётся повторно (берём другую).
+    from core.relics.starter import Линтер
+    gm = _gm_full()
+    gm.relics = [Линтер()]
+    apply_effect("gain_random_relic", gm)
+    имена = [type(r).__name__ for r in gm.relics]
+    assert len(gm.relics) == 2 and len(set(имена)) == 2
+
+
+def test_accrue_bug_кладёт_баги_в_колоду():
+    gm = _gm_full()
+    gm.add_card = lambda c: gm.deck.append(c)
+    apply_effect("accrue_bug:2", gm)
+    assert len(gm.deck) == 2
+    assert all(c.name == "Баг" for c in gm.deck)

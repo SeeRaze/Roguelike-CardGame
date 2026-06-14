@@ -140,6 +140,37 @@ def apply_effect(effect_str: str, gm) -> None:
         gm.relics.append(r)
         gm.event_result = f"Получена реликвия: {r.name}"
 
+    elif key == "gain_random_relic":
+        # Случайная реликвия из ВСЕГО пула (meta-фильтр по анлокам, как у карт), а не
+        # из устаревшего ручного реестра _get_relic_class → события дотягиваются до
+        # нового контента (Блок 3). Дедуп по уже имеющимся (не выдаём дубль).
+        from core.relics import ALL_RELICS
+        from core.progression import is_relic_unlocked, relic_id_for
+        meta  = getattr(gm, "meta", None)
+        owned = {type(r).__name__ for r in gm.relics}
+        pool  = [c for c in ALL_RELICS
+                 if is_relic_unlocked(meta, relic_id_for(c)) and c.__name__ not in owned]
+        if not pool:                      # всё уже есть/залочено → не падаем
+            pool = [c for c in ALL_RELICS if c.__name__ not in owned] or ALL_RELICS
+        r = random.choice(pool)()
+        gm.relics.append(r)
+        gm.event_result = f"Получена реликвия: {r.name}"
+
+    elif key == "gain_forge":
+        # +N очков ковки (FP-ось, economy-axis-trinity): событий-источников FP не было.
+        amount = int(value)
+        gm.player.forge_points = getattr(gm.player, "forge_points", 0) + amount
+        gm.event_result = f"+{amount} FP"
+
+    elif key == "accrue_bug":
+        # +N Багов в колоду забега: тематическая ЦЕНА техдолга (мост к bug-слою).
+        # Баг = несыгрываемая карта, дилютит добор; чистится Код-ревью/DEBUG.
+        from core.cards.bug import create_bug
+        amount = int(value)
+        for _ in range(amount):
+            gm.add_card(create_bug())
+        gm.event_result = f"+{amount} Баг(ов) в колоду"
+
     elif key == "remove_flag":
         if hasattr(gm, value):
             setattr(gm, value, False)
