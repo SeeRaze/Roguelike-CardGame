@@ -152,6 +152,9 @@ LOCKED_CARDS: set = {
     # ENGINE-карты (С58): шорткаты-движок = награда за прогресс, не стартдек.
     "window_swap", "refresh", "coffee_break", "hard_delete", "stack_trace",
     "task_manager", "undo", "copy", "paste",
+    # Сигнатурки Стажёра тир-2 (Этап 3): Rare-капстоуны движка долга — за прогресс,
+    # не в стартдеке (Финальный Деплой = ва-банк-финишер, Костыль на Проде = страховка).
+    "final_deploy", "prod_crutch",
 }
 # relic_id'ы (имена классов), требующие анлока (27 из 33 = весь UNCOMMON+ и часть COMMON).
 LOCKED_RELICS: set = {

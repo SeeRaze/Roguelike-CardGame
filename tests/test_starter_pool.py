@@ -5,7 +5,7 @@
 import core.progression as prog
 from core.progression import LOCKED_CARDS, LOCKED_RELICS, relic_id_for
 from core.cards.catalog import (
-    GENERIC_FACTORIES, get_pool_for_class, card_id_for,
+    GENERIC_FACTORIES, CLASS_FACTORIES, get_pool_for_class, card_id_for,
 )
 from core.relics import ALL_RELICS
 
@@ -51,8 +51,12 @@ def test_пустой_locked_пул_не_меняется(monkeypatch):
 
 # ── К3: целостность разметки + состав стартового пула ────────────────────────
 def test_все_locked_карты_существуют_в_пуле():
-    # Защита от опечаток/дрейфа: каждый LOCKED card_id — реальная generic-карта.
+    # Защита от опечаток/дрейфа: каждый LOCKED card_id — реальная карта пула
+    # (generic ИЛИ классовая — фильтр анлоков get_pool_for_class гейтит и те, и те;
+    # Этап 3: классовые Rare-капстоуны Стажёра тоже запираются через LOCKED_CARDS).
     real = {card_id_for(f) for f in GENERIC_FACTORIES}
+    for facs in CLASS_FACTORIES.values():
+        real |= {card_id_for(f) for f in facs}
     bogus = LOCKED_CARDS - real
     assert not bogus, f"LOCKED_CARDS содержит несуществующие id: {bogus}"
 

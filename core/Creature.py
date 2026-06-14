@@ -163,6 +163,22 @@ class Creature:
                   f"{self.statuses['firewall']} урона на {attacker.name}!")
             attacker.hp = max(attacker.hp - self.statuses['firewall'], attacker._hp_floor())
 
+        # КОСТЫЛЬ НА ПРОДЕ (Этап 3, hotfix): страховка от ВРАЖЕСКОГО летала. Если этот
+        # удар довёл до пола-смерти (lethal), а висит заряд hotfix — съедаем заряд,
+        # откатываемся к hp=1 и помечаем форс-Аврал на следующий ход (firefighting).
+        # Ловит ТОЛЬКО урон через take_damage (вражеский удар); свою строгую смерть
+        # (lose_hp / on_hp_debt_settle форсируют пол НЕ через take_damage) — не ловит.
+        # Дефолт-инертно: hotfix=0 у всех существ без карты-страховки → ветка молчит.
+        if self.statuses.get('hotfix', 0) > 0 and self.hp <= self._hp_floor():
+            self.statuses['hotfix'] -= 1
+            self.hp = 1
+            self._pending_overdrive = True       # форс-Аврал на след. ход (см. start_turn_phase)
+            print(f" [КОСТЫЛЬ НА ПРОДЕ] {self.name} спасён хотфиксом: hp=1, Аврал на след. ход.")
+            if combat_manager is not None:
+                combat_manager.add_log_message(
+                    f" [КОСТЫЛЬ НА ПРОДЕ] {self.name}: смертельный удар отражён — "
+                    "hp=1, Аврал на следующий ход.")
+
     def tick_statuses(self, combat_manager=None):
         s = self.statuses
 

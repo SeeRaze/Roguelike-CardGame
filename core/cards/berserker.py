@@ -191,6 +191,68 @@ class LifestealOnKillEffect:
 # Числа = ЗАГЛУШКИ под калибровку (подзадача 4 / капстоун). Каждая карта учит ОДНУ
 # грань движка, ни одна не закрывает билд сама ([[starter-deck-reveals-passive]]).
 
+class AllInFinisherEffect:
+    """«Финальный Деплой» — финишер ВА-БАНК (Этап 3, Rare/ЗАЛОК). Бьёт врага обычным
+    числом (через EffectCalculator — универсальные моды + множитель долга 8-ter как у
+    любой атаки). Затем РАСПЛАТА СРАЗУ на резолве, без грации-хода:
+
+      • Если игрок В ЛЮБОМ HP-долге (hp < 0) И враги ВЫЖИЛИ → МГНОВЕННАЯ строгая смерть.
+        Обычный долг даёт climb-out (грацию до конца хода — можно ещё добить/выйти в плюс);
+        тут расплата мгновенная — не закрыл бой в минусе значит пал прямо здесь.
+      • Если добил В минусе → бой выигран; пик «в коме» (|HP|→FP, hp=1) выдаст
+        on_combat_won штатным путём победы — здесь его НЕ дёргаем.
+      • Вне долга (hp >= 0) → обычный сильный удар, без расплаты.
+
+    Карта САМА в минус НЕ толкает (нет SelfHarm) — это payoff за УЖЕ набранный долг:
+    ныряешь Авралом/кровью, потом ва-банк закрывает бой (или убивает тебя). Ловит ТОЛЬКО
+    исход ЭТОГО розыгрыша; свою отложенную строгую смерть (on_hp_debt_settle) не трогает."""
+
+    def __init__(self, base_val, upgrade_val):
+        self.base_val = base_val
+        self.upgrade_val = upgrade_val
+
+    def projected_damage(self, player, is_upgraded):
+        return self.upgrade_val if is_upgraded else self.base_val
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        base = self.upgrade_val if is_upgraded else self.base_val
+        gm_ref = combat_manager.gm if combat_manager is not None else None
+        final = EffectCalculator.calculate_damage(player, enemy, base, gm_ref, combat_manager)
+        enemy.take_damage(final, attacker=player, combat_manager=combat_manager)
+        if combat_manager is None:
+            return
+        combat_manager.add_log_message(f" -> {enemy.name} получает {final} урона (ва-банк).")
+        # Расплата СРАЗУ: в минусе и бой не закрыт → мгновенная строгая смерть (без climb-out).
+        if player.hp < 0 and any(e.hp > 0 for e in combat_manager.enemies):
+            player.hp = player._hp_floor()       # форсируем пол-смерть
+            combat_manager.add_log_message(
+                "[СТАЖЁР] Финальный Деплой не закрыл бой в минусе — строгая смерть на резолве.")
+            check = getattr(combat_manager, "check_player_defeat", None)
+            if callable(check):
+                check()                          # ИНСТАНТ: фиксируем смерть прямо сейчас
+
+
+class HotfixInsuranceEffect:
+    """«Костыль на Проде» — карта-СТРАХОВКА (Этап 3, Rare/ЗАЛОК, версия A). С руки вешает
+    на игрока заряд статуса `hotfix`. Хук в `Creature.take_damage` (ядро): первый
+    ВРАЖЕСКИЙ летал (удар, доведший до пола-смерти) съедает заряд → откат к hp=1 +
+    отложенный форс-Аврал на следующий ход (firefighting). Ловит ТОЛЬКО урон через
+    take_damage (вражеский удар); СВОЮ строгую смерть (lose_hp / on_hp_debt_settle) НЕ
+    ловит — собственный овердрафт не застрахован. Само-баф, как Барьер/Дисциплина."""
+
+    def __init__(self, stacks, upgrade_stacks):
+        self.stacks = stacks
+        self.upgrade_stacks = upgrade_stacks
+
+    def execute(self, player, enemy, combat_manager, is_upgraded):
+        amount = self.upgrade_stacks if is_upgraded else self.stacks
+        player.add_status("hotfix", amount, combat_manager)
+        if combat_manager is not None:
+            combat_manager.add_log_message(
+                f" -> Костыль на Проде: +{amount} заряд(а) хотфикса "
+                "(первый вражеский летал → hp=1 + Аврал).")
+
+
 def create_escalation():
     """«Эскалация» — урон растёт с глубиной HP-долга (+1/+2 за единицу долга).
     Движок кат.4 в карте: грань «долг = урон» (роль Возмездия у Воина). Бьёт базой
@@ -284,4 +346,36 @@ def create_burning_sprint():
         description="Платите 7%(5%) макс. HP, доберите 1(2) карту.",
         effects=[SelfHarmEffect(0.07, 0.05), DrawEffect(1, 2)],
         rarity=Rarity.COMMON,
+    )
+
+
+def create_final_deploy():
+    """«Финальный Деплой» — Rare/ЗАЛОК, КЛАССОВАЯ Стажёра. Финишер ва-банк: сильный
+    удар; если ты В HP-долге и не закрыл бой — мгновенная строгая смерть на резолве
+    (без грации-хода). Добил в минусе → пик «в коме» (|HP|→FP) штатным путём победы.
+    Карта сама в минус НЕ толкает — payoff за уже набранный долг. Числа = ЗАГЛУШКИ."""
+    return Card(
+        name="Финальный Деплой",
+        cost=2,
+        card_type="attack",
+        description="Ва-банк: 20(28) урона. Если вы в HP-долге и не закрыли бой этим "
+                    "ударом — мгновенная строгая смерть (без грации-хода).",
+        effects=[AllInFinisherEffect(20, 28)],
+        rarity=Rarity.RARE,
+    )
+
+
+def create_prod_crutch():
+    """«Костыль на Проде» — Rare/ЗАЛОК, КЛАССОВАЯ Стажёра. Карта-страховка (версия A):
+    вешает заряд `hotfix`. Первый ВРАЖЕСКИЙ летал → hp=1 + форс-Аврал на след. ход,
+    заряд съедается. Свою строгую смерть НЕ ловит (только вражеский удар). Числа =
+    ЗАГЛУШКИ."""
+    return Card(
+        name="Костыль на Проде",
+        cost=1,
+        card_type="skill",
+        description="Страховка: 1(2) заряд хотфикса. Первый вражеский смертельный удар "
+                    "не убивает — откат к 1 HP и Аврал на следующий ход (заряд тратится).",
+        effects=[HotfixInsuranceEffect(1, 2)],
+        rarity=Rarity.RARE,
     )

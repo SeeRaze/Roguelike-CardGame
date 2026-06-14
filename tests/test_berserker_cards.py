@@ -5,6 +5,7 @@ from core.cards.base import Card, DamageEffect
 from core.cards.berserker import (
     DebtScalingDamageEffect, DebtPierceDamageEffect, SelfHarmEffect,
     DebtToForgeOnKillEffect, LifestealOnKillEffect,
+    AllInFinisherEffect, HotfixInsuranceEffect,
 )
 from core.cards.catalog import CLASS_FACTORIES, get_pool_for_class, get_class_cards
 
@@ -197,7 +198,8 @@ def test_лайфстил_не_превышает_max_hp(make_creature):
 def test_берсерк_карты_зарегистрированы():
     names = {f().name for f in CLASS_FACTORIES["Berserker"]}
     assert names == {"Эскалация", "Форс-пуш", "Переработка", "Кранч",
-                     "Горящий Спринт", "Коммит в обход CI"}
+                     "Горящий Спринт", "Коммит в обход CI",
+                     "Финальный Деплой", "Костыль на Проде"}
 
 
 def test_берсерк_карты_в_пуле_класса():
@@ -264,3 +266,112 @@ def test_политика_ныряет_при_добивании(make_creature):
     risky = _bloodthirst()
     pick = BerserkerPolicy()._class_pick([risky], combat)
     assert pick is risky                           # добивание оправдывает нырок
+
+
+# ═══════════════════════════════════════════════════════════
+# AllInFinisherEffect — «Финальный Деплой» (ва-банк-финишер, Этап 3)
+# ═══════════════════════════════════════════════════════════
+
+class _DefeatSpyCombat:
+    """Лёгкий бой-двойник для финишера: считает вызовы check_player_defeat."""
+    def __init__(self, player, enemy):
+        self.player = player
+        self.enemy = enemy
+        self.enemies = [enemy]
+        self.gm = None
+        self.log = []
+        self.defeat_calls = 0
+
+    def add_log_message(self, m):
+        self.log.append(m)
+
+    def check_player_defeat(self):
+        self.defeat_calls += 1
+        return self.player.hp <= self.player._hp_floor()
+
+
+def test_финал_вне_долга_просто_бьёт_без_смерти(make_creature):
+    player = _berserker(make_creature)            # hp=60, долга нет
+    enemy = make_creature("Враг", 50, 50)
+    cm = _DefeatSpyCombat(player, enemy)
+    AllInFinisherEffect(20, 28).execute(player, enemy, cm, False)
+    assert enemy.hp == 30                          # ровно base=20
+    assert player.hp == 60                         # без расплаты
+    assert cm.defeat_calls == 0                    # смерть не форсилась
+
+
+def test_финал_в_долге_не_добил_мгновенная_смерть(make_creature):
+    player = _berserker(make_creature)
+    player.hp = -10                                # в долге (множитель 8-ter ×2.0 на 60 max)
+    enemy = make_creature("Враг", 100, 100)        # переживёт удар (20×2=40)
+    cm = _DefeatSpyCombat(player, enemy)
+    AllInFinisherEffect(20, 28).execute(player, enemy, cm, False)
+    assert enemy.hp == 60                          # выжил (100 − 40)
+    assert player.hp == player._hp_floor()         # форс пола = строгая смерть
+    assert cm.defeat_calls == 1                    # зафиксировали смерть СРАЗУ
+
+
+def test_финал_в_долге_добил_не_убивает_себя(make_creature):
+    player = _berserker(make_creature)
+    player.hp = -10
+    enemy = make_creature("Враг", 15, 15)          # умрёт от 20
+    cm = _DefeatSpyCombat(player, enemy)
+    AllInFinisherEffect(20, 28).execute(player, enemy, cm, False)
+    assert enemy.hp <= 0                            # добит
+    assert player.hp == -10                         # в минусе → пик «в коме» отдельным путём
+    assert cm.defeat_calls == 0                     # себя не убиваем
+
+
+# ═══════════════════════════════════════════════════════════
+# HotfixInsuranceEffect + хук take_damage — «Костыль на Проде» (Этап 3)
+# ═══════════════════════════════════════════════════════════
+
+def test_костыль_вешает_заряд_хотфикса(make_creature):
+    player = _berserker(make_creature)
+    HotfixInsuranceEffect(1, 2).execute(player, None, None, False)
+    assert player.get_status("hotfix") == 1
+
+
+def test_костыль_улучшенный_даёт_больше_зарядов(make_creature):
+    player = _berserker(make_creature)
+    HotfixInsuranceEffect(1, 2).execute(player, None, None, True)
+    assert player.get_status("hotfix") == 2
+
+
+def test_хотфикс_ловит_вражеский_летал(make_creature):
+    player = _berserker(make_creature)             # пол = -30
+    player.hp = -25
+    player.set_status("hotfix", 1)
+    enemy = make_creature("Враг", 50, 50)
+    player.take_damage(20, attacker=enemy)         # довёл бы до пола
+    assert player.hp == 1                           # спасён хотфиксом
+    assert player.get_status("hotfix") == 0         # заряд съеден
+    assert getattr(player, "_pending_overdrive", False) is True  # форс-Аврал помечен
+
+
+def test_хотфикс_не_тратится_на_нелетальном(make_creature):
+    player = _berserker(make_creature)
+    player.hp = -10
+    player.set_status("hotfix", 1)
+    enemy = make_creature("Враг", 50, 50)
+    player.take_damage(5, attacker=enemy)          # -15, выше пола -30
+    assert player.hp == -15
+    assert player.get_status("hotfix") == 1         # заряд цел
+
+
+def test_хотфикс_не_ловит_свою_строгую_смерть(make_creature):
+    # lose_hp (само-урон/расплата) НЕ проходит через хук take_damage → страховка молчит.
+    player = _berserker(make_creature)
+    player.hp = -25
+    player.set_status("hotfix", 1)
+    player.lose_hp(10)                              # -35 → кламп на пол -30
+    assert player.hp == player._hp_floor()          # умер своей строгой смертью
+    assert player.get_status("hotfix") == 1         # заряд НЕ потрачен
+
+
+def test_хотфикс_инертен_у_обычного_существа(make_creature):
+    # Без заряда hotfix хук в take_damage не трогает обычную смерть (регресс-нейтрально).
+    c = make_creature("Болван", 8, 50)              # пол 0 (нет overdraft)
+    enemy = make_creature("Враг", 50, 50)
+    c.take_damage(20, attacker=enemy)
+    assert c.hp == 0                                # обычная смерть на 0, без спасения

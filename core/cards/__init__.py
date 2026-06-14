@@ -36,6 +36,7 @@ from core.cards.berserker import (
     LifestealOnKillEffect,
     create_escalation, create_force_push, create_refactoring, create_crunch,
     create_burning_sprint, create_ci_bypass,
+    create_final_deploy, create_prod_crutch,
 )
 from core.cards.cleave import (
     SplashDamageEffect, ColumnStrikeEffect, RankStrikeEffect,
