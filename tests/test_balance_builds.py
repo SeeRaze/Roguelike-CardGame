@@ -192,13 +192,21 @@ def test_ceiling_стартер_отсекает_залоченные_релик
 
 
 def test_ceiling_стартер_отсекает_залоченные_карты_ядра():
-    """battle_cry заперт → ядро Берсерка [battle_cry] обнуляется в стартере
-    (день-1 Берсерк ≈ wall, согласуется с аутопсией)."""
-    from core.progression import card_id_for
-    _, full_extra, _ = get_ceiling_build("Berserker")
-    _, starter_extra, _ = get_ceiling_build("Berserker", meta=_STARTER_META)
-    assert any(card_id_for(f) == "battle_cry" for f in full_extra)
-    assert starter_extra == []
+    """День-1: залоченные КАРТЫ ядра потолка выпадают в стартере. У Воина ядро
+    [test_plan×2, bastion, sandbox, critical_bug] — bastion/sandbox заперты
+    (LOCKED_CARDS) → стартер-ядро их теряет, оставляя только разлоченные.
+    (С66: переписано с Берсерка — после IT-рескина тройки его ядро
+    [escalation/refactoring/crunch] разлочено и в стартере НЕ обнуляется.)"""
+    from core.progression import card_id_for, is_card_unlocked
+    _, full_extra, _ = get_ceiling_build("Warrior")
+    _, starter_extra, _ = get_ceiling_build("Warrior", meta=_STARTER_META)
+    full_ids = [card_id_for(f) for f in full_extra]
+    starter_ids = [card_id_for(f) for f in starter_extra]
+    # full-ядро содержит залоченные карты, стартер их отсекает
+    assert "bastion" in full_ids and "bastion" not in starter_ids
+    assert "sandbox" in full_ids and "sandbox" not in starter_ids
+    # всё выжившее в стартер-ядре — разлочено (инвариант фильтра)
+    assert starter_ids and all(is_card_unlocked(_STARTER_META, cid) for cid in starter_ids)
 
 
 @pytest.mark.parametrize("cls", ALL_CLASSES)
