@@ -139,7 +139,12 @@ def forge_level(player, card) -> int:
 
 
 def can_forge(player, card) -> bool:
-    """Можно ли поднять карту ещё на +1 уровень: не упёрлись в кап И хватает FP."""
+    """Можно ли поднять карту ещё на +1 уровень: не упёрлись в кап И хватает FP.
+    Баги (unplayable карты-долг) НЕ куются: несыгрываемый техдолг без магнитудных
+    эффектов — прокачка впустую жгла бы CR и красила карту как «улучшенную». Sim
+    использует свой forge_between_acts (этот хелпер не зовёт) → baseline не задет."""
+    if getattr(card, "unplayable", False):
+        return False
     level = forge_level(player, card)
     return level < player.forge_level_cap and player.forge_points >= level_cost(level)
 

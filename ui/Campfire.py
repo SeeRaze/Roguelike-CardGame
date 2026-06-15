@@ -260,6 +260,15 @@ class Campfire:
         ковки (снизу). Зелёный — по карману, красный — не хватает FP, золотой —
         упёрлись в кап. Звезда — следующий уровень открывает теговый слот."""
         C     = Campfire
+        # Баги (несыгрываемый техдолг) не куются — явная метка вместо цены уровня,
+        # чтобы клик по багу не был молчаливым no-op (can_forge их и так блокирует).
+        if getattr(card, "unplayable", False):
+            line = font.render("не куётся", True, C._TEXT_COLOR)
+            lbg = pygame.Rect(card_x + 4, draw_y + card_h - 26,
+                              line.get_width() + 8, line.get_height() + 4)
+            pygame.draw.rect(screen, (0, 0, 0), lbg, border_radius=6)
+            screen.blit(line, (lbg.x + 4, lbg.y + 2))
+            return
         level = forge_mod.forge_level(player, card)
         cap   = player.forge_level_cap
 
