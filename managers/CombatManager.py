@@ -103,9 +103,14 @@ class CombatManager(
         from core.corpse import corpses_in
         return corpses_in(self.enemies)
 
+    # История боевого лога (U5): держим ХВОСТ, чтобы прокруткой можно было отмотать
+    # назад весь ход (раньше кап=6 терял ранние строки хода — их было не увидеть).
+    # combat_log = хронология (старое→новое, append в конец); сбрасывается на бой.
+    LOG_HISTORY = 100
+
     def add_log_message(self, message):
         self.combat_log.append(message)
-        if len(self.combat_log) > 6:
+        if len(self.combat_log) > self.LOG_HISTORY:
             self.combat_log.pop(0)
 
     def _guarded_action(self, label, fn):

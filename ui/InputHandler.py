@@ -183,3 +183,12 @@ class InputHandler:
 
         elif state in ("CAMPFIRE", "SHOP"):
             view.scroll_y = max(0, view.scroll_y + direction * 60)
+
+        elif state == "COMBAT":
+            # U5: прокрутка боевого лога колесом, только если курсор над логом.
+            # combat_log[0] = новейшее; колесо ВВЕРХ (dir -1) → к старым (offset+1),
+            # ВНИЗ (dir +1) → к новым (offset-1). Клампинг диапазона — в draw_combat_log.
+            log_rect = getattr(view, "combat_log_rect", None)
+            if log_rect is not None and log_rect.collidepoint(pygame.mouse.get_pos()):
+                view.combat_log_scroll = max(
+                    0, getattr(view, "combat_log_scroll", 0) - direction)

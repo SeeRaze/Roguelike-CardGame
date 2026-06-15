@@ -15,6 +15,19 @@ from ui.shop.data import (
 _TEMPER_COLOR = (120, 220, 120)
 
 
+def _fit_label(text, color, max_w, base_size):
+    """Отрендерить подпись кнопки, ужав кегль (bold Arial) так, чтобы влезла в max_w.
+    Растущие цены (реролл/Закалка) при 3 цифрах выезжали за рамку — кегль уменьшается
+    от base_size до 12, затем рендерим как есть. Возвращает Surface."""
+    size = base_size
+    while size > 12:
+        f = pygame.font.SysFont("Arial", size, bold=True)
+        if f.size(text)[0] <= max_w:
+            return f.render(text, True, color)
+        size -= 1
+    return pygame.font.SysFont("Arial", 12, bold=True).render(text, True, color)
+
+
 def _draw_sold_slot(screen, rect, text_font):
     pygame.draw.rect(screen, _SOLD_COLOR, rect, border_radius=8)
     pygame.draw.rect(screen, _GRAY_COLOR, rect, 1, border_radius=8)
@@ -173,7 +186,7 @@ def _draw_reroll_button(shop, view, screen, fonts, mouse_pos):
         bg, border, txtc = (26, 36, 55), (120, 170, 230), (150, 190, 235)
     pygame.draw.rect(screen, bg, rect, border_radius=10)
     pygame.draw.rect(screen, border, rect, 2, border_radius=10)
-    lbl = fonts["btn"].render(f"ОБНОВИТЬ ({price} з.)", True, txtc)
+    lbl = _fit_label(f"ОБНОВИТЬ ({price} з.)", txtc, rect.width - 16, 24)
     screen.blit(lbl, (rect.centerx - lbl.get_width() // 2,
                       rect.centery - lbl.get_height() // 2))
 

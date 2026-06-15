@@ -47,8 +47,8 @@ POSITIVE_EVENTS = [
             "техдолг и привести код в порядок."
         ),
         "options": [
-            {"label": "Спокойный рефакторинг (+3 FP)",         "effects": ["gain_forge:3"]},
-            {"label": "Жёсткий рефакторинг (+6 FP, -15% HP)",  "effects": ["gain_forge:6", "lose_hp_pct:0.15"]},
+            {"label": "Спокойный рефакторинг (+3 CR)",         "effects": ["gain_forge:3"]},
+            {"label": "Жёсткий рефакторинг (+6 CR, -15% HP)",  "effects": ["gain_forge:6", "lose_hp_pct:0.15"]},
             {"label": "Не трогать рабочее",                    "effects": ["skip"]},
         ],
     },

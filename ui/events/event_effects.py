@@ -157,10 +157,10 @@ def apply_effect(effect_str: str, gm) -> None:
         gm.event_result = f"Получена реликвия: {r.name}"
 
     elif key == "gain_forge":
-        # +N очков ковки (FP-ось, economy-axis-trinity): событий-источников FP не было.
+        # +N очков ковки (CR-ось, economy-axis-trinity): событий-источников CR не было.
         amount = int(value)
         gm.player.forge_points = getattr(gm.player, "forge_points", 0) + amount
-        gm.event_result = f"+{amount} FP"
+        gm.event_result = f"+{amount} CR"
 
     elif key == "accrue_bug":
         # +N Багов в колоду забега: тематическая ЦЕНА техдолга (мост к bug-слою).

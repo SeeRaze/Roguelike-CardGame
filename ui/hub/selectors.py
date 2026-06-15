@@ -85,12 +85,23 @@ def draw_class_selector(screen, gm, mouse_pos) -> dict:
                                _TITLE_COLOR if is_selected else _MUTED_COLOR)
         screen.blit(st, (rect.centerx - st.get_width() // 2, by + 54))
 
-        # Описание — строки внутри карточки
+        # Описание — строки внутри карточки. Высота строки/зазора ДИНАМИЧНА: при длинном
+        # описании (Вайб-кодер = 11 строк) фикс. line_h=20 выезжал за нижнюю рамку (U3).
+        # Считаем, сколько надо, и ужимаем шаг под доступную высоту [text_y0 .. низ-12].
+        text_y0  = by + 82
+        avail_h  = (by + _CLS_H - 12) - text_y0
+        n_text   = sum(1 for ln in info["lines"] if ln != "")
+        n_blank  = sum(1 for ln in info["lines"] if ln == "")
+        # нужно n_text·line_h + n_blank·(line_h·0.4); подбираем line_h ≤ 20 под avail_h
         line_h = 20
-        text_y = by + 82
+        if n_text:
+            fit = avail_h / (n_text + n_blank * 0.4)
+            line_h = max(13, min(20, int(fit)))
+        blank_h = max(4, int(line_h * 0.4))
+        text_y = text_y0
         for line in info["lines"]:
             if line == "":
-                text_y += 8
+                text_y += blank_h
                 continue
             # «Пассив:»/«Активная:» выделяем цветом класса
             if line in ("Пассив:", "Активная:"):

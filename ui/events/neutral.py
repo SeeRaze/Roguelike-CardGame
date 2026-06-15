@@ -61,8 +61,8 @@ NEUTRAL_EVENTS = [
             "но долг придётся отдавать с процентами."
         ),
         "options": [
-            {"label": "Взять кредит под фичу (+7 FP, +1 Баг)", "effects": ["gain_forge:7", "accrue_bug:1"]},
-            {"label": "Сделать по уму (+2 FP)",                "effects": ["gain_forge:2"]},
+            {"label": "Взять кредит под фичу (+7 CR, +1 Баг)", "effects": ["gain_forge:7", "accrue_bug:1"]},
+            {"label": "Сделать по уму (+2 CR)",                "effects": ["gain_forge:2"]},
             {"label": "Отложить задачу",                       "effects": ["skip"]},
         ],
     },
@@ -88,7 +88,7 @@ NEUTRAL_EVENTS = [
         ),
         "options": [
             {"label": "Переписать как просят (-15% HP, +карта)", "effects": ["lose_hp_pct:0.15", "gain_random_card"]},
-            {"label": "Протащить костылём (+4 FP, +1 Баг)",      "effects": ["gain_forge:4", "accrue_bug:1"]},
+            {"label": "Протащить костылём (+4 CR, +1 Баг)",      "effects": ["gain_forge:4", "accrue_bug:1"]},
             {"label": "Закрыть PR без мерджа",                   "effects": ["skip"]},
         ],
     },

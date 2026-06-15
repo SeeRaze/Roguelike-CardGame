@@ -34,6 +34,7 @@ class GameView:
         self.card_desc_font = pygame.font.SysFont("Arial", 16)
 
         self.scroll_y    = 0
+        self.combat_log_scroll = 0       # U5: прокрутка боевого лога (offset от новейшего)
         self.base_y      = 760
         self.card_width  = 180
         self.card_height = 250

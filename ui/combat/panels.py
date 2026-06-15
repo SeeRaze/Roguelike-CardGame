@@ -1,5 +1,6 @@
 # ui/combat/panels.py
 # Боковые панели боевого экрана: панель игрока, панель врага, лог.
+import re
 import pygame
 from core.positioning import Rank, Line
 from ui.combat.hud import CombatHUD, _RELIC_BADGE, _RELIC_GAP
@@ -14,6 +15,16 @@ _RANK_BACK_COLOR  = (120, 160, 220)
 
 # Ось линий (§11): краткий ярлык колонки в бейдже — «ФРОНТ·Ц», «ТЫЛ·Л».
 _LINE_ABBR = {Line.LEFT: "Л", Line.CENTER: "Ц", Line.RIGHT: "П"}
+
+
+def _display_enemy_name(name: str) -> str:
+    """Имя врага для ПОКАЗА: срезаем debug-суффикс этажа («[Этаж 61]» целиком,
+    «, Этаж 61]» внутри «[Элита, Этаж 61]» → «[Элита]»). Имя перестаёт вылезать за
+    рамку панели (U6). Сам enemy.name НЕ трогаем — он используется в логах/идентичности
+    (имена=display, но логика/тесты могут грепать строку), правим только отрисовку."""
+    name = re.sub(r"\s*\[Этаж\s*\d+\]", "", name)   # « [Этаж 61]»
+    name = re.sub(r",\s*Этаж\s*\d+\]", "]", name)    # «[Элита, Этаж 61]» → «[Элита]»
+    return name.strip()
 
 
 def _fit_text(font, text, max_w):
@@ -165,7 +176,8 @@ def _draw_enemy_panel_body(view, screen, enemy, panel_rect, player, projection,
 
     # --- Имя ---
     name_font = view.card_desc_font if compact else view.main_font
-    enemy_label = enemy.name.split("(")[0].strip() if compact else f"ВРАГ: {enemy.name}"
+    disp_name = _display_enemy_name(enemy.name)
+    enemy_label = disp_name.split("(")[0].strip() if compact else f"ВРАГ: {disp_name}"
     # Усечение по ширине: при нескольких длинных именах текст выезжал за рамку.
     # Резервируем место справа под бейдж ранга (~84px) + внутренний отступ.
     name_max_w = panel_w - inner_pad * 2 - 84
@@ -382,6 +394,7 @@ def draw_combat_log(view, screen, combat):
     log = pygame.Rect(_E_PX, log_top, _PANEL_W, 260)
     pygame.draw.rect(screen, _PANEL_BG, log, border_radius=12)
     pygame.draw.rect(screen, _PANEL_BORDER, log, 2, border_radius=12)
+    view.combat_log_rect = log          # для перехвата прокрутки колесом (U5)
 
     screen.blit(view.card_desc_font.render(
         "ЛОГ БОЕВЫХ ДЕЙСТВИЙ", True, _GOLD), (log.x + 14, log.y + 12))
@@ -389,10 +402,28 @@ def draw_combat_log(view, screen, combat):
                      (log.x + 14, log.y + 36),
                      (log.right - 14, log.y + 36), 1)
 
-    for i, msg in enumerate(combat.combat_log):
-        if i >= 7:
-            break
-        alpha = max(150, 255 - i * 16)
+    # U5: лог прокручивается колесом. combat_log — ХРОНОЛОГИЯ (старое→новое, [-1]=свежак).
+    # По умолчанию показываем ХВОСТ (последние VISIBLE строк, новейшее снизу); offset —
+    # на сколько строк отмотано ВВЕРХ (в прошлое). Окно режется от хвоста, offset клампится.
+    VISIBLE = 7
+    log_lines = combat.combat_log
+    max_off = max(0, len(log_lines) - VISIBLE)
+    offset = max(0, min(getattr(view, "combat_log_scroll", 0), max_off))
+    view.combat_log_scroll = offset
+
+    start  = max(0, len(log_lines) - VISIBLE - offset)
+    window = log_lines[start:start + VISIBLE]
+    for i, msg in enumerate(window):
+        # Новейшая строка (низ окна без отмотки) — ярче; старые приглушены.
+        alpha = max(150, 255 - (len(window) - 1 - i) * 14)
         screen.blit(view.card_desc_font.render(
             msg, True, (alpha, alpha, alpha)),
             (log.x + 14, log.y + 46 + i * 26))
+
+    # Индикаторы скрытых записей: ▲ старее (можно мотать вверх) / ▼ новее (мотать вниз).
+    if offset < max_off:
+        up = view.card_desc_font.render("▲ старее", True, _GOLD)
+        screen.blit(up, (log.right - up.get_width() - 14, log.y + 12))
+    if offset > 0:
+        dn = view.card_desc_font.render("▼ новее", True, _GOLD)
+        screen.blit(dn, (log.right - dn.get_width() - 14, log.bottom - 24))

@@ -45,13 +45,24 @@ def test_лог_пополняется_сообщением():
     assert "Тестовое сообщение" in cm.combat_log
 
 
-def test_лог_ограничен_шестью_сообщениями():
+def test_лог_держит_историю_и_ограничен_капом():
+    # U5: кап поднят до LOG_HISTORY (история под прокрутку лога). До кап-границы
+    # ничего не теряем; за ней уходит самое старое (хвост хронологии сохраняется).
+    from managers.CombatManager import CombatManager
     cm = _make_cm()
+    cm.combat_log = []                          # сбрасываем стартовые сообщения боя
     for i in range(10):
         cm.add_log_message(f"Сообщение {i}")
-    assert len(cm.combat_log) == 6
+    assert len(cm.combat_log) == 10            # 10 < кап → все на месте
     assert "Сообщение 9" in cm.combat_log
-    assert "Сообщение 0" not in cm.combat_log  # самое старое ушло
+    assert "Сообщение 0" in cm.combat_log
+
+    cm.combat_log = []
+    for i in range(CombatManager.LOG_HISTORY + 5):
+        cm.add_log_message(f"M{i}")
+    assert len(cm.combat_log) == CombatManager.LOG_HISTORY  # за капом — режем
+    assert "M0" not in cm.combat_log                        # самое старое ушло
+    assert f"M{CombatManager.LOG_HISTORY + 4}" in cm.combat_log  # новейшее на месте
 
 
 # ═══════════════════════════════════════════════════════════
