@@ -61,13 +61,17 @@ class CombatInterface:
 
     @staticmethod
     def _card_projection(combat, player, card):
-        """{враг: полный_урон наведённой карты} для проекции на HP-барах. Прямой
-        урон (DamageEffect, мульти-хит складываем) → текущая цель; AoE-Регрессионка
-        (ShieldDamageEffect, база = щит×ratio) → все живые враги. Полный урон
-        (с комбо/ковкой) = что реально снимется, через единый EffectCalculator."""
-        from core.cards.base import DamageEffect
+        """{враг: полный_урон наведённой карты} для проекции на HP-барах. База прямого
+        урона берётся единым шлюзом CardRenderer._card_base_damage (тот же, что рисует
+        число НА карте) → ловит и scaling-эффекты (HP-долг Стажёра, Мастерство Мага,
+        Дисциплина Воина, Echo, synergy), а не только плоский DamageEffect → проекция
+        на враге совпадает с числом на карте. Цель — текущая (выбор игрока).
+        Позиционные AoE (вторичные цели) и AoE-Регрессионка (ShieldDamageEffect, база =
+        щит×ratio) обрабатываются отдельными петлями по своей геометрии. Полный урон
+        (с комбо/ковкой) считает единый EffectCalculator."""
         from core.cards.warrior import ShieldDamageEffect
         from core.cards.cleave import _PositionalAoEEffect
+        from ui.cards.renderer import CardRenderer
         proj = {}
         if card is None:
             return proj
@@ -80,10 +84,7 @@ class CombatInterface:
         selected = TargetingSystem.get_current_target(combat)
         target = combat._resolve_attack_target(selected)
 
-        dmg_base = sum(
-            (e.upgrade_val if card.upgraded else e.base_val)
-            for e in card.effects if isinstance(e, DamageEffect)
-        )
+        dmg_base = CardRenderer._card_base_damage(card, player) or 0
         if dmg_base > 0:
             if target is not None:
                 proj[target] = EffectCalculator.preview(

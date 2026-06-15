@@ -37,6 +37,12 @@ class DecompPayoffDamageEffect:
         self.bonus_base = bonus_base
         self.bonus_upgrade = bonus_upgrade
 
+    def projected_damage(self, player, is_upgraded):
+        """База урона для проекции (число на карте + HP-бар врага). Условный бонус по
+        вскрытому decomp в число НЕ входит — он показан в описании/чипах (как ×2 у Echo):
+        проекция == гарантированный удар, бонус — поверх при выполненном условии."""
+        return self.upgrade_val if is_upgraded else self.base_val
+
     def execute(self, player, enemy, combat_manager, is_upgraded):
         raw = self.upgrade_val if is_upgraded else self.base_val
         if enemy.get_status("decomp") > 0:
@@ -57,6 +63,12 @@ class SpreadScalingDamageEffect:
         self.upgrade_val = upgrade_val
         self.per_base = per_base
         self.per_upgrade = per_upgrade
+
+    def projected_damage(self, player, is_upgraded):
+        """База урона для проекции (число на карте + HP-бар врага). Бонус за каждую разную
+        стихию на цели в число НЕ входит (зависит от состояния врага) — показан в описании.
+        Проекция == гарантированный удар по голой цели; spread-бонус наслаивается поверх."""
+        return self.upgrade_val if is_upgraded else self.base_val
 
     def execute(self, player, enemy, combat_manager, is_upgraded):
         base = self.upgrade_val if is_upgraded else self.base_val
