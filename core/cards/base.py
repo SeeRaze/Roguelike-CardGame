@@ -188,7 +188,14 @@ class AoEStatusEffect:
 
 
 class DrawEffect:
-    """Игрок добирает N карт (топливо/синергия Утечки). Тихо инертен без боя."""
+    """Игрок добирает N карт (топливо/синергия Утечки). Тихо инертен без боя.
+
+    SCALES_WITH_FORGE=False: добор — РЕСУРС/темп, а не магнитуда. Линейный слой ковки
+    (+δ за уровень) его НЕ трогает, иначе прокачка превращает карту в бесконечный добор/
+    бесконечные ходы (см. forge.apply_linear_level). Разовый апгрейд ур.1 (base→upgrade)
+    остаётся — это «причёсанная» рука, не runaway."""
+    SCALES_WITH_FORGE = False
+
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val
         self.upgrade_val = upgrade_val
@@ -222,7 +229,13 @@ class DecompEffect:
 
 class EnergyEffect:
     """+N энергии в этот ход (рамп/бурст). Карта «Перерыв» (Кофе-брейк). Кап источника
-    здесь (карта даёт фикс N); player.gain_energy допускает временный выход за max."""
+    здесь (карта даёт фикс N); player.gain_energy допускает временный выход за max.
+
+    SCALES_WITH_FORGE=False: энергия — РЕСУРС/action-economy, не магнитуда. Линейный слой
+    ковки её НЕ трогает (иначе +2 энергии после прокачки лезет к +N = бесконечные ходы,
+    см. forge.apply_linear_level). Разовый апгрейд ур.1 (2→3) остаётся."""
+    SCALES_WITH_FORGE = False
+
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val
         self.upgrade_val = upgrade_val
@@ -281,7 +294,12 @@ class ExileFromHandEffect:
 class ScryEffect:
     """«Просмотр стека» (Stack Trace): заглянуть в верх колоды (ИНФО/консистентность).
     Без UI-выбора авто-фильтрует: самую ДОРОГУЮ из верхних N карт — в сброс (прочистка к
-    играбельному). Полноценный выбор «любые в сброс» — UI-слой (G2)."""
+    играбельному). Полноценный выбор «любые в сброс» — UI-слой (G2).
+
+    SCALES_WITH_FORGE=False: N — глубина просмотра (ИНФО/экономика), не магнитуда урона.
+    Линейный слой ковки её не раздувает (как Energy/Draw)."""
+    SCALES_WITH_FORGE = False
+
     def __init__(self, base_val, upgrade_val):
         self.base_val = base_val
         self.upgrade_val = upgrade_val

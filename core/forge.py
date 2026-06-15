@@ -260,10 +260,17 @@ def is_overcharge_level(level: int) -> bool:
 
 # ─── ЛИНЕЙНЫЙ СЛОЙ И КЛАССИФИКАЦИЯ КАРТ ───────────────────────────────────────
 def apply_linear_level(card, delta: int) -> None:
-    """Применить ОДИН линейный уровень к карте: +delta ко всем числовым эффектам
+    """Применить ОДИН линейный уровень к карте: +delta к МАГНИТУДНЫМ числовым эффектам
     (base_val/upgrade_val). Слой СТЕНЫ — строго линейный, БЕЗ множителей
-    (_upgrade_design.md §10.3: компаунд заперт только в условных тегах)."""
+    (_upgrade_design.md §10.3: компаунд заперт только в условных тегах).
+
+    Ресурс/economy-эффекты (энергия, добор, глубина просмотра) ПОМЕЧЕНЫ
+    SCALES_WITH_FORGE=False и пропускаются: их раздувание линейным слоем = бесконечные
+    ходы/добор (а не «стена урона»). Магнитуда (урон/щит/хил/реген/статус-стаки) растёт
+    как раньше — у неё атрибута нет → getattr-дефолт True."""
     for e in card.effects:
+        if not getattr(e, "SCALES_WITH_FORGE", True):
+            continue
         if hasattr(e, "base_val") and hasattr(e, "upgrade_val"):
             e.base_val    += delta
             e.upgrade_val += delta
