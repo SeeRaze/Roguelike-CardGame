@@ -38,9 +38,17 @@ class CombatInterface:
             projection = CombatInterface._card_projection(
                 combat, player, view.hover.card_obj)
 
+        # Проекция САМОДАМАГА (P1) и ХИЛА (P2) наведённой карты на HP-бар игрока:
+        # навёл карту → сразу видно, сколько HP она срежет (оранжевый) / добавит (зелёный).
+        self_dmg, heal = 0, 0
+        if view.hover.card_obj:
+            self_dmg, heal = CombatInterface._player_hp_projection(
+                combat, player, view.hover.card_obj)
+
         # Реликвии теперь в панели героя (draw_player_panel), верхняя плашка убрана;
         # ресурсы (HP/Золото/FP) — в единой строке (ui/resource_hud.py, как везде).
-        panels.draw_player_panel(view, screen, player, intent_dmg)
+        panels.draw_player_panel(view, screen, player, intent_dmg,
+                                 self_dmg=self_dmg, heal=heal)
         panels.draw_enemy_panels(view, screen, enemies, player, projection)
 
         # Индикатор выбранной цели
@@ -58,6 +66,32 @@ class CombatInterface:
         bottom.draw_end_turn_btn(view, screen)
 
         CombatInterface._draw_tooltips(view, screen, dm)
+
+    @staticmethod
+    def _player_hp_projection(combat, player, card):
+        """(self_dmg, heal) наведённой карты на HP игрока для проекции на его HP-баре.
+        P1 self_dmg — SelfHarmEffect (lose_hp = % max HP сквозь щит, Кофеин-овердос/
+        Берсерк «ценой HP»). P2 heal — HealEffect (× канал-mult ковки, как в бою). Оба
+        читаются из эффектов карты тем же способом, что и реальный execute → проекция
+        совпадает с фактическим эффектом. Реген (растянутый хил во времени) и пассив-
+        Нестабильность Мага (не карта) сюда НЕ входят — мгновенного скачка HP нет."""
+        from core.cards.berserker import SelfHarmEffect
+        from core.cards.base import HealEffect, _forge_channel_mult
+        if card is None:
+            return 0, 0
+        self_dmg = heal = 0
+        up = getattr(card, "upgraded", False)
+        for eff in card.effects:
+            if isinstance(eff, SelfHarmEffect):
+                pct = eff.upgrade_pct if up else eff.base_pct
+                self_dmg += int(pct * getattr(player, "max_hp", 0))
+            elif isinstance(eff, HealEffect):
+                amount = eff.upgrade_val if up else eff.base_val
+                mult = _forge_channel_mult(combat, player, "heal")
+                if mult != 1.0:
+                    amount = int(amount * mult)
+                heal += amount
+        return self_dmg, heal
 
     @staticmethod
     def _card_projection(combat, player, card):

@@ -46,7 +46,7 @@ def _draw_rank_chip(screen, font, rank, x, y, line=None):
     return chip
 
 
-def draw_player_panel(view, screen, player, intent_dmg):
+def draw_player_panel(view, screen, player, intent_dmg, self_dmg=0, heal=0):
     panel_h = 440
     panel   = pygame.Rect(_P_PX, _PANEL_TOP, _PANEL_W, panel_h)
     pygame.draw.rect(screen, _PANEL_BG, panel, border_radius=12)
@@ -64,13 +64,22 @@ def draw_player_panel(view, screen, player, intent_dmg):
     CombatHUD.draw_hp_bar(
         screen, x, y, _E_IW, 26,
         player.hp, player.max_hp, player.shield,
-        incoming_dmg=intent_dmg
+        incoming_dmg=intent_dmg, self_dmg=self_dmg, heal=heal
     )
     y += 32
     shld_str = f"  +{player.shield} щит" if player.shield > 0 else ""
     screen.blit(view.card_desc_font.render(
         f"HP: {player.hp} / {player.max_hp}{shld_str}", True, _GREEN
     ), (x, y))
+    # Проекция ±HP наведённой карты (P1/P2): число рядом с HP — сколько срежет/добавит.
+    if self_dmg > 0 or heal > 0:
+        hp_w = view.card_desc_font.size(
+            f"HP: {player.hp} / {player.max_hp}{shld_str}")[0]
+        if heal > 0:
+            delta_surf = view.card_desc_font.render(f"  +{heal}", True, (90, 210, 120))
+        else:
+            delta_surf = view.card_desc_font.render(f"  −{self_dmg}", True, (235, 130, 55))
+        screen.blit(delta_surf, (x + hp_w, y))
 
     y += 44
     screen.blit(view.card_desc_font.render("Энергия:", True, _BLUE), (x, y))

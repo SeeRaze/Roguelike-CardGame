@@ -12,6 +12,8 @@ _HP_YELLOW    = (220, 200, 50)
 _HP_RED       = (200, 60, 60)
 _HP_SHIELD    = (70, 160, 240)
 _HP_PROJ      = (220, 80, 80)
+_HP_SELF      = (235, 130, 55)    # проекция САМОДАМАГА наведённой карты (сквозь щит)
+_HP_HEAL      = (90, 210, 120)    # проекция ХИЛА наведённой карты (сверх текущего HP)
 _ENERGY_ON    = (100, 180, 255)
 _ENERGY_OFF   = (40, 40, 65)
 _ENERGY_BRD   = (160, 160, 255)
@@ -52,7 +54,8 @@ class CombatHUD:
     # ── HP-БАР С ПРОЕКЦИЕЙ УРОНА ────────────────────────────────────────────
     @staticmethod
     def draw_hp_bar(screen, x, y, width, height,
-                    current_hp, max_hp, shield, incoming_dmg=0):
+                    current_hp, max_hp, shield, incoming_dmg=0,
+                    self_dmg=0, heal=0):
         pygame.draw.rect(screen, _HP_BG, (x, y, width, height), border_radius=4)
 
         ratio     = max(0.0, current_hp / max_hp)
@@ -72,6 +75,24 @@ class CombatHUD:
                 if proj_w > 0:
                     pygame.draw.rect(screen, _HP_PROJ,
                                      (proj_x, y, proj_w, height), border_radius=4)
+
+        # P1: самодамаг наведённой карты (SelfHarmEffect = lose_hp СКВОЗЬ щит) —
+        # оранжевый сегмент с правого края заливки (не уменьшается щитом).
+        if self_dmg > 0:
+            sd_ratio = min(self_dmg / max_hp, ratio)
+            sd_w     = int(width * sd_ratio)
+            sd_x     = x + fill_w - sd_w
+            if sd_w > 0:
+                pygame.draw.rect(screen, _HP_SELF,
+                                 (sd_x, y, sd_w, height), border_radius=4)
+
+        # P2: хил наведённой карты — зелёный сегмент СВЕРХ текущего HP (до max).
+        if heal > 0:
+            healed_ratio = min((current_hp + heal) / max_hp, 1.0)
+            heal_w       = int(width * healed_ratio) - fill_w
+            if heal_w > 0:
+                pygame.draw.rect(screen, _HP_HEAL,
+                                 (x + fill_w, y, heal_w, height), border_radius=4)
 
         if shield > 0:
             shld_ratio = min(shield / max_hp, 1.0)
