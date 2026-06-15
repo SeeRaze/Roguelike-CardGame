@@ -138,12 +138,32 @@ def forge_level(player, card) -> int:
     return rec["level"] if rec else 0
 
 
-def can_forge(player, card) -> bool:
-    """Можно ли поднять карту ещё на +1 уровень: не упёрлись в кап И хватает FP.
-    Баги (unplayable карты-долг) НЕ куются: несыгрываемый техдолг без магнитудных
-    эффектов — прокачка впустую жгла бы CR и красила карту как «улучшенную». Sim
-    использует свой forge_between_acts (этот хелпер не зовёт) → baseline не задет."""
+def card_is_forgeable(card) -> bool:
+    """Структурно куётся ли карта ВООБЩЕ (без учёта FP/капа): играбельна И несёт
+    магнитуду/длительность, которую двигает ковка (base_val/upgrade_val или
+    base_turns/upgrade_turns хотя бы у одного эффекта).
+
+    НЕ куются и дают на ковке только слив CR + инертные теги:
+      • Баги (unplayable) — несыгрываемый техдолг (C1).
+      • Чисто-экшен утилиты без чисел — Удалить безвозвратно/Переключить окно/
+        Копировать/Вставить/Отменить/Контроль версий (эффекты без base_val/turns).
+    Эффект с числами, даже SCALES_WITH_FORGE=False (Просмотр стека/Обновить/Эхо),
+    куётся: разовый апгрейд ур.1 (base→upgrade) ему полезен."""
     if getattr(card, "unplayable", False):
+        return False
+    for e in getattr(card, "effects", None) or []:
+        if hasattr(e, "base_val") and hasattr(e, "upgrade_val"):
+            return True
+        if hasattr(e, "base_turns") and hasattr(e, "upgrade_turns"):
+            return True
+    return False
+
+
+def can_forge(player, card) -> bool:
+    """Можно ли поднять карту ещё на +1 уровень: структурно куётся, не упёрлись в кап
+    И хватает FP. Sim использует свой forge_between_acts (этот хелпер не зовёт) →
+    baseline не задет."""
+    if not card_is_forgeable(card):
         return False
     level = forge_level(player, card)
     return level < player.forge_level_cap and player.forge_points >= level_cost(level)
