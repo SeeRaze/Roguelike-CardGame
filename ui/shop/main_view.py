@@ -153,6 +153,31 @@ def _draw_temper_button(shop, view, screen, fonts, mouse_pos):
                       rect.centery - lbl.get_height() // 2))
 
 
+def _draw_reroll_button(shop, view, screen, fonts, mouse_pos):
+    """«Обновить» (С68): реролл 5 карт витрины за золото. Цена растёт за каждое нажатие
+    в этом визите + этаж. Компактная кнопка вверху справа (у счётчика золота), вне ряда
+    карт. Гаснет при нехватке золота."""
+    from ui.shop.data import get_reroll_price
+    W = screen.get_width()
+    price = get_reroll_price(shop.reroll_count, view.gm.current_floor)
+    affordable = view.gm.player_gold >= price
+    rect = pygame.Rect(W // 2 + 330, 145, 210, 46)
+    view.btn_shop_reroll_rect = rect
+    shop.is_reroll_hovered = affordable and rect.collidepoint(mouse_pos)
+
+    if not affordable:
+        bg, border, txtc = (30, 35, 45), (70, 80, 100), (110, 120, 140)
+    elif shop.is_reroll_hovered:
+        bg, border, txtc = (40, 55, 80), (120, 170, 230), (255, 255, 255)
+    else:
+        bg, border, txtc = (26, 36, 55), (120, 170, 230), (150, 190, 235)
+    pygame.draw.rect(screen, bg, rect, border_radius=10)
+    pygame.draw.rect(screen, border, rect, 2, border_radius=10)
+    lbl = fonts["btn"].render(f"ОБНОВИТЬ ({price} з.)", True, txtc)
+    screen.blit(lbl, (rect.centerx - lbl.get_width() // 2,
+                      rect.centery - lbl.get_height() // 2))
+
+
 def draw_main(shop, view, screen, fonts):
     W = screen.get_width()
     mouse_pos = pygame.mouse.get_pos()
@@ -172,6 +197,9 @@ def draw_main(shop, view, screen, fonts):
     relic_hovered = _draw_relic_slot(shop, view, screen, fonts, mouse_pos)
     _draw_key_slot(shop, view, screen, fonts, mouse_pos)
     _draw_rob_button(shop, view, screen, fonts, mouse_pos)
+
+    # Кнопка «Обновить» (реролл витрины: золото → новые 5 карт, цена растёт за визит)
+    _draw_reroll_button(shop, view, screen, fonts, mouse_pos)
 
     # Кнопка «Закалка» (ось выживаемости: золото → +%max HP + хил)
     _draw_temper_button(shop, view, screen, fonts, mouse_pos)

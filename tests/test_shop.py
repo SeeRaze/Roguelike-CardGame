@@ -34,6 +34,17 @@ def test_цена_карты_и_ключа():
     assert data.get_key_price() == 30
 
 
+def test_цена_реролла_растёт_от_нажатий_и_этажа():
+    # С68: «Обновить» — база + надбавка за реролл в визите + этаж.
+    base = data.REROLL_BASE_COST
+    assert data.get_reroll_price(0, 0) == base
+    assert data.get_reroll_price(1, 0) == base + data.REROLL_COST_PER_USE
+    assert data.get_reroll_price(0, 10) == base + data.REROLL_COST_PER_FLOOR * 10
+    # Монотонно растёт с каждым рероллом.
+    assert (data.get_reroll_price(2, 5) > data.get_reroll_price(1, 5)
+            > data.get_reroll_price(0, 5))
+
+
 def test_цена_реликвии_по_редкости_плюс_этаж():
     class _R:
         rarity = Rarity.COMMON
@@ -117,6 +128,46 @@ def test_покупка_ключа_списывает_и_растит_счётч
     Shop._handle_main(view, view.btn_shop_key_rect.center)
     assert gm.player_gold == g0 - data.get_key_price()
     assert gm.player_keys == k0 + 1
+
+
+def test_реролл_списывает_растущую_цену_и_меняет_витрину(shop_setup):
+    gm, view = shop_setup
+    view.btn_shop_reroll_rect = pygame.Rect(900, 140, 210, 46)
+    before_ids = {id(c) for c in Shop.items if c}
+    g0 = gm.player_gold
+    p0 = data.get_reroll_price(0, gm.current_floor)
+    Shop._handle_main(view, view.btn_shop_reroll_rect.center)
+    assert gm.player_gold == g0 - p0
+    assert Shop.reroll_count == 1
+    assert len([c for c in Shop.items if c]) == data.SHOP_CARD_SLOTS
+    # витрина пересоздана (новые объекты карт)
+    assert {id(c) for c in Shop.items if c} != before_ids
+    # второй реролл дороже
+    p1 = data.get_reroll_price(1, gm.current_floor)
+    g1 = gm.player_gold
+    Shop._handle_main(view, view.btn_shop_reroll_rect.center)
+    assert gm.player_gold == g1 - p1
+    assert Shop.reroll_count == 2
+
+
+def test_реролл_без_золота_ничего_не_делает(shop_setup):
+    gm, view = shop_setup
+    view.btn_shop_reroll_rect = pygame.Rect(900, 140, 210, 46)
+    gm.player_gold = 0
+    items_before = list(Shop.items)
+    Shop._handle_main(view, view.btn_shop_reroll_rect.center)
+    assert Shop.reroll_count == 0
+    assert Shop.items == items_before        # витрина не тронута
+    assert gm.player_gold == 0
+
+
+def test_реролл_счётчик_сбрасывается_при_reset(shop_setup):
+    gm, view = shop_setup
+    view.btn_shop_reroll_rect = pygame.Rect(900, 140, 210, 46)
+    Shop._handle_main(view, view.btn_shop_reroll_rect.center)
+    assert Shop.reroll_count == 1
+    Shop.reset()                              # выход из магазина
+    assert Shop.reroll_count == 0
 
 
 def test_утилизация_уводит_в_режим_remove(shop_setup):

@@ -6,7 +6,7 @@ import random
 import pygame
 from ui.shop.data import (
     _BG_COLOR, SHOP_CARD_SLOTS, ROB_SUCCESS_CHANCE,
-    get_forged_card_price, get_relic_price, get_key_price,
+    get_forged_card_price, get_relic_price, get_key_price, get_reroll_price,
     pick_cards, pick_relic,
 )
 from core import forge as forge_mod
@@ -19,10 +19,12 @@ class Shop:
     items              = []      # карты на продажу (None = уже куплена)
     relic_item         = None    # реликвия на продажу (None = куплена/нет)
     showcase_generated = False
+    reroll_count       = 0       # рероллов витрины в этом визите (растущая цена, С68)
     is_remove_hovered  = False
     is_leave_hovered   = False
     is_key_hovered     = False
     is_temper_hovered  = False
+    is_reroll_hovered  = False
 
     @staticmethod
     def reset():
@@ -30,10 +32,12 @@ class Shop:
         Shop.items              = []
         Shop.relic_item         = None
         Shop.showcase_generated = False
+        Shop.reroll_count       = 0
         Shop.is_remove_hovered  = False
         Shop.is_leave_hovered   = False
         Shop.is_key_hovered     = False
         Shop.is_temper_hovered  = False
+        Shop.is_reroll_hovered  = False
 
     @staticmethod
     def generate_showcase(gm):
@@ -52,6 +56,25 @@ class Shop:
         for card in Shop.items:
             if card is not None:
                 forge_mod.discard_forge_record(gm.player, card)
+
+    @staticmethod
+    def _reroll(view):
+        """«Обновить» (С68): перетасовать 5 КАРТ витрины за золото (реликвия/ключ не
+        трогаются). Цена растёт за каждый реролл в этом визите (Shop.reroll_count) +
+        этаж. Старые невыкупленные товары сперва теряют паспорта ковки (как при выходе),
+        чтобы не засорять deck_forge_state."""
+        gm = view.gm
+        price = get_reroll_price(Shop.reroll_count, gm.current_floor)
+        if gm.player_gold < price:
+            print("[!] Не хватает золота на обновление витрины!")
+            return
+        gm.player_gold -= price
+        Shop._discard_unbought_forged(gm)        # снять паспорта со старых карт
+        class_name = type(gm.player).__name__
+        Shop.items = pick_cards(SHOP_CARD_SLOTS, class_name,
+                                player=gm.player, floor=gm.current_floor,
+                                meta=getattr(gm, "meta", None))
+        Shop.reroll_count += 1
 
     @staticmethod
     def draw_screen(view):
@@ -131,6 +154,12 @@ class Shop:
                 gm.temper_count = count + 1
             else:
                 print("[!] Не хватает золота на Закалку!")
+            return
+
+        # --- Обновить (реролл 5 карт витрины за золото; цена растёт за визит) ---
+        if hasattr(view, 'btn_shop_reroll_rect') and view.btn_shop_reroll_rect \
+                and view.btn_shop_reroll_rect.collidepoint(mouse_pos):
+            Shop._reroll(view)
             return
 
         # --- Ограбление (украсть реликвию; доступно только при ней) ---
