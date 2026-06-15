@@ -173,6 +173,12 @@ class CardRenderer:
         # Описание с актуальными числами эффектов (ковка +δ не трогает строку):
         # пары N(M) пересчитываются из эффектов везде — и в бою, и в костре/магазине.
         display_desc = description.project_forge_values(card)
+        # Лесенка дебага (C2): число багов на Код-ревью = base + floor//15. Этаж — из
+        # активного боя; вне боя (костёр/магазин) combat_manager=None → база (инфо-вид).
+        bug_floor = None
+        if combat_manager is not None:
+            bug_floor = getattr(getattr(combat_manager, "gm", None), "current_floor", None)
+        display_desc = description.project_bug_count(display_desc, card, bug_floor)
 
         if preview is not None:
             description.draw_smart_description(

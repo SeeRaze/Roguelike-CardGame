@@ -91,6 +91,17 @@ def _resolve_pairs(s: str, is_upgraded: bool) -> str:
     return _ANY_PAIR_RE.sub(r'\2' if is_upgraded else r'\1', s)
 
 
+def _resolve_pairs_marked(s: str, is_upgraded: bool) -> str:
+    """Как _resolve_pairs, но при улучшении/прокачке ПОМЕЧАЕТ свёрнутое значение
+    DMG_MARKER — чтобы подсвечивалось ИМЕННО магнитудное число из пары N(M), а не
+    любое голое число в описании (счётчик «3 удара», число багов). Без улучшения —
+    байт-в-байт _resolve_pairs (базовые числа, подсветки нет). Единственный источник
+    подсветки вне DMG-проекции: голые числа draw_smart_description больше не красит."""
+    if not is_upgraded:
+        return _resolve_pairs(s, False)
+    return _ANY_PAIR_RE.sub(lambda m: DMG_MARKER + m.group(2), s)
+
+
 # Пары «N (M)» в описании = base/upgrade одного эффекта. Ковка (+δ) бампит эффекты,
 # но НЕ строку описания — поэтому без проекции форжёная карта в костре/магазине
 # показывает устаревшее число (см. core.forge.apply_linear_level).
@@ -130,13 +141,36 @@ def project_forge_values(card) -> str:
     return "".join(out)
 
 
+def project_bug_count(desc: str, card, floor) -> str:
+    """Спроецировать ЛЕСЕНКУ дебага (C2) на описание карты с DebugBugEffect (Код-ревью):
+    число перед «Баг» = scaled_count(floor) = base + floor//15. Помечаем DMG_MARKER,
+    ТОЛЬКО если число выросло (этаж поднял лесенку) — честная подсветка. Без floor (вне
+    боя) / без DebugBugEffect — строка не трогается. ACCRUE (Пуш в прод) сюда не попадает
+    (нет DebugBugEffect), его «1 Баг» остаётся плоским и неподсвеченным."""
+    if floor is None:
+        return desc
+    from core.cards.bug import DebugBugEffect
+    eff = next((e for e in getattr(card, "effects", None) or []
+                if isinstance(e, DebugBugEffect)), None)
+    if eff is None:
+        return desc
+    upgraded = getattr(card, "upgraded", False)
+    base   = eff.base_count(upgraded)
+    scaled = eff.scaled_count(floor, upgraded)
+    if scaled == base:
+        return desc
+    token = (DMG_MARKER + str(scaled)) if scaled > base else str(scaled)
+    return re.sub(r'\d+(?=\s*Баг)', token, desc, count=1)
+
+
 def _resolve_description(description: str, is_upgraded: bool,
                          player=None, enemy=None,
                          base_override=None, predicted=None) -> str:
     # Вне боя (костёр/магазин) числа уже актуальны через project_forge_values —
-    # просто сворачиваем пары N(M) в одно число.
+    # сворачиваем пары N(M) в одно число, помечая улучшённое значение (только пары,
+    # не голые числа вроде счётчика багов).
     if player is None or enemy is None:
-        return _resolve_pairs(description, is_upgraded)
+        return _resolve_pairs_marked(description, is_upgraded)
 
     # База урона = ЗНАЧЕНИЕ ЭФФЕКТА карты (base_override), а не число из строки:
     # ковка (+δ) бампит эффект, но НЕ строку описания. printed_base — что напечатано
@@ -144,7 +178,7 @@ def _resolve_description(description: str, is_upgraded: bool,
     printed_base = _get_base_damage(description, is_upgraded)
     base_dmg = base_override if base_override is not None else printed_base
     if base_dmg == 0:
-        return _resolve_pairs(description, is_upgraded)
+        return _resolve_pairs_marked(description, is_upgraded)
 
     # Показанное число = ГАРАНТИРОВАННОЕ (predicted считает renderer через
     # EffectCalculator.preview: баффы игрока + дебаффы врага + Заточка + уровень,
@@ -162,13 +196,13 @@ def _resolve_description(description: str, is_upgraded: bool,
     if predicted != printed_base:
         marked = DMG_MARKER + str(predicted)
         if dmg_pair is not None:
-            head = _resolve_pairs(description[:dmg_pair.start()], is_upgraded)
-            tail = _resolve_pairs(description[dmg_pair.end():], is_upgraded)
+            head = _resolve_pairs_marked(description[:dmg_pair.start()], is_upgraded)
+            tail = _resolve_pairs_marked(description[dmg_pair.end():], is_upgraded)
             return head + marked + tail
         # Карта без пары (урон бара числом) — заменяем первое число.
         return re.sub(r'\d+', marked, _resolve_pairs(description, is_upgraded),
                       count=1)
-    return _resolve_pairs(description, is_upgraded)
+    return _resolve_pairs_marked(description, is_upgraded)
 
 
 def _wrap_lines(text, font, max_width):
@@ -236,10 +270,11 @@ def draw_smart_description(surface, description, font, card_rect,
         x_pos = card_rect.x + 15
         for word, is_dmg_word in line:
             clean_word = word.replace(DMG_MARKER, "")
+            # Подсветка ТОЛЬКО помеченных DMG_MARKER чисел (магнитуда из пары N(M) или
+            # проекция урона/дебага). Голые числа (счётчик «3 удара», базовое «1 Баг»)
+            # больше не красятся как «улучшенные» — фикс ложной подсветки C2.
             if is_dmg_word:
                 word_surf = font_big.render(f"*{clean_word}* ", True, COLOR_DMG)
-            elif is_upgraded and clean_word.isdigit():
-                word_surf = font_big.render(clean_word + " ", True, COLOR_DMG)
             else:
                 word_surf = chosen_font.render(clean_word + " ", True, COLOR_GRAY)
             surface.blit(word_surf, (x_pos, y_pos))

@@ -58,22 +58,41 @@ class AccrueBugEffect:
         )
 
 
+# Лесенка дебага (C2, С69): число вычищаемых Багов растёт на +1 за каждые
+# DEBUG_LADDER_FLOORS этажей — counterplay поспевает за глубиной башни. Только DEBUG
+# (Код-ревью); ACCRUE (Пуш в прод) НЕ растёт — рост долга наказывал бы за прокачку.
+DEBUG_LADDER_FLOORS = 15
+
+
 class DebugBugEffect:
     """DEBUG — counterplay слоя багов: изгнать до N Багов из РУКИ и удалить их
     ПЕРМАНЕНТНО из колоды забега (gm.current_deck), чтобы долг не вернулся следующим
     боем. Бьёт только по картам-Багам (unplayable); обычные карты не трогает.
-    NO-OP, если Багов в руке нет."""
+    NO-OP, если Багов в руке нет.
+
+    Число дебага N растёт по ЛЕСЕНКЕ: base + floor // DEBUG_LADDER_FLOORS (+1 за
+    каждые 15 этажей). Проекция на карту (ui.cards.description.project_bug_count)
+    читает то же scaled_count → «превью == фактич»."""
 
     def __init__(self, count=1, upgrade_count=None):
         self.count = count
         self.upgrade_count = upgrade_count if upgrade_count is not None else count
 
+    def base_count(self, is_upgraded=False) -> int:
+        """Базовое число дебага (без лесенки этажей)."""
+        return self.upgrade_count if is_upgraded else self.count
+
+    def scaled_count(self, floor: int, is_upgraded: bool = False) -> int:
+        """Число дебага с учётом лесенки: base + floor // DEBUG_LADDER_FLOORS."""
+        return self.base_count(is_upgraded) + max(0, floor) // DEBUG_LADDER_FLOORS
+
     def execute(self, player, enemy, combat_manager, is_upgraded):
         if combat_manager is None:
             return
-        n = self.upgrade_count if is_upgraded else self.count
-        hand = combat_manager.deck_manager.hand
         gm = getattr(combat_manager, 'gm', None)
+        floor = getattr(gm, 'current_floor', 0) if gm is not None else 0
+        n = self.scaled_count(floor or 0, is_upgraded)
+        hand = combat_manager.deck_manager.hand
         deck = getattr(gm, 'current_deck', None) if gm else None
 
         removed = 0
