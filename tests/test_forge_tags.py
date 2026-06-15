@@ -9,9 +9,13 @@ from core.cards.base import Card, DamageEffect
 from core.EffectCalculator import EffectCalculator
 
 from core.ForgeRegistry import (
-    forge_damage_multiplier, pick_tag, resolve_forge_record, _s,
-    EARLY_ADD, LEG_EMPTY_HAND, LEG_PER_SHIELD, CLASS_TAGS, _GENERIC_TAGS,
+    forge_damage_multiplier, forge_output_multiplier, pick_tag,
+    resolve_forge_record, _s,
+    EARLY_ADD_TRIVIAL, EARLY_ADD_NORMAL, EARLY_ADD_RISKY,
+    LEG_EMPTY_HAND, LEG_PER_SHIELD, LEG_PER_COMBO, LEG_MISSING_HP,
+    CLASS_TAGS, _GENERIC_TAGS,
 )
+
 from managers.balance.forge import (
     ForgePolicy, reward_level_for_floor, MILESTONE_TIER, BOSS_LEVEL_CAPS,
 )
@@ -30,11 +34,11 @@ def test_empty_slots_neutral():
 
 
 def test_early_add_accumulates():
-    # Два выполненных ранних тега складываются аддитивно: 1 + 0.5 + 0.5.
+    # Два выполненных ранних тега складываются аддитивно: 1 + 0.5 (normal) + 0.35 (trivial).
     snap = {"shield": 5, "play_index": 0}
     m = forge_damage_multiplier(
         [{"tag_id": "shielded"}, {"tag_id": "first_card"}], snap)
-    assert m == 1.0 + 2 * EARLY_ADD
+    assert m == 1.0 + EARLY_ADD_NORMAL + EARLY_ADD_TRIVIAL
 
 
 def test_early_add_off_when_condition_unmet():
@@ -55,7 +59,7 @@ def test_add_and_mult_compose():
     snap = {"shield": 3, "hand_after": 0}
     m = forge_damage_multiplier(
         [{"tag_id": "shielded"}, {"tag_id": "empty_hand"}], snap)
-    assert m == (1.0 + EARLY_ADD) * LEG_EMPTY_HAND
+    assert m == (1.0 + EARLY_ADD_NORMAL) * LEG_EMPTY_HAND
 
 
 def test_unknown_tag_ignored():
@@ -66,21 +70,21 @@ def test_unknown_tag_ignored():
 # ─── Предикаты по снимку (выборочно по каждому семейству) ─────────────────────
 
 def test_low_hp_predicate():
-    # low_hp срабатывает ниже половины HP.
+    # low_hp срабатывает ниже половины HP и дает повышенный бонус RISKY.
     assert forge_damage_multiplier([{"tag_id": "low_hp"}], {"hp_frac": 0.4}) \
-        == 1.0 + EARLY_ADD
+        == 1.0 + EARLY_ADD_RISKY
     assert forge_damage_multiplier([{"tag_id": "low_hp"}], {"hp_frac": 0.6}) == 1.0
 
 
 def test_missing_hp_scales():
-    # missing_hp ×(1 + доля недостающего HP): на 25% HP → ×1.75.
+    # missing_hp ×(1 + scale·доля недостающего HP): на 25% HP при scale=1.0 → ×1.75.
     m = forge_damage_multiplier([{"tag_id": "missing_hp"}], {"hp_frac": 0.25})
-    assert abs(m - 1.75) < 1e-9
+    assert abs(m - (1.0 + LEG_MISSING_HP * 0.75)) < 1e-9
 
 
 def test_first_card_only_first():
     assert forge_damage_multiplier([{"tag_id": "first_card"}], {"play_index": 0}) \
-        == 1.0 + EARLY_ADD
+        == 1.0 + EARLY_ADD_TRIVIAL
     assert forge_damage_multiplier([{"tag_id": "first_card"}], {"play_index": 1}) == 1.0
 
 
@@ -154,12 +158,11 @@ def test_draft_свой_тег_чаще_чужого_B3():
 
 
 def test_draft_бедный_канал_возвращает_сколько_есть():
-    # early-heal в пуле только один тег (mending) → драфт не падает, вернёт 1.
+    # Теперь в раннем heal два тега: mending и coffee_break. Драфт вернет оба.
     import random
     from core.ForgeRegistry import draft_tag_choices
-    choices = draft_tag_choices("Warrior", "early", "heal", k=3,
-                                rng=random.Random(0))
-    assert choices == ["mending"]
+    choices = draft_tag_choices("Warrior", "early", "heal", k=3, rng=random.Random(0))
+    assert set(choices) == {"mending", "coffee_break"}
 
 
 # ─── Резолв паспорта и временных копий (§10.4) ────────────────────────────────
@@ -316,3 +319,59 @@ def test_calculate_damage_dry_run_applies_tags_without_side_effects():
     assert EffectCalculator.calculate_damage(
         player, target, 10, combat_manager=cm, dry_run=True,
         include_forge=False) == 10
+
+
+# ─── С68: добор контента + калибровка легендарок ──────────────────────────────
+
+def test_no_dead_tags_all_respond_to_snapshot():
+    # РЕГРЕСС-ГАРД (С68): каждый тег ОБЯЗАН реагировать хотя бы на один РЕАЛЬНЫЙ
+    # ключ снимка (_build_play_snapshot, cardplay.py). Тег, читающий несуществующий
+    # ключ, молча мёртв (_s даёт дефолт) → ловушка в живом драфте. Этот тест ловит
+    # ровно такой класс ошибки (поймал бы 4 мёртвых тега первой итерации майлстоунов).
+    from core.ForgeRegistry import TAGS
+    # Пустой снимок + по снимку на каждый ключ с «активным» значением.
+    active = {"play_index": 5, "hand_after": 9, "hand_attack": 9, "hp_frac": 0.05,
+              "shield": 500, "barrier": 500, "mastery": 500, "minions": 9,
+              "tgt_legacy": 500}
+    probes = [{}] + [{k: v} for k, v in active.items()]
+    dead = [tag_id for tag_id, spec in TAGS.items()
+            if len({spec["fn"](s) for s in probes}) == 1]
+    assert not dead, f"Мёртвые теги (читают ключ вне снимка): {dead}"
+
+
+def test_new_shield_heal_tags_live():
+    # clean_code (+щит первой картой), coffee_break (+хил из полной руки),
+    # refactoring (×щит по Мастерству), healthy_vibe (×хил по щиту+барьеру).
+    assert forge_output_multiplier([{"tag_id": "clean_code"}],
+                                   {"play_index": 0}, "shield") == 1.0 + EARLY_ADD_NORMAL
+    assert forge_output_multiplier([{"tag_id": "clean_code"}],
+                                   {"play_index": 3}, "shield") == 1.0
+    assert forge_output_multiplier([{"tag_id": "coffee_break"}],
+                                   {"hand_after": 4}, "heal") == 1.0 + EARLY_ADD_NORMAL
+    assert forge_output_multiplier([{"tag_id": "coffee_break"}],
+                                   {"hand_after": 1}, "heal") == 1.0
+    assert forge_output_multiplier([{"tag_id": "refactoring"}],
+                                   {"mastery": 10}, "shield") == 1.0 + 0.05 * 10
+    assert forge_output_multiplier([{"tag_id": "healthy_vibe"}],
+                                   {"shield": 20, "barrier": 5}, "heal") == 1.0 + 0.02 * 25
+
+
+def test_new_damage_class_tags_live():
+    # overclocked_ram (Маг: +урон за карту в руке), burnout_rage (Берсерк: ×1.5 при HP<30%),
+    # bug_report (Воин: +щит если на цели Легаси — починен на реальный ключ tgt_legacy).
+    assert forge_damage_multiplier([{"tag_id": "overclocked_ram"}],
+                                   {"hand_after": 5}) == 1.0 + 0.10 * 5
+    assert forge_damage_multiplier([{"tag_id": "burnout_rage"}], {"hp_frac": 0.2}) == 1.5
+    assert forge_damage_multiplier([{"tag_id": "burnout_rage"}], {"hp_frac": 0.5}) == 1.0
+    assert forge_output_multiplier([{"tag_id": "bug_report"}],
+                                   {"tgt_legacy": 3}, "shield") == 1.0 + EARLY_ADD_NORMAL
+    assert forge_output_multiplier([{"tag_id": "bug_report"}],
+                                   {"tgt_legacy": 0}, "shield") == 1.0
+
+
+def test_legendary_calibration_doubles_at_measured_peak():
+    # С68: ×2 откалиброван на ИЗМЕРЕННЫЙ пик стата ceiling-билда (sim, N=40, seed=99):
+    # per_combo ×2 при Мастерстве 8; per_shield ×2 при ~100 щита; missing_hp ×2 у смерти.
+    assert abs(forge_damage_multiplier([{"tag_id": "per_combo"}], {"mastery": 8}) - 2.0) < 1e-9
+    assert abs(forge_damage_multiplier([{"tag_id": "per_shield"}], {"shield": 100}) - 2.0) < 1e-9
+    assert abs(forge_damage_multiplier([{"tag_id": "missing_hp"}], {"hp_frac": 0.0}) - 2.0) < 1e-9

@@ -24,12 +24,17 @@
 # условный компаунд (§10.3: множители заперты в тегах).
 
 # ─── РУЧКИ силы тегов (гипотезы Шага 0 §6; калибруются в 39.3) ────────────────
-EARLY_ADD          = 0.5    # ранний тег: +0.5 к множителю при выполнении условия
+EARLY_ADD_TRIVIAL = 0.35
+EARLY_ADD_NORMAL  = 0.50
+EARLY_ADD_RISKY   = 0.75
 LEG_EMPTY_HAND     = 2.0    # легендарный флаг «из пустой руки»: ×2.0
 # Легендарные масштабируемые (×(1 + scale·стат)) — компаунд растёт с движком класса.
-LEG_PER_SHIELD     = 0.01   # за единицу щита/барьера (Воин, Барьер) — канал damage
-LEG_PER_COMBO      = 0.08   # за накопленное Мастерство (Маг, комбо)
-LEG_MISSING_HP     = 1.00   # ×(1 + доля недостающего HP) (Берсерк)
+# С68: ×2 откалиброван на ИЗМЕРЕННЫЙ пик стата ceiling-билда (forge+econ ON, N=40, seed=99).
+# Эти ручки влияют ТОЛЬКО на forge-reach (BASELINE wall/ceiling — forge-OFF) → усиление
+# гард не роняет (forge-reach краснеет лишь на ОБВАЛ).
+LEG_PER_SHIELD     = 0.01   # ×2 при ~100 щита+барьера (медианный пик Воина ≈98) — канал damage
+LEG_PER_COMBO      = 0.125  # ×2 при Мастерстве 8 (медианный пик Мага ≈8) — канал damage
+LEG_MISSING_HP     = 1.0    # ×2 у смерти (пик недост. HP Берсерка: медиана 0.85, в долг >1.0)
 
 # ── ОБОРОННЫЕ / СУСТЕЙН ручки (Развилка №1) ──────────────────────────────────
 LEG_PER_BARRIER    = 0.04   # ×ЩИТ за стак Барьера (Воин: барьер растит сам себя)
@@ -60,51 +65,86 @@ def _s(snapshot, key, default=0):
 # channel по умолчанию 'damage' (атакующие теги). Оборонные/сустейн помечены явно.
 TAGS = {
     # ── Ранние АТАКУЮЩИЕ (+mult, аддитивные, channel=damage) ──────────────────
-    "shielded":   {"kind": "add", "tier": "early", "channel": "damage", "klass": "Warrior",
-                   "label": "Под щитом: +урон",
-                   "fn": lambda s: EARLY_ADD if (_s(s, "shield") + _s(s, "barrier")) > 0 else 0.0},
-    "low_hp":     {"kind": "add", "tier": "early", "channel": "damage", "klass": "Berserker",
-                   "label": "На низком HP: +урон",
-                   "fn": lambda s: EARLY_ADD if _s(s, "hp_frac", 1.0) < LOW_HP_THRESHOLD else 0.0},
-    "combo":      {"kind": "add", "tier": "early", "channel": "damage", "klass": "Mage",
-                   "label": "После комбо: +урон",
-                   "fn": lambda s: EARLY_ADD if _s(s, "mastery") > 0 else 0.0},
+    "shielded": {"kind": "add", "tier": "early", "channel": "damage", "klass": "Warrior",
+                "label": "В рамках SLA: +урон под защитой Щита/Барьера",
+                "fn": lambda s: EARLY_ADD_NORMAL if (_s(s, "shield") + _s(s, "barrier")) > 0 else 0.0},
+
+    "low_hp": {"kind": "add", "tier": "early", "channel": "damage", "klass": "Berserker",
+                "label": "Горящий дедлайн: +урон при здоровье ниже 50%",
+                "fn": lambda s: EARLY_ADD_RISKY if _s(s, "hp_frac", 1.0) < LOW_HP_THRESHOLD else 0.0},
+
+    "combo": {"kind": "add", "tier": "early", "channel": "damage", "klass": "Mage",
+            "label": "Удачный пуш: +урон за накопленное Мастерство",
+            "fn": lambda s: EARLY_ADD_NORMAL if _s(s, "mastery") > 0 else 0.0},
+
     "first_card": {"kind": "add", "tier": "early", "channel": "damage", "klass": None,
-                   "label": "Первой картой за ход: +урон",
-                   "fn": lambda s: EARLY_ADD if _s(s, "play_index") == 0 else 0.0},
+            "label": "Утренний созвон: +урон, если разыграна первой за ход",
+            "fn": lambda s: EARLY_ADD_TRIVIAL if _s(s, "play_index") == 0 else 0.0},
 
     # ── Ранние ОБОРОННЫЕ/СУСТЕЙН (+mult, аддитивные) ──────────────────────────
-    "bulwark":    {"kind": "add", "tier": "early", "channel": "shield", "klass": None,
-                   "label": "Оборонная рука: +щит",
-                   "fn": lambda s: EARLY_ADD if _s(s, "hand_attack") == 0 else 0.0},
-    "mending":    {"kind": "add", "tier": "early", "channel": "heal", "klass": None,
-                   "label": "Когда ранен: +исцеление",
-                   "fn": lambda s: EARLY_ADD if _s(s, "hp_frac", 1.0) < 1.0 else 0.0},
+    "bulwark": {"kind": "add", "tier": "early", "channel": "shield", "klass": None,
+            "label": "Режим проджекта: +щит, если в руке нет карт атаки",
+            "fn": lambda s: EARLY_ADD_NORMAL if _s(s, "hand_attack") == 0 else 0.0},
+
+    "mending": {"kind": "add", "tier": "early", "channel": "heal", "klass": None,
+            "label": "Вызов скорой: +исцеление при здоровье ниже 100%",
+            "fn": lambda s: EARLY_ADD_TRIVIAL if _s(s, "hp_frac", 1.0) < 1.0 else 0.0},
+
 
     # ── Легендарные АТАКУЮЩИЕ (×mult, истинный компаунд, channel=damage) ───────
     "per_shield": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Warrior",
-                   "label": "×урон по щиту/барьеру",
+                   "label": "Архитектура монолита: ×урон за каждую единицу защиты",
                    "fn": lambda s: 1.0 + LEG_PER_SHIELD * (_s(s, "shield") + _s(s, "barrier"))},
     "per_combo":  {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Mage",
-                   "label": "×урон по Мастерству",
+                   "label": "Сеньор-доминейтор: ×урон, масштабируемый от Мастерства",
                    "fn": lambda s: 1.0 + LEG_PER_COMBO * _s(s, "mastery")},
     "missing_hp": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Berserker",
-                   "label": "×урон по недостающему HP",
+                   "label": "Выгорание в хлам: ×урон за долю утерянного здоровья",
                    "fn": lambda s: 1.0 + LEG_MISSING_HP * (1.0 - _s(s, "hp_frac", 1.0))},
     "empty_hand": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": None,
-                   "label": "Из пустой руки: ×урон",
+                   "label": "Чистая RAM: ×урон, если в руке больше нет карт",
                    "fn": lambda s: LEG_EMPTY_HAND if _s(s, "hand_after") == 0 else 1.0},
 
     # ── Легендарные ОБОРОННЫЕ/СУСТЕЙН (×mult — экспонента выживаемости `p`) ────
     "per_barrier": {"kind": "mult", "tier": "legendary", "channel": "shield", "klass": "Warrior",
-                    "label": "×щит за стак Барьера",
+                    "label": "CI/CD Автоматизация: ×щит за каждый стак Барьера",
                     "fn": lambda s: 1.0 + LEG_PER_BARRIER * _s(s, "barrier")},
     "last_stand":  {"kind": "mult", "tier": "legendary", "channel": "shield", "klass": "Berserker",
-                    "label": "На грани: ×щит",
+                    "label": "Подушка безопасности: ×щит, если здоровье на критическом уровне",
                     "fn": lambda s: LEG_LAST_STAND if _s(s, "hp_frac", 1.0) < LOW_HP_THRESHOLD else 1.0},
     "lifebloom":   {"kind": "mult", "tier": "legendary", "channel": "heal", "klass": None,
-                    "label": "×исцеление по недостающему HP",
+                    "label": "Оплата больничного: ×исцеление тем сильнее, чем меньше здоровья",
                     "fn": lambda s: 1.0 + LEG_LIFEBLOOM * (1.0 - _s(s, "hp_frac", 1.0))},
+
+    # ── Долив ОБОРОННЫХ тегов (Этап 3) ──────────────────────────────────────
+    "clean_code": {"kind": "add", "tier": "early", "channel": "shield", "klass": None,
+                    "label": "Чистый код: +щит первой картой",
+                    "fn": lambda s: EARLY_ADD_NORMAL if _s(s, "play_index") == 0 else 0.0},
+
+    "refactoring": {"kind": "mult", "tier": "legendary", "channel": "shield", "klass": None,
+                    "label": "Глубокий рефакторинг: ×щит, масштабируемый от Мастерства",
+                    "fn": lambda s: 1.0 + 0.05 * _s(s, "mastery")},
+
+    # ── Долив СУСТЕЙН тегов (Этап 3) ────────────────────────────────────────
+    "coffee_break": {"kind": "add", "tier": "early", "channel": "heal", "klass": None,
+                    "label": "Кофе-брейк: +исцеление из полной руки",
+                    "fn": lambda s: EARLY_ADD_NORMAL if _s(s, "hand_after") >= 4 else 0.0},
+
+    "healthy_vibe": {"kind": "mult", "tier": "legendary", "channel": "heal", "klass": None,
+                    "label": "Здоровый микроклимат: ×исцеление под защитой Щита/Барьера",
+                    "fn": lambda s: 1.0 + 0.02 * (_s(s, "shield") + _s(s, "barrier"))},
+    # ── Новые КЛАССОВЫЕ майлстоуны (Расширение контента) ──────────────────────
+    "bug_report": {"kind": "add", "tier": "early", "channel": "shield", "klass": "Warrior",
+                    "label": "Баг-репорт: +щит, если на цели есть Легаси",
+                    "fn": lambda s: EARLY_ADD_NORMAL if _s(s, "tgt_legacy") > 0 else 0.0},
+
+    "burnout_rage": {"kind": "mult", "tier": "legendary", "channel": "damage", "klass": "Berserker",
+                    "label": "Ярость выгорания: ×урон за критически низкое HP",
+                    "fn": lambda s: 1.5 if _s(s, "hp_frac", 1.0) < 0.3 else 1.0},
+
+    "overclocked_ram": {"kind": "add", "tier": "early", "channel": "damage", "klass": "Mage",
+                    "label": "Разгон RAM: +урон за каждую карту в руке",
+                    "fn": lambda s: 0.10 * _s(s, "hand_after")},
 }
 
 # ─── ВЫБОР ТЕГА: класс × КАНАЛ КАРТЫ × тир (Smart Weighting §10.1) ─────────────

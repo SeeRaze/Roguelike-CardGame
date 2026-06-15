@@ -215,3 +215,5 @@ dist/
 # Эвакуационный комплект (handoff): скрипт-сборщик + START_HERE + zip-снимки.
 # Локальный, не пушим (по тому же правилу no-push docs).
 _handoff/
+.vercel
+.env*
