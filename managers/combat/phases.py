@@ -161,6 +161,16 @@ class TurnPhaseMixin:
         # Утечка памяти (С58): на акт добора враги с leak теряют leak × размер руки.
         self.apply_leak_on_draw()
 
+        # B1+B2: leak — единственный DoT, тикающий ВНЕ фазы врага (на акте добора). Он мог
+        # добить ПОСЛЕДНЕГО врага прямо здесь. Тогда бой окончен: раздаём победу немедленно
+        # и выходим ДО хуков старта хода (иначе реликвии/способность on_turn_start срабо-
+        # тали бы уже после смерти врага — B2 — а экран победы ждал бы лишнего клика — B1).
+        # _check_enemy_death внутри leak уже дёрнул on_kill/persist; _check_victory идемпо-
+        # тентен. Ключ на HP врагов, не на gm.current_state → симулятор-safe.
+        if self.enemies and all(e.hp <= 0 for e in self.enemies):
+            self._check_victory()
+            return
+
         self.add_log_message(f"--- НАЧАЛО ХОДА {self.turn_count} ---")
 
         # Хук on_turn_start -- реликвии
