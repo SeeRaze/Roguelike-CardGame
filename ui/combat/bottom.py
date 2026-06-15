@@ -5,9 +5,17 @@ from ui.combat.layout import _PANEL_BORDER, _WHITE, _BLUE, _GRAY
 
 
 def draw_hand(view, screen, dm, enemies, player):
-    # Для превью карт берём первого живого врага
+    # Превью карт считаем против ВЫБРАННОЙ игроком цели (тот же источник, что реальный
+    # удар и проекция на HP-баре: get_current_target → _resolve_attack_target). Раньше
+    # брали «первого живого» → если цель и первый-живой несут разные статусы (Кофе/
+    # ХОТФИКС), число на карте врало (×множители чужой цели). Фоллбэк — первый живой.
+    from ui.combat.targeting import TargetingSystem
     target = None
-    if enemies:
+    combat = getattr(view.gm, "active_combat", None)
+    if combat is not None:
+        selected = TargetingSystem.get_current_target(combat)
+        target = combat._resolve_attack_target(selected)
+    if target is None and enemies:
         target = next((e for e in enemies if e.hp > 0), enemies[0])
     hand_size = len(dm.hand)
     for index, card in enumerate(dm.hand):
