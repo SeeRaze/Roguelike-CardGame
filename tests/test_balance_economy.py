@@ -172,7 +172,8 @@ def test_core_temper_чистая_функция_золото():
     from core.forge import temper, TEMPER_GOLD_COST, TEMPER_HP_PCT
     p = _FakeForgePlayer(max_hp=100)
     # Хватает золота → +20% max HP + полный хил, вернуть потраченное.
-    ok, spent = temper(p, gold_available=TEMPER_GOLD_COST)
+    # count=0, floor=1 (дефолты) → базовая цена; явная база TEMPER_GOLD_COST для floor=0.
+    ok, spent = temper(p, gold_available=TEMPER_GOLD_COST, count=0, floor=0)
     assert ok is True
     assert spent == TEMPER_GOLD_COST
     assert p.max_hp == 100 + int(100 * TEMPER_HP_PCT)
@@ -183,27 +184,44 @@ def test_core_temper_чистая_функция_золото():
 def test_core_temper_не_хватает_золота_noop():
     from core.forge import temper, TEMPER_GOLD_COST
     p = _FakeForgePlayer(max_hp=100)
-    ok, spent = temper(p, gold_available=TEMPER_GOLD_COST - 1)
+    ok, spent = temper(p, gold_available=TEMPER_GOLD_COST - 1, count=0, floor=0)
     assert ok is False
     assert spent == 0
     assert p.max_hp == 100                          # не тронут
 
 
-def test_economy_temper_списывает_золото_с_gm():
-    from core.forge import TEMPER_GOLD_COST, TEMPER_HP_PCT
-    gm = _FakeGM(gold=TEMPER_GOLD_COST + 5)
+def test_temper_price_растёт_от_покупок_и_этажа():
+    # С68: цена больше не плоская — растёт от числа купленных Закалок и этажа.
+    from core.forge import (
+        temper_price, TEMPER_GOLD_COST, TEMPER_COST_PER_BUY, TEMPER_COST_PER_FLOOR,
+    )
+    assert temper_price(0, 0) == TEMPER_GOLD_COST
+    assert temper_price(1, 0) == TEMPER_GOLD_COST + TEMPER_COST_PER_BUY
+    assert temper_price(0, 10) == TEMPER_GOLD_COST + TEMPER_COST_PER_FLOOR * 10
+    assert temper_price(2, 5) == (TEMPER_GOLD_COST + TEMPER_COST_PER_BUY * 2
+                                  + TEMPER_COST_PER_FLOOR * 5)
+    # Монотонно растёт с каждой покупкой.
+    assert temper_price(3, 5) > temper_price(2, 5) > temper_price(1, 5)
+
+
+def test_economy_temper_списывает_растущую_цену_и_счётчик():
+    from core.forge import temper_price, TEMPER_HP_PCT
+    price0 = temper_price(0, 1)
+    gm = _FakeGM(gold=price0 + 5, floor=1)
     p = _FakeForgePlayer(max_hp=80)
-    assert EconomyPolicy.temper(gm, p) is True
-    assert gm.player_gold == 5                       # списано ровно TEMPER_GOLD_COST
+    assert EconomyPolicy.temper(gm, p, floor=1) is True
+    assert gm.player_gold == 5                       # списано ровно price0
+    assert gm.temper_count == 1                      # счётчик инкрементнут
     assert p.max_hp == 80 + int(80 * TEMPER_HP_PCT)
 
 
 def test_economy_temper_без_золота_noop():
-    from core.forge import TEMPER_GOLD_COST
-    gm = _FakeGM(gold=TEMPER_GOLD_COST - 1)
+    from core.forge import temper_price
+    price0 = temper_price(0, 1)
+    gm = _FakeGM(gold=price0 - 1, floor=1)
     p = _FakeForgePlayer(max_hp=80)
-    assert EconomyPolicy.temper(gm, p) is False
-    assert gm.player_gold == TEMPER_GOLD_COST - 1
+    assert EconomyPolicy.temper(gm, p, floor=1) is False
+    assert gm.player_gold == price0 - 1
     assert p.max_hp == 80
 
 
@@ -211,22 +229,24 @@ def test_economy_temper_if_threatened_калит_под_угрозой():
     # Малый max_hp → угроза следующего акта превышает порог → калит, пока есть
     # золото (но max_hp растёт → угроза падает: самоограничение). max_hp=50:
     # прирост ненулевой (int(50*0.2)=10) И порог срабатывает на эт.19.
-    from core.forge import TEMPER_GOLD_COST
-    gm = _FakeGM(gold=TEMPER_GOLD_COST * 3 + 5)
+    from core.forge import temper_price
+    start_gold = temper_price(0, 19) * 4 + 50
+    gm = _FakeGM(gold=start_gold, floor=19)
     p = _FakeForgePlayer(max_hp=50)
     did = EconomyPolicy().temper_if_threatened(gm, p, floor=19)
     assert did is True
-    assert gm.player_gold < TEMPER_GOLD_COST * 3 + 5   # потратила золото
+    assert gm.player_gold < start_gold                  # потратила золото
     assert p.max_hp > 50                                 # выросла живучесть
 
 
 def test_economy_temper_if_threatened_safe_noop():
     # Огромный max_hp → угроза ниже порога → не калит (золото цело).
-    from core.forge import TEMPER_GOLD_COST
-    gm = _FakeGM(gold=TEMPER_GOLD_COST * 3)
+    from core.forge import temper_price
+    start_gold = temper_price(0, 1) * 3
+    gm = _FakeGM(gold=start_gold, floor=1)
     p = _FakeForgePlayer(max_hp=10_000_000)
     assert EconomyPolicy().temper_if_threatened(gm, p, floor=1) is False
-    assert gm.player_gold == TEMPER_GOLD_COST * 3
+    assert gm.player_gold == start_gold
 
 
 # ═══════════════════════════════════════════════════════════

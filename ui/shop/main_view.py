@@ -131,7 +131,8 @@ def _draw_temper_button(shop, view, screen, fonts, mouse_pos):
     Переехала с костра в магазин: золото покупает ЭКСПОНЕНТУ выживаемости (+%max_hp
     компаунд + полный хил). Гаснет, если не хватает золота."""
     W = screen.get_width()
-    cost = forge_mod.TEMPER_GOLD_COST
+    count = getattr(view.gm, "temper_count", 0)
+    cost = forge_mod.temper_price(count, view.gm.current_floor)
     pct  = int(forge_mod.TEMPER_HP_PCT * 100)
     affordable = view.gm.player_gold >= cost
     rect = pygame.Rect(W // 2 - 320, 705, 640, 64)

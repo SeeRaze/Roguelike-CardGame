@@ -39,6 +39,7 @@ class GameManager:
         self.player_keys   = 0
         self.current_floor = 1
         self.removal_count = 0
+        self.temper_count  = 0     # сколько Закалок куплено за забег (растущая цена, С68)
         self.relics        = []
         # Слой «правок правил» (фундамент слома игры): базовый забег = пустой стек.
         # Ставки/парадоксы пушат сюда RuleMod; движок консультирует в точках врезки.

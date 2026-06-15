@@ -79,6 +79,7 @@ def serialize_run(gm) -> dict:
         "keys":         gm.player_keys,
         "floor":        gm.current_floor,
         "removal_count": gm.removal_count,
+        "temper_count": getattr(gm, "temper_count", 0),
         "stats":        dict(gm.stats),
         "map_grid":     [[_node_to_dict(n) for n in row] for row in gm.map_grid],
         "player_path":  list(gm.player_path),
@@ -167,6 +168,7 @@ def restore_run(gm, data: dict) -> bool:
     gm.player_keys   = data.get("keys", 0)
     gm.current_floor = data.get("floor", 1)
     gm.removal_count = data.get("removal_count", 0)
+    gm.temper_count  = data.get("temper_count", 0)
     gm.stats         = data.get("stats", gm.stats)
     gm.map_grid      = map_grid
     gm.player_path   = list(data.get("player_path", []))

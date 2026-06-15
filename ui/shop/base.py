@@ -119,13 +119,16 @@ class Shop:
                 print("[!] Не хватает золота на ключ!")
             return
 
-        # --- Закалка (сток ЗОЛОТА в Max HP — ось выживаемости, С57) ---
+        # --- Закалка (сток ЗОЛОТА в Max HP — ось выживаемости, С57; цена растёт С68) ---
         if hasattr(view, 'btn_shop_temper_rect') and view.btn_shop_temper_rect \
                 and view.btn_shop_temper_rect.collidepoint(mouse_pos):
             from core import forge as forge_mod
-            ok, spent = forge_mod.temper(gm.player, gm.player_gold)
+            count = getattr(gm, "temper_count", 0)
+            ok, spent = forge_mod.temper(gm.player, gm.player_gold,
+                                         count, gm.current_floor)
             if ok:
                 gm.player_gold -= spent
+                gm.temper_count = count + 1
             else:
                 print("[!] Не хватает золота на Закалку!")
             return

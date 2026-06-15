@@ -57,31 +57,37 @@ class EconomyPolicy:
         """Начислить золото за выжитый бой (зеркало распределения наград)."""
         gm.player_gold += gold_reward(floor, is_elite, _has_crown(gm))
 
-    # ── ЗАКАЛКА (Магазин) — сток ЗОЛОТА в Max HP (С57) ──────────────────────────
+    # ── ЗАКАЛКА (Магазин) — сток ЗОЛОТА в Max HP (С57; цена растёт С68) ──────────
     @staticmethod
-    def temper(gm, player) -> bool:
+    def temper(gm, player, floor: int = 1) -> bool:
         """Закалка: сток ЗОЛОТА (gm.player_gold) в Max HP (core.forge.temper —
         чистая функция, списание золота тут). Ленивая инициализация sim-игрока.
+        С68: цена растущая (temper_price от числа покупок за забег и этажа) — счётчик
+        gm.temper_count читаем/инкрементим через getattr/setattr (sim-gm может его не нести).
         ⚠️ С57: Закалка переехала с FP/костра на ЗОЛОТО/магазин ([[economy-axis-trinity]])."""
         _ensure_state(player)
-        ok, spent = _core_temper(player, gm.player_gold)
+        count = getattr(gm, "temper_count", 0)
+        ok, spent = _core_temper(player, gm.player_gold, count, floor)
         if ok:
             gm.player_gold -= spent
+            gm.temper_count = count + 1
         return ok
 
     def temper_if_threatened(self, gm, player, floor: int) -> bool:
         """Решение бота о Закалке («гонка кривых»): пока входящий урон следующего
         акта ≥ TEMPER_PROACTIVE_RATIO·max_hp И хватает золота, закаляться (компаунд
         Max HP). Самоограничивается (Закалка растит max_hp → угроза падает ниже
-        порога). Ручки читаются из core в рантайме (свип крутит core.forge).
+        порога; С68 — ещё и растущей ценой). Ручки читаются из core в рантайме
+        (свип крутит core.forge).
 
         Зеркало ForgePolicy.sharpen_if_threatened для оборонной оси на золоте."""
         _ensure_state(player)
         threat = incoming_next_act(floor)
         tempered = False
         while (threat >= _cf.TEMPER_PROACTIVE_RATIO * player.max_hp
-               and gm.player_gold >= _cf.TEMPER_GOLD_COST):
-            if not self.temper(gm, player):
+               and gm.player_gold >= _cf.temper_price(
+                   getattr(gm, "temper_count", 0), floor)):
+            if not self.temper(gm, player, floor):
                 break
             tempered = True
         return tempered
