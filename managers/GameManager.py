@@ -204,9 +204,12 @@ class GameManager:
         # UI-фасадом GameManager — sim/baseline distribute_combat_rewards не зовёт
         # (sim прогоняет бой напрямую через CombatManager), гард не дрейфует.
         from core import meta_currency, meta_events
-        meta_currency.grant_xp(self.meta, 10)
+        # Хардкор «Восхождение» (L3): поток Опыта за бой ×N (награда за риск).
+        from core.rules.stakes import hardcore_xp_multiplier
+        xp_mult = hardcore_xp_multiplier(self)
+        meta_currency.grant_xp(self.meta, int(10 * xp_mult))
         if is_boss:
-            meta_currency.grant_xp(self.meta, 30)
+            meta_currency.grant_xp(self.meta, int(30 * xp_mult))
 
         # Финал снапшота фактов боя + публикация на шину meta_events (С70 Э3
         # ачивки). Подписчик core/achievements._on_combat_finished проверит 6 MVP

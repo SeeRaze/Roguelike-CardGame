@@ -16,7 +16,7 @@ def _gm(player=None):
     return SimpleNamespace(
         rulestack=RuleStack(), current_deck=[],
         player=player if player is not None else Creature("Игрок", 80, 80),
-        relics=[], stats={},
+        relics=[], stats={}, current_floor=1, meta=None,
     )
 
 
@@ -95,3 +95,46 @@ def test_other_stake_is_not_hardcore():
     gm = _gm()
     STAKES["fragile"].activate(gm)
     assert is_hardcore_active(gm) is False
+
+
+# ─── Награды (П3b): золото ×0.5, Опыт ×1.5 ────────────────────────────────────
+
+def test_multipliers_off_by_default():
+    gm = _gm()
+    assert S.hardcore_gold_multiplier(gm) == 1.0
+    assert S.hardcore_xp_multiplier(gm) == 1.0
+
+
+def test_multipliers_on_with_hardcore():
+    gm = _gm()
+    STAKES[S.HARDCORE_STAKE_ID].activate(gm)
+    assert S.hardcore_gold_multiplier(gm) == S.HARDCORE_GOLD_MULT
+    assert S.hardcore_xp_multiplier(gm) == S.HARDCORE_XP_MULT
+
+
+def test_gold_reward_halved_under_hardcore():
+    import random
+    from managers.RewardManager import build_rewards
+
+    def _gold(rewards):
+        return next(r["value"] for r in rewards if r["type"] == "gold")
+
+    # Один seed → одинаковый базовый бросок золота; разница только в множителе.
+    random.seed(777)
+    normal = build_rewards(_gm(), is_boss=False, is_elite=False)
+    g_n = _gold(normal)
+
+    gm = _gm()
+    STAKES[S.HARDCORE_STAKE_ID].activate(gm)
+    random.seed(777)
+    hard = build_rewards(gm, is_boss=False, is_elite=False)
+    g_h = _gold(hard)
+
+    assert g_h == int(g_n * S.HARDCORE_GOLD_MULT)
+    assert g_h < g_n
+
+
+def test_xp_flow_amounts_under_hardcore():
+    # Документируем итоговые суммы потока Опыта при хардкоре (×1.5):
+    assert int(10 * S.HARDCORE_XP_MULT) == 15      # обычный этаж
+    assert int(30 * S.HARDCORE_XP_MULT) == 45      # доп. за босса

@@ -208,3 +208,15 @@ def is_hardcore_active(game_manager) -> bool:
     if rs is None:
         return False
     return any(m.id.startswith(f"{HARDCORE_STAKE_ID}:") for m in rs.active())
+
+
+def hardcore_gold_multiplier(game_manager) -> float:
+    """Множитель золота с наград: при активном хардкоре ×HARDCORE_GOLD_MULT,
+    иначе 1.0. Применяется в RewardManager (у дропа нет точки врезки RuleStack)."""
+    return HARDCORE_GOLD_MULT if is_hardcore_active(game_manager) else 1.0
+
+
+def hardcore_xp_multiplier(game_manager) -> float:
+    """Множитель потока Опыта за бой (НАГРАДА хардкора): при активном хардкоре
+    ×HARDCORE_XP_MULT, иначе 1.0. Применяется в GameManager.distribute_combat_rewards."""
+    return HARDCORE_XP_MULT if is_hardcore_active(game_manager) else 1.0

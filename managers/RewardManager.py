@@ -98,6 +98,9 @@ def build_rewards(gm, is_boss: bool, is_elite: bool) -> list:
         gold_drop = random.randint(20, 35) + (gm.current_floor * 3)
         if is_elite:
             gold_drop = int(gold_drop * 1.5)
+        # Хардкор «Восхождение» (L3): золота с наград меньше.
+        from core.rules.stakes import hardcore_gold_multiplier
+        gold_drop = int(gold_drop * hardcore_gold_multiplier(gm))
         rewards.append({
             "type": "gold", "label": f"+{gold_drop} монет",
             "value": gold_drop, "applied": False,
