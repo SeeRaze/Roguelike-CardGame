@@ -147,6 +147,22 @@ def _check_on_a_prayer(facts) -> bool:
     )
 
 
+# ─── Контент гл.1 — релик-якоря (С71, casino-heavy: лишь маркерные движки) ─────
+# Релики = пассивные снежные комья → предикаты-ВЕХИ (дойти/одолеть), а не «покажи
+# механику» как у карт. Переиспользуют существующие факты (floor, bosses_this_run).
+
+def _check_career_growth(facts) -> bool:
+    """Карьерный рост → Повышение грейда (+25% урон/босс): победить 2 боссов за
+    ОДИН забег (показал, что доживаешь до снежного кома)."""
+    return _victory(facts) and facts.get("bosses_this_run", 0) >= 2
+
+
+def _check_marathoner(facts) -> bool:
+    """Марафонец → Стрессоустойчивость (+15% HP/босс): дойти до этажа 20
+    (выживаемость окупит HP-снежный ком). Порог — заглушка."""
+    return _victory(facts) and facts.get("floor", 1) >= 20
+
+
 # ─── Реестр 6 MVP ачивок ──────────────────────────────────────────────────────
 
 ACHIEVEMENTS = (
@@ -234,6 +250,21 @@ ACHIEVEMENTS = (
         description="Стажёр: победить бой с HP ≤ 5.",
         grant_kind="card", grant_id="prod_crutch",
         check=_check_on_a_prayer,
+    ),
+    # ─── Контент гл.1 — релик-якоря (С71) ─────────────────────────────────────
+    AchievementDef(
+        id="career_growth",
+        title="Карьерный рост",
+        description="Победить 2 боссов за один забег.",
+        grant_kind="relic", grant_id="ПовышениеГрейда",
+        check=_check_career_growth,
+    ),
+    AchievementDef(
+        id="marathoner",
+        title="Марафонец",
+        description="Дойти до этажа 20.",
+        grant_kind="relic", grant_id="Стрессоустойчивость",
+        check=_check_marathoner,
     ),
 )
 

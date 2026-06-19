@@ -27,6 +27,8 @@ def _victory_facts(**overrides):
         "peak_cards_per_turn": 0, "peak_element_stack": 0,
         "killed_with_decomp": False, "max_same_card_in_turn": 0,
         "peak_distinct_elements": 0,
+        # Контент гл.1 — факты релик-якорей (С71):
+        "bosses_this_run": 0,
     }
     base.update(overrides)
     return base
@@ -220,6 +222,32 @@ def test_on_a_prayer_rejected_above_hp_threshold():
     assert "on_a_prayer" not in achievements.check_all(_meta(), facts)
 
 
+# ─── Контент гл.1 — релик-якоря (С71) ─────────────────────────────────────────
+
+def test_career_growth_grants_at_2_bosses():
+    meta = _meta()
+    granted = achievements.check_all(meta, _victory_facts(bosses_this_run=2))
+    assert "career_growth" in granted
+    assert "ПовышениеГрейда" in meta["unlocks"]
+
+
+def test_career_growth_rejected_at_1_boss():
+    assert "career_growth" not in achievements.check_all(
+        _meta(), _victory_facts(bosses_this_run=1))
+
+
+def test_marathoner_grants_at_floor_20():
+    meta = _meta()
+    granted = achievements.check_all(meta, _victory_facts(floor=20))
+    assert "marathoner" in granted
+    assert "Стрессоустойчивость" in meta["unlocks"]
+
+
+def test_marathoner_rejected_below_floor_20():
+    assert "marathoner" not in achievements.check_all(
+        _meta(), _victory_facts(floor=19))
+
+
 # ─── Грант: идемпотентность и поток Опыта ─────────────────────────────────────
 
 def test_grant_is_idempotent():
@@ -244,7 +272,8 @@ def test_check_all_can_grant_multiple_at_once():
     """Бой может закрыть несколько ачивок: победа над боссом Тестировщиком без HP-потерь
     закрывает И clean_review И first_boss."""
     meta = _meta()
-    facts = _victory_facts(player_class="Warrior", floor=20, is_boss=True,
+    # floor=10 (<20) — не цепляет «Марафонец»; проверяем ровно clean_review+first_boss.
+    facts = _victory_facts(player_class="Warrior", floor=10, is_boss=True,
                            hp_start=60, hp_end=60)
     granted = achievements.check_all(meta, facts)
     assert "clean_review" in granted

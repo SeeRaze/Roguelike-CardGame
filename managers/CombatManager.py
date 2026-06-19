@@ -90,6 +90,7 @@ class CombatManager(
             "victory":                    False,
             "is_boss":                    False,
             "hp_end":                     self.player.hp,
+            "bosses_this_run":            0,      # ≥2 → Карьерный рост (ПовышениеГрейда)
         }
         # Счётчик розыгрышей по card_id за ТЕКУЩИЙ ход (для max_same_card_in_turn).
         # Сбрасывается в start_turn_phase. {card_id: сколько раз сыграна за ход}.

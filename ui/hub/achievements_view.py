@@ -244,23 +244,26 @@ class AchievementsView:
 
     def _draw_achievements(self, screen, meta, f_hdr, f_txt, f_small):
         rows = catalog_rows(meta)
-        # 2 колонки × N строк: каталог дорос до 12 ачивок (контент гл.1) — в один
-        # столбец не влезает. Раскладка по столбцам сверху-вниз (слева 0..k-1).
-        top      = 430
-        row_h    = 88
-        gap      = 10
+        # 2 колонки × N строк, ВЫСОТА СТРОКИ АДАПТИВНА под число ачивок (каталог
+        # растёт с контентом гл.1 — карты/релики/события). Слот = бюджет/строк,
+        # строки сверху-вниз по столбцам (слева 0..k-1). row_h кламп [70..96].
+        top      = 424
+        bottom   = 1012
+        gap      = 8
         col_gap  = 16
         cols     = 2
         full_w   = 1120
         x0       = SCREEN_W // 2 - full_w // 2
         col_w    = (full_w - col_gap * (cols - 1)) // cols
-        per_col  = (len(rows) + cols - 1) // cols       # строк в столбце (округл. вверх)
+        per_col  = max(1, (len(rows) + cols - 1) // cols)   # строк в столбце (округл. вверх)
+        slot     = (bottom - top) / per_col
+        row_h    = max(70, min(96, int(slot - gap)))
 
         for i, r in enumerate(rows):
             col = i // per_col
             row = i % per_col
             rx  = x0 + col * (col_w + col_gap)
-            ry  = top + row * (row_h + gap)
+            ry  = top + int(row * slot)
             rect = pygame.Rect(rx, ry, col_w, row_h)
             done = r["done"]
             bg     = (28, 48, 30) if done else (24, 24, 40)
@@ -268,12 +271,13 @@ class AchievementsView:
             pygame.draw.rect(screen, bg, rect, border_radius=10)
             pygame.draw.rect(screen, border, rect, 2, border_radius=10)
 
-            # Заголовок + компактный статус-бейдж справа сверху.
+            # Заголовок + компактный статус-бейдж справа сверху. Отступы компактны —
+            # помещаются даже в минимальную строку (70px).
             title_col = (235, 255, 235) if done else _TEXT_COLOR
             ttl = self._fit_text(r["title"], f_hdr, col_w - 150, title_col)
-            screen.blit(ttl, (rect.x + 14, rect.y + 9))
+            screen.blit(ttl, (rect.x + 14, rect.y + 6))
 
-            badge = pygame.Rect(rect.right - 126, rect.y + 10, 112, 26)
+            badge = pygame.Rect(rect.right - 126, rect.y + 8, 112, 24)
             if done:
                 pygame.draw.rect(screen, (40, 90, 40), badge, border_radius=7)
                 pygame.draw.rect(screen, (130, 230, 130), badge, 2, border_radius=7)
@@ -287,11 +291,11 @@ class AchievementsView:
 
             # Описание (фит по ширине) + награда.
             desc = self._fit_text(r["description"], f_small, col_w - 28, _MUTED_COLOR)
-            screen.blit(desc, (rect.x + 14, rect.y + 40))
+            screen.blit(desc, (rect.x + 14, rect.y + 32))
             kind_ru = "Карта" if r["kind"] == "card" else "Реликвия"
             rew = self._fit_text(f"Награда: {kind_ru} «{r['reward']}»",
                                  f_small, col_w - 28, _GOLD_COLOR)
-            screen.blit(rew, (rect.x + 14, rect.y + 62))
+            screen.blit(rew, (rect.x + 14, rect.y + 52))
 
     # --- Назад ---
 

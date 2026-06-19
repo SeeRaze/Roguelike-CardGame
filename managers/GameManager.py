@@ -256,6 +256,10 @@ class GameManager:
         facts["victory"] = True
         facts["is_boss"] = is_boss
         facts["hp_end"]  = self.player.hp
+        # Боссов за ЭТОТ забег (per-run, после фикса reset_for_new_run): питает ачивку
+        # «Карьерный рост» (2 босса/забег → ПовышениеГрейда). bosses_killed уже
+        # инкрементнут в _check_enemy_death для этого боя.
+        facts["bosses_this_run"] = self.stats.get("bosses_killed", 0)
         meta_events.publish("combat_finished", facts=facts, meta=self.meta)
 
         SaveManager.save()
