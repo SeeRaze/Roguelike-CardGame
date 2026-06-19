@@ -77,6 +77,41 @@ class GameManager:
     def start_game(self):
         print("--- GameManager: Глобальный мозг запущен в режиме Главного Меню! ---")
 
+    def reset_for_new_run(self):
+        """Сброс ВСЕГО run-scoped состояния к стартовому: новая игра = с нуля.
+
+        Пересоздаёт игрока ВЫБРАННОГО класса (свежие max_hp/энергия/forge/статусы/
+        флаги долга — стирает наслоения прошлого забега от реликвий/Ставок/keepsake),
+        стартовую колоду с новыми uid, обнуляет экономику и боевые статы забега,
+        чистит RuleStack и per-run баны.
+
+        НЕ трогает мету (SaveManager: xp/grade/unlocks/keepsake-выбор — межзабеговое) и
+        НЕ путь «Продолжить» (RunSave.restore_run — отдельная ветка восстановления
+        снимка, идёт мимо Хаба). Зовётся ТОЛЬКО на старте НОВОГО забега из Хаба."""
+        cls = type(self.player)
+        self.player = cls()
+        self.current_deck = self.player.get_starter_deck()
+        for card in self.current_deck:
+            assign_forge_uid(self.player, card)
+        self.player_gold   = 100
+        self.player_keys   = 0
+        self.removal_count = 0
+        self.temper_count  = 0
+        self.relics        = []
+        self.run_banned_tags = []
+        self.rulestack.clear()
+        self.active_combat = None
+        self.current_floor = 1
+        # Боевые статы забега (питают запись в лидерборд при смерти) — с нуля, иначе
+        # новый забег унаследовал бы убийства/урон прошлого.
+        self.stats = {
+            "name":             self.player_name,
+            "max_floor":        1,
+            "monsters_killed":  0,
+            "bosses_killed":    0,
+            "max_damage_dealt": 0,
+        }
+
     def activate_pending_stakes(self):
         """Применить выбранные на старте Ставки к забегу (RuleStack): пуш модов +
         одноразовый DECKBUILD (обрезка колоды / правка игрока). Зовётся в момент
