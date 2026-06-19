@@ -12,7 +12,7 @@ from core.ForgeRegistry import (
     forge_damage_multiplier, forge_output_multiplier, pick_tag,
     resolve_forge_record, _s,
     EARLY_ADD_TRIVIAL, EARLY_ADD_NORMAL, EARLY_ADD_RISKY,
-    LEG_EMPTY_HAND, LEG_PER_SHIELD, LEG_PER_COMBO, LEG_MISSING_HP,
+    LEG_EMPTY_HAND, LEG_PER_SHIELD, LEG_MISSING_HP,
     CLASS_TAGS, _GENERIC_TAGS,
 )
 
@@ -163,6 +163,40 @@ def test_draft_бедный_канал_возвращает_сколько_ес�
     from core.ForgeRegistry import draft_tag_choices
     choices = draft_tag_choices("Warrior", "early", "heal", k=3, rng=random.Random(0))
     assert set(choices) == {"mending", "coffee_break"}
+
+
+# ─── Per-run бан тега (бонус L3 Грейда) ───────────────────────────────────────
+
+def test_draft_бан_исключает_тег():
+    # Забаненный тег НЕ появляется в кандидатах ни при каком seed.
+    import random
+    from core.ForgeRegistry import draft_tag_choices
+    for seed in range(30):
+        choices = draft_tag_choices("Warrior", "early", "damage", k=3,
+                                    rng=random.Random(seed), banned=["shielded"])
+        assert "shielded" not in choices
+
+
+def test_draft_бан_всех_кроме_одного():
+    # Забанили весь early/damage пул кроме одного → драфт вернёт ровно его.
+    import random
+    from core.ForgeRegistry import draft_tag_choices, TAGS
+    pool = [t for t, s in TAGS.items()
+            if s["tier"] == "early" and s.get("channel", "damage") == "damage"]
+    assert len(pool) >= 2
+    keep, banned = pool[0], pool[1:]
+    choices = draft_tag_choices("Warrior", "early", "damage", k=3,
+                                rng=random.Random(1), banned=banned)
+    assert choices == [keep]
+
+
+def test_draft_бан_none_не_меняет_поведение():
+    import random
+    from core.ForgeRegistry import draft_tag_choices
+    a = draft_tag_choices("Warrior", "early", "damage", k=3, rng=random.Random(5))
+    b = draft_tag_choices("Warrior", "early", "damage", k=3, rng=random.Random(5),
+                          banned=None)
+    assert a == b
 
 
 # ─── Резолв паспорта и временных копий (§10.4) ────────────────────────────────

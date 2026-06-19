@@ -352,21 +352,25 @@ class Campfire:
                     break
                 tier = forge_mod.next_forge_milestone_tier(player, card)
                 if tier is not None:
-                    Campfire._open_draft(player, card, index, tier)
+                    Campfire._open_draft(view.gm, card, index, tier)
                 else:
                     forge_mod.forge_card_one_level(player, card, class_name)
                 break
 
     @staticmethod
-    def _open_draft(player, card, index, tier):
+    def _open_draft(gm, card, index, tier):
         """Войти в драфт майлстоуна: сгенерить 3 тега-кандидата ОДИН раз (B3) и
-        переключить под-экран. Канал — по природе карты."""
+        переключить под-экран. Канал — по природе карты. per-run баны тегов
+        (L3 Грейд) с gm.run_banned_tags исключаются из кандидатов."""
         from core.ForgeRegistry import draft_tag_choices
-        channel = forge_mod.card_forge_channel(card)
+        player     = gm.player
+        channel    = forge_mod.card_forge_channel(card)
         class_name = type(player).__name__
         Campfire._draft_card_index = index
         Campfire._draft_tier       = tier
-        Campfire._draft_choices    = draft_tag_choices(class_name, tier, channel)
+        banned = list(getattr(gm, "run_banned_tags", []) or [])
+        Campfire._draft_choices    = draft_tag_choices(
+            class_name, tier, channel, banned=banned)
         # Краевой случай (бедный канал даёт 0 кандидатов) — не блокируем ковку,
         # падаем на авто-тег (pick_tag), как раньше.
         if not Campfire._draft_choices:
@@ -402,12 +406,28 @@ class Campfire:
             True, C._TEXT_COLOR)
         screen.blit(hint, (W // 2 - hint.get_width() // 2, panel.y + 116))
 
-        # Три кнопки-кандидата (вертикально). Заголовок — название тега в цвете
-        # тира, под ним — короткое описание эффекта.
+        # Бан тега (бонус L3 Грейда): можно запретить тег на весь забег — он больше
+        # не появится в драфтах. Гейт по Грейду; ban-кнопка только если останется ≥1
+        # вариант (нельзя забанить последний — нужно из чего-то выбрать).
+        from core import meta_currency
+        grade   = meta_currency.current_grade(getattr(view.gm, "meta", None))
+        can_ban = grade >= 3
+        banned_n = len(getattr(view.gm, "run_banned_tags", []) or [])
+        if can_ban:
+            bhint = view.card_desc_font.render(
+                f"L3: 🚫 — запретить тег на весь забег (не предложат снова).  "
+                f"Запрещено: {banned_n}",
+                True, (210, 170, 120))
+            screen.blit(bhint, (W // 2 - bhint.get_width() // 2, panel.y + 140))
+
+        # Кнопки-кандидаты (вертикально). Заголовок — название тега в цвете тира,
+        # под ним — короткое описание эффекта. Справа (на L3) — кнопка бана.
         view.draft_choice_rects = []
+        view.draft_ban_rects    = []
+        ban_allowed = can_ban and len(C._draft_choices) > 1
         btn_w, btn_h = 720, 96
         x  = W // 2 - btn_w // 2
-        y0 = panel.y + 160
+        y0 = panel.y + 172
         for i, tag_id in enumerate(C._draft_choices):
             spec = TAGS.get(tag_id, {})
             rect = pygame.Rect(x, y0 + i * (btn_h + 18), btn_w, btn_h)
@@ -424,9 +444,36 @@ class Campfire:
             screen.blit(desc, (rect.x + 24, rect.y + 58))
             view.draft_choice_rects.append((rect, tag_id))
 
+            if ban_allowed:
+                ban_rect = pygame.Rect(rect.right + 12, rect.y + 28, 96, 40)
+                bhov = ban_rect.collidepoint(mouse_pos)
+                pygame.draw.rect(screen, (90, 45, 45) if bhov else (60, 35, 35),
+                                 ban_rect, border_radius=10)
+                pygame.draw.rect(screen, (200, 110, 110), ban_rect, 2, border_radius=10)
+                bl = view.card_desc_font.render("🚫 БАН", True, (230, 170, 170))
+                screen.blit(bl, (ban_rect.centerx - bl.get_width() // 2,
+                                 ban_rect.centery - bl.get_height() // 2))
+                view.draft_ban_rects.append((ban_rect, tag_id))
+
     @staticmethod
     def _handle_draft(view, mouse_pos):
-        """Клик по тегу-кандидату → ковка с выбранным тегом, возврат в Доработку."""
+        """Клик по тегу-кандидату → ковка с выбранным тегом, возврат в Доработку.
+        Клик по 🚫 (L3) → бан тега на забег: убрать из текущих кандидатов + в
+        gm.run_banned_tags (не предложат снова). Баны проверяем ДО выбора."""
+        # Бан тега (per-run, L3). Только если останется ≥1 кандидат (нельзя забанить
+        # последний — выбирать будет не из чего).
+        for rect, tag_id in getattr(view, 'draft_ban_rects', []):
+            if rect.collidepoint(mouse_pos):
+                if len(Campfire._draft_choices) > 1:
+                    banned = getattr(view.gm, "run_banned_tags", None)
+                    if banned is None:
+                        banned = view.gm.run_banned_tags = []
+                    if tag_id not in banned:
+                        banned.append(tag_id)
+                    Campfire._draft_choices = [
+                        t for t in Campfire._draft_choices if t != tag_id]
+                return
+
         player = view.gm.player
         for rect, tag_id in getattr(view, 'draft_choice_rects', []):
             if rect.collidepoint(mouse_pos):

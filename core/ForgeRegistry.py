@@ -226,16 +226,22 @@ def _weighted_sample(items, weights, k, rng):
 
 
 def draft_tag_choices(class_name: str, tier: str, channel: str = "damage",
-                      k: int = 3, rng=None) -> list:
+                      k: int = 3, rng=None, banned=None) -> list:
     """Сгенерировать `k` тегов-кандидатов для драфта майлстоуна (B3). Кандидаты —
     теги данного ТИРА и КАНАЛА (живые на карте), кросс-класс; веса по _draft_weight
     (свой/универсальный/чужой). Без повторов. Если тегов канала < k — вернёт сколько
-    есть (бедные каналы shield/heal — сигнал долить контент, не баг)."""
+    есть (бедные каналы shield/heal — сигнал долить контент, не баг).
+
+    banned — множество/список tag_id, запрещённых на этот забег (per-run бан тега в
+    костре, бонус L3 Грейда). Запрещённые НЕ попадают в кандидаты. Дефолт None →
+    фильтр выключен (sim/baseline и обычная игра без L3 — без изменений)."""
     if rng is None:
         import random
         rng = random
+    blocked = set(banned or ())
     pool = [(tag_id, spec) for tag_id, spec in TAGS.items()
-            if spec["tier"] == tier and spec.get("channel", "damage") == channel]
+            if spec["tier"] == tier and spec.get("channel", "damage") == channel
+            and tag_id not in blocked]
     if not pool:
         return []
     items   = [tag_id for tag_id, _ in pool]
