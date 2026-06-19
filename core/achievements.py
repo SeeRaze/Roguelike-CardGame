@@ -101,6 +101,52 @@ def _check_first_boss(facts) -> bool:
     return _victory(facts) and bool(facts.get("is_boss", False))
 
 
+# ─── Контент гл.1 — карты-якоря (С71) ─────────────────────────────────────────
+# Каждый предикат достижим на СТАРТОВЫХ инструментах (не требует залоченной карты,
+# которую сам же открывает) — сигнал «ты готов к этому билду». Пороги — заглушки
+# (калибровка после альфа-теста). Класс-агностичны (любой класс), кроме страховки
+# Стажёра. Темы смежны архетипу карты-награды.
+
+def _check_parallelism(facts) -> bool:
+    """Параллелизм → Диспетчер задач (множитель Эхо ×2): сыграть ≥5 карт за один ход
+    (показал темп, готов к множителю)."""
+    return _victory(facts) and facts.get("peak_cards_per_turn", 0) >= 5
+
+
+def _check_accumulated(facts) -> bool:
+    """Накопилось → Контроль версий (удвоитель стихийных стаков): довести стак одной
+    стихии на враге до ≥6 (есть что удваивать). Порог 6 — мягкий (не душит анлок)."""
+    return _victory(facts) and facts.get("peak_element_stack", 0) >= 6
+
+
+def _check_core_dump(facts) -> bool:
+    """Дамп ядра → Дамп памяти (decomp-payoff): добить врага с активной
+    Декомпиляцией (decomp на цели в момент смерти)."""
+    return _victory(facts) and bool(facts.get("killed_with_decomp", False))
+
+
+def _check_deja_vu(facts) -> bool:
+    """Дежавю → Каскад (Эхо-payoff ×2): сыграть одну и ту же карту 3 раза ЗА ОДИН ХОД
+    (форсит ретриггер/удешевление — путь к Эхо-билду)."""
+    return _victory(facts) and facts.get("max_same_card_in_turn", 0) >= 3
+
+
+def _check_bug_zoo(facts) -> bool:
+    """Зоопарк багов → Технический регресс (радуга-payoff): держать ≥3 РАЗНЫЕ стихии
+    на одной цели одновременно (готов к +урон-за-стихию)."""
+    return _victory(facts) and facts.get("peak_distinct_elements", 0) >= 3
+
+
+def _check_on_a_prayer(facts) -> bool:
+    """На честном слове → Костыль на Проде (Стажёр-страховка): Стажёр победил бой с
+    HP ≤ 5 (клатч — оценил бы страховку от смерти)."""
+    return (
+        facts.get("player_class") == "Berserker"
+        and _victory(facts)
+        and facts.get("hp_end", 999) <= 5
+    )
+
+
 # ─── Реестр 6 MVP ачивок ──────────────────────────────────────────────────────
 
 ACHIEVEMENTS = (
@@ -145,6 +191,49 @@ ACHIEVEMENTS = (
         description="Победить первого босса.",
         grant_kind="relic", grant_id="ДеплойВПятницу",
         check=_check_first_boss,
+    ),
+    # ─── Контент гл.1 — карты-якоря (С71) ─────────────────────────────────────
+    AchievementDef(
+        id="parallelism",
+        title="Параллелизм",
+        description="Сыграть 5 карт за один ход.",
+        grant_kind="card", grant_id="task_manager",
+        check=_check_parallelism,
+    ),
+    AchievementDef(
+        id="accumulated",
+        title="Накопилось",
+        description="Довести стак одной стихии на враге до 6.",
+        grant_kind="card", grant_id="version_control",
+        check=_check_accumulated,
+    ),
+    AchievementDef(
+        id="core_dump",
+        title="Дамп ядра",
+        description="Добить врага с активной Декомпиляцией.",
+        grant_kind="card", grant_id="memory_dump",
+        check=_check_core_dump,
+    ),
+    AchievementDef(
+        id="deja_vu",
+        title="Дежавю",
+        description="Сыграть одну и ту же карту 3 раза за один ход.",
+        grant_kind="card", grant_id="echo_cascade",
+        check=_check_deja_vu,
+    ),
+    AchievementDef(
+        id="bug_zoo",
+        title="Зоопарк багов",
+        description="Держать 3 разные стихии на одной цели одновременно.",
+        grant_kind="card", grant_id="tech_regression",
+        check=_check_bug_zoo,
+    ),
+    AchievementDef(
+        id="on_a_prayer",
+        title="На честном слове",
+        description="Стажёр: победить бой с HP ≤ 5.",
+        grant_kind="card", grant_id="prod_crutch",
+        check=_check_on_a_prayer,
     ),
 )
 

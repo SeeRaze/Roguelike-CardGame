@@ -23,6 +23,10 @@ def _victory_facts(**overrides):
         "hp_start": 50, "hp_end": 50, "max_hp": 50,
         "peak_discipline": 0, "peak_mastery": 0, "peak_hp_debt": 0,
         "lucky_prompt_high_mastery": False, "big_boil_hit": False,
+        # Контент гл.1 — факты карт-якорей (С71):
+        "peak_cards_per_turn": 0, "peak_element_stack": 0,
+        "killed_with_decomp": False, "max_same_card_in_turn": 0,
+        "peak_distinct_elements": 0,
     }
     base.update(overrides)
     return base
@@ -134,6 +138,86 @@ def test_first_boss_rejected_on_regular_combat():
     meta = _meta()
     facts = _victory_facts(is_boss=False)
     assert "first_boss" not in achievements.check_all(meta, facts)
+
+
+# ─── Контент гл.1 — карты-якоря (С71) ─────────────────────────────────────────
+
+def test_parallelism_grants_task_manager():
+    meta = _meta()
+    granted = achievements.check_all(meta, _victory_facts(peak_cards_per_turn=5))
+    assert "parallelism" in granted
+    assert "task_manager" in meta["unlocks"]
+
+
+def test_parallelism_rejected_below_threshold():
+    assert "parallelism" not in achievements.check_all(
+        _meta(), _victory_facts(peak_cards_per_turn=4))
+
+
+def test_accumulated_grants_at_6():
+    meta = _meta()
+    granted = achievements.check_all(meta, _victory_facts(peak_element_stack=6))
+    assert "accumulated" in granted
+    assert "version_control" in meta["unlocks"]
+
+
+def test_accumulated_rejected_at_5():
+    assert "accumulated" not in achievements.check_all(
+        _meta(), _victory_facts(peak_element_stack=5))
+
+
+def test_core_dump_grants_on_decomp_kill():
+    meta = _meta()
+    granted = achievements.check_all(meta, _victory_facts(killed_with_decomp=True))
+    assert "core_dump" in granted
+    assert "memory_dump" in meta["unlocks"]
+
+
+def test_core_dump_rejected_without_flag():
+    assert "core_dump" not in achievements.check_all(
+        _meta(), _victory_facts(killed_with_decomp=False))
+
+
+def test_deja_vu_grants_at_3_same_card_in_turn():
+    meta = _meta()
+    granted = achievements.check_all(meta, _victory_facts(max_same_card_in_turn=3))
+    assert "deja_vu" in granted
+    assert "echo_cascade" in meta["unlocks"]
+
+
+def test_deja_vu_rejected_at_2():
+    assert "deja_vu" not in achievements.check_all(
+        _meta(), _victory_facts(max_same_card_in_turn=2))
+
+
+def test_bug_zoo_grants_at_3_distinct_elements():
+    meta = _meta()
+    granted = achievements.check_all(meta, _victory_facts(peak_distinct_elements=3))
+    assert "bug_zoo" in granted
+    assert "tech_regression" in meta["unlocks"]
+
+
+def test_bug_zoo_rejected_at_2():
+    assert "bug_zoo" not in achievements.check_all(
+        _meta(), _victory_facts(peak_distinct_elements=2))
+
+
+def test_on_a_prayer_grants_for_berserker_low_hp():
+    meta = _meta()
+    facts = _victory_facts(player_class="Berserker", hp_end=5)
+    granted = achievements.check_all(meta, facts)
+    assert "on_a_prayer" in granted
+    assert "prod_crutch" in meta["unlocks"]
+
+
+def test_on_a_prayer_rejected_for_other_class():
+    facts = _victory_facts(player_class="Warrior", hp_end=3)
+    assert "on_a_prayer" not in achievements.check_all(_meta(), facts)
+
+
+def test_on_a_prayer_rejected_above_hp_threshold():
+    facts = _victory_facts(player_class="Berserker", hp_end=6)
+    assert "on_a_prayer" not in achievements.check_all(_meta(), facts)
 
 
 # ─── Грант: идемпотентность и поток Опыта ─────────────────────────────────────
