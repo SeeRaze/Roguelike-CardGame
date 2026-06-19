@@ -21,6 +21,17 @@ FRAGILE_HP_FRACTION = 0.30
 # Урон-награда «Хрупкости»: частичная компенсация, НЕ покрывает HP-штраф (выживание падает).
 FRAGILE_DAMAGE_MULT = 1.25
 
+# ── ВОСХОЖДЕНИЕ (хардкор-режим, бонус L3 Грейда) ──────────────────────────────
+# Бандл штрафов «true ascension» (StS Ascension / Balatro high stake), открыт на L3.
+# Числа — старт-калибровка (после альфа-теста). Часть штрафов — RuleMod (враги/HP),
+# часть (золото/Опыт) живёт в RewardManager/GameManager через is_hardcore_active().
+HARDCORE_STAKE_ID       = "hardcore"
+HARDCORE_MIN_GRADE      = 3       # гейт: Ставка доступна только с Грейда L3 «Архитектор»
+HARDCORE_ENEMY_DMG_MULT = 1.25    # враги бьют сильнее
+HARDCORE_HP_FRACTION    = 0.75    # макс. HP игрока урезан
+HARDCORE_GOLD_MULT      = 0.5     # золота с наград меньше (RewardManager)
+HARDCORE_XP_MULT        = 1.5     # НАГРАДА: поток Опыта за бой больше (GameManager)
+
 
 class _DamageMult(RuleMod):
     """DAMAGE-scope: множитель урона игрока (награда Ставки). Постоянный."""
@@ -29,6 +40,21 @@ class _DamageMult(RuleMod):
         super().__init__(
             f"{stake_id}:dmg", f"{stake_name}: урон ×{factor:g}", Scope.DAMAGE,
             source="stake", predicate=lambda ctx: ctx.get("is_player_attack"),
+        )
+        self.factor = factor
+
+    def apply(self, ctx):
+        ctx["damage"] = int(ctx["damage"] * self.factor)
+
+
+class _EnemyDamageMult(RuleMod):
+    """DAMAGE-scope: множитель урона ВРАГА (штраф хардкора). Predicate ловит НЕ-
+    игроцкие атаки (зеркало _DamageMult, который бьёт только по атакам игрока)."""
+
+    def __init__(self, stake_id, stake_name, factor):
+        super().__init__(
+            f"{stake_id}:edmg", f"{stake_name}: урон врагов ×{factor:g}", Scope.DAMAGE,
+            source="stake", predicate=lambda ctx: not ctx.get("is_player_attack"),
         )
         self.factor = factor
 
@@ -96,11 +122,14 @@ class Stake:
     """Именованная Ставка — бандл RuleMod (ограничение + награда). Активация пушит
     моды в RuleStack забега и применяет одноразовый DECKBUILD run-setup сразу."""
 
-    def __init__(self, id, name, description, mods):
+    def __init__(self, id, name, description, mods, min_grade=0):
         self.id          = id
         self.name        = name
         self.description = description
         self._mods       = mods
+        # Гейт по Грейду: Ставка показывается в Хабе только при current_grade >=
+        # min_grade (0 = доступна всем с первого фрейма). Хардкор = L3.
+        self.min_grade   = min_grade
 
     def mods(self):
         return list(self._mods)
@@ -149,8 +178,33 @@ def _build_stakes():
         "приближает смерть. Сила сейчас — расплата потом.",
         [_EnableDebt("blood_credit", "Кровавый Кредит")],
     )
-    return {s.id: s for s in (ascetic, fragile, blood_credit)}
+    # Восхождение — хардкор-бандл (L3 Грейд). Штрафы: враги бьют сильнее + макс. HP
+    # урезан (RuleMod), золото меньше (RewardManager). Награда: Опыт ×N (GameManager).
+    # Золото/Опыт enforce'ятся через is_hardcore_active(), а не RuleMod — у дропа/Опыта
+    # пока нет точек врезки RuleStack (вшит только Scope.DAMAGE).
+    hardcore = Stake(
+        HARDCORE_STAKE_ID, "Восхождение",
+        f"ХАРДКОР (Грейд L3+): враги бьют ×{HARDCORE_ENEMY_DMG_MULT:g}, ваш максимум "
+        f"HP — {HARDCORE_HP_FRACTION:.0%}, золота с наград ×{HARDCORE_GOLD_MULT:g}. "
+        f"Взамен Опыт за бой ×{HARDCORE_XP_MULT:g}.",
+        [_EnemyDamageMult(HARDCORE_STAKE_ID, "Восхождение", HARDCORE_ENEMY_DMG_MULT),
+         _HalfMaxHp(HARDCORE_STAKE_ID, "Восхождение", HARDCORE_HP_FRACTION)],
+        min_grade=HARDCORE_MIN_GRADE,
+    )
+    return {s.id: s for s in (ascetic, fragile, blood_credit, hardcore)}
 
 
 # Реестр доступных Ставок (id -> Stake).
 STAKES = _build_stakes()
+
+
+def is_hardcore_active(game_manager) -> bool:
+    """Активна ли Ставка «Восхождение» в текущем забеге — по модам в RuleStack.
+
+    Источник истины — реально запушенные моды (не отдельный флаг): золото/Опыт
+    enforce'ятся в RewardManager/GameManager, читая это. game_manager без rulestack
+    (sim-стаб) → False."""
+    rs = getattr(game_manager, "rulestack", None)
+    if rs is None:
+        return False
+    return any(m.id.startswith(f"{HARDCORE_STAKE_ID}:") for m in rs.active())

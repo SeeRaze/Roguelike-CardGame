@@ -189,6 +189,7 @@ class HubView:
         выбор в gm.pending_stakes; применяются на старте забега. Свободная полоса
         между «Хроникой странника» и кнопкой старта."""
         from core.rules import STAKES
+        from core import meta_currency
         self.stake_buttons = {}
         font_lbl = pygame.font.SysFont("Arial", 20, bold=True)
         font_btn = pygame.font.SysFont("Arial", 18, bold=True)
@@ -201,7 +202,11 @@ class HubView:
                               True, _MUTED_COLOR)
         screen.blit(lbl, (cx - lbl.get_width() // 2, y - 30))
 
-        items = list(STAKES.values())
+        # Гейт по Грейду: Ставки с min_grade выше текущего Грейда не показываем
+        # (Восхождение/хардкор откроется на L3). Остальные — всегда.
+        grade = meta_currency.current_grade(getattr(gm, "meta", None))
+        items = [st for st in STAKES.values()
+                 if getattr(st, "min_grade", 0) <= grade]
         total = len(items) * btn_w + (len(items) - 1) * gap
         x0 = cx - total // 2
         pending = getattr(gm, "pending_stakes", [])
@@ -331,6 +336,10 @@ class HubView:
             RunSave.clear_run()
             self.reset()
             gm.current_floor = 1
+            # Чистим RuleStack от модов прошлого забега ДО активации Ставок —
+            # иначе Ставки одной сессии копились бы (двойное применение). clear()
+            # для этого и задуман («новый забег / сброс»), просто не был вшит.
+            gm.rulestack.clear()
             # Ставки применяются ДО хила — Хрупкость должна успеть урезать макс. HP.
             gm.activate_pending_stakes()
             # keepsake (L1 Грейд): надеть выбранную реликвию в инвентарь забега.
