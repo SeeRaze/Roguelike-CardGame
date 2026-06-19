@@ -47,9 +47,16 @@ def _default_meta() -> dict:
             "total_bosses":    0,
             "max_damage_ever": 0,
         },
-        "class_best": {},    # class -> {best_floor, kills, max_damage, runs}
-        "runs":       [],    # [{username, class, max_floor, kills, max_damage}]
-        "unlocks":    [],    # имена открытых классов яруса 2+ (С50, ярус 1 всегда открыт)
+        "class_best":   {},    # class -> {best_floor, kills, max_damage, runs}
+        "runs":         [],    # [{username, class, max_floor, kills, max_damage}]
+        "unlocks":      [],    # имена открытых классов яруса 2+ (С50, ярус 1 всегда открыт)
+        # Мета-прогрессия (С70, [[progression-design-s70]]):
+        "xp":           0,     # тратимая валюта Опыта (крутка казино)
+        "grade_xp":     0,     # накопительный счётчик ступеней Грейда (не тратится)
+        "achievements": [],    # id выполненных достижений (фикс-гранты, без дублей)
+        "casino_bans":  [],    # перманент-баны казино (L2 Грейд: +1 слот)
+        "casino_seen":  [],    # id уже выкрученных предметов (анти-дубль)
+        "keepsake":     None,  # L1 Грейд: носимый стартер (id; пока заглушка)
     }
 
 
@@ -72,6 +79,10 @@ def _load_from_disk() -> dict:
         merged.setdefault("stats", _default_meta()["stats"])
         for sk, sv in _default_meta()["stats"].items():
             merged["stats"].setdefault(sk, sv)
+        # Merge-safe для мета-прогрессии (С70): на сейвах ДО появления полей —
+        # подставить дефолты. setdefault безопасен и для свежего, и для частичного.
+        for mk, mv in _default_meta().items():
+            merged.setdefault(mk, mv)
         return merged
     except (OSError, ValueError):
         return _default_meta()
@@ -139,9 +150,14 @@ def record_run(run: dict) -> list:
     Возвращает список НОВООТКРЫТЫХ классов (С50) — забег мог выполнить условие
     анлока яруса 2; вызыватель может показать всплывашку «Открыт новый класс!».
     Список пуст, если ничего не открылось (обычный случай)."""
-    from core import progression
+    from core import progression, meta_currency
     meta = get_meta()
     _apply_run(meta, run)
+    # Опыт за завершённый забег (С70): фиксированный поток вне зависимости от
+    # этажа — компенсирует ранние короткие забеги, чтобы петля «начнём с нуля»
+    # давала что-то даже после смерти на этаже 3. Точка наполнения за UI-фасадом
+    # (record_run зовётся только из defeat.py живой игры; sim/baseline сюда не ходят).
+    meta_currency.grant_xp(meta, 50)
     fresh = progression.newly_unlocked(meta)   # грант анлоков по итогам забега
     save()
     return fresh

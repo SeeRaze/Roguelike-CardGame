@@ -188,6 +188,16 @@ class GameManager:
             if new_cap is not None and new_cap > self.player.forge_level_cap:
                 self.player.forge_level_cap = new_cap
 
+        # Опыт за выживший бой (С70 мета-прогрессия): +10 за обычный этаж,
+        # +30 ДОПОЛНИТЕЛЬНО за босс-бой (итого +40). Точка наполнения за
+        # UI-фасадом GameManager — sim/baseline distribute_combat_rewards не зовёт
+        # (sim прогоняет бой напрямую через CombatManager), гард не дрейфует.
+        from core import meta_currency
+        meta_currency.grant_xp(self.meta, 10)
+        if is_boss:
+            meta_currency.grant_xp(self.meta, 30)
+        SaveManager.save()
+
         # Статистика убийств теперь в CombatManager._check_enemy_death
 
         # Расчёт наград (золото/реликвия/ключ) -- в RewardManager.
