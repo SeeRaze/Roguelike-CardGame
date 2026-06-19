@@ -191,6 +191,48 @@ def relic_id_for(relic_cls) -> str:
     return getattr(relic_cls, "__name__", str(relic_cls))
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# РАЗВЕДЕНИЕ ПУЛОВ КАЗИНО / ДОСТИЖЕНИЙ (С70, Этап 2 мета-прогрессии)
+# ════════════════════════════════════════════════════════════════════════════
+# Дизайн ([[progression-design-s70]]): пулы LOCKED_* делятся на ДВА непересекающихся
+# подмножества — то, что выдаётся за конкретное достижение (фикс-грант под билд),
+# и то, что крутится в казино (рандом за Опыт, без дублей).
+# Сейчас (Э2) ACHIEVEMENT_GRANT_* — пустые ЗАГЛУШКИ: реестр ачивок (6 MVP) заводится
+# в Этапе 3, тогда сюда переедут конкретные id (steel_barricade, boil, final_deploy,
+# ДашбордМетрик, Автодополнение, Линтер). До этого ВЕСЬ залоченный контент крутится
+# в казино — это рабочая стартовая конфигурация, не временная заплатка.
+#
+# Инвариант (assert при импорте модуля): ACHIEVEMENT_GRANT_* ∩ CASINO_POOL_* = ∅
+# (один предмет не может прийти ОБОИМИ путями — упрощённая модель «разведённых
+# каналов» по решению юзера).
+
+ACHIEVEMENT_GRANT_CARDS:  set = set()    # заполнится в Этапе 3
+ACHIEVEMENT_GRANT_RELICS: set = set()    # заполнится в Этапе 3
+
+
+def casino_pool_cards() -> set:
+    """Пул карт казино: LOCKED минус то, что забронировано под достижения."""
+    return LOCKED_CARDS - ACHIEVEMENT_GRANT_CARDS
+
+
+def casino_pool_relics() -> set:
+    """Пул реликвий казино: LOCKED минус то, что забронировано под достижения."""
+    return LOCKED_RELICS - ACHIEVEMENT_GRANT_RELICS
+
+
+# Инвариант разведённых каналов. Падает при импорте, если разметка ачивок
+# (Э3) пересечётся с пулом казино — рассинхрон проявится сразу, не в рантайме.
+assert not (ACHIEVEMENT_GRANT_CARDS & casino_pool_cards()), \
+    "ACHIEVEMENT_GRANT_CARDS пересекается с casino_pool_cards()"
+assert not (ACHIEVEMENT_GRANT_RELICS & casino_pool_relics()), \
+    "ACHIEVEMENT_GRANT_RELICS пересекается с casino_pool_relics()"
+# Все ачивочные id должны быть среди залоченных (нельзя «грантить» стартовый).
+assert ACHIEVEMENT_GRANT_CARDS <= LOCKED_CARDS, \
+    "ACHIEVEMENT_GRANT_CARDS содержит id, отсутствующие в LOCKED_CARDS"
+assert ACHIEVEMENT_GRANT_RELICS <= LOCKED_RELICS, \
+    "ACHIEVEMENT_GRANT_RELICS содержит id, отсутствующие в LOCKED_RELICS"
+
+
 def is_card_unlocked(meta: dict, card_id: str) -> bool:
     """Доступна ли карта в выдаче забега. Стартовые (не в LOCKED_CARDS) — всегда.
     Иначе — записан ли id в meta['unlocks'] (постоянный анлок за прогресс)."""
