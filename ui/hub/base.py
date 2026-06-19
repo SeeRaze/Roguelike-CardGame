@@ -21,6 +21,7 @@ class HubView:
         self.stake_buttons:    dict  = {}
         self.dev_button              = None
         self.casino_button           = None      # С70 Этап 4: вход в казино
+        self.ach_button              = None      # С70 полировка: вход в каталог достижений
         self.is_start_hovered: bool  = False
 
     def reset(self):
@@ -70,6 +71,7 @@ class HubView:
         self._draw_stake_toggles(screen, gm)
         self._draw_dev_toggle(screen, gm)
         self._draw_casino_button(screen, gm, mouse_pos)
+        self._draw_achievements_button(screen, gm, mouse_pos)
         self._draw_grade_panel(screen, gm)
         self._draw_menu_button(screen, mouse_pos)
         self._draw_start_button(view, screen, mouse_pos)
@@ -132,6 +134,28 @@ class HubView:
         t2 = font_sub.render(f"Опыт: {xp}  •  Крутка: {cost}", True, _TEXT_COLOR)
         screen.blit(t2, (rect.centerx - t2.get_width() // 2, rect.y + 28))
         self.casino_button = rect
+
+    def _draw_achievements_button(self, screen, gm, mouse_pos):
+        """Вход в каталог достижений (С70 полировка). Под кнопкой казино в правом
+        верхнем углу. Показывает прогресс X/6 — приманка зайти и посмотреть цели."""
+        meta = getattr(gm, "meta", None)
+        if meta is None:
+            return
+        from ui.hub.achievements_view import progress_summary
+        done_n, total_n = progress_summary(meta)
+        font_lbl = pygame.font.SysFont("Arial", 16, bold=True)
+        font_sub = pygame.font.SysFont("Arial", 14)
+        btn_w, btn_h = 240, 50
+        rect = pygame.Rect(SCREEN_W - btn_w - 20, 122, btn_w, btn_h)
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, (60, 90, 60) if hovered else (40, 65, 40),
+                         rect, border_radius=6)
+        pygame.draw.rect(screen, (150, 220, 150), rect, 2, border_radius=6)
+        t1 = font_lbl.render("ДОСТИЖЕНИЯ", True, _TITLE_COLOR)
+        screen.blit(t1, (rect.centerx - t1.get_width() // 2, rect.y + 6))
+        t2 = font_sub.render(f"Выполнено: {done_n} / {total_n}", True, _TEXT_COLOR)
+        screen.blit(t2, (rect.centerx - t2.get_width() // 2, rect.y + 28))
+        self.ach_button = rect
 
     def _draw_grade_panel(self, screen, gm):
         """Компактная панель статуса Грейда у заголовка Хаба — игрок видит
@@ -280,6 +304,12 @@ class HubView:
         cas_rect = getattr(self, "casino_button", None)
         if cas_rect is not None and cas_rect.collidepoint(mouse_pos):
             gm.current_state = "CASINO"
+            return
+
+        # Вход в каталог достижений (С70 полировка).
+        ach_rect = getattr(self, "ach_button", None)
+        if ach_rect is not None and ach_rect.collidepoint(mouse_pos):
+            gm.current_state = "ACHIEVEMENTS"
             return
 
         # DEV-тоггл полного доступа: переключает meta['dev_unlock_all'] + персист.

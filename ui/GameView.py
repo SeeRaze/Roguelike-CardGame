@@ -91,7 +91,7 @@ class GameView:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    if self.gm.current_state in ["MAIN_MENU", "HUB", "CASINO"]:
+                    if self.gm.current_state in ["MAIN_MENU", "HUB", "CASINO", "ACHIEVEMENTS"]:
                         MainMenu.handle_clicks(self, mouse_pos)
                         continue
                     if self.gm.current_state == "MAP":
