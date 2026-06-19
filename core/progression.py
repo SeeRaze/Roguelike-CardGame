@@ -206,8 +206,14 @@ def relic_id_for(relic_cls) -> str:
 # (один предмет не может прийти ОБОИМИ путями — упрощённая модель «разведённых
 # каналов» по решению юзера).
 
-ACHIEVEMENT_GRANT_CARDS:  set = set()    # заполнится в Этапе 3
-ACHIEVEMENT_GRANT_RELICS: set = set()    # заполнится в Этапе 3
+# 6 MVP-ачивок (С70 Этап 3, см. `core/achievements.py`) → конкретные гранты:
+#   Чистый ревью → ДашбордМетрик · Регламент → steel_barricade ·
+#   Удачный промпт → Автодополнение · Заплыв в проде → boil ·
+#   Кранч окупился → final_deploy · Первый деплой → ДеплойВПятницу.
+# (Линтер из исходной дизайн-таблицы заменён на ДеплойВПятницу — Линтер стартовый
+# артефакт, не из LOCKED_RELICS; ДеплойВПятницу заперт И тематически уместен.)
+ACHIEVEMENT_GRANT_CARDS:  set = {"steel_barricade", "boil", "final_deploy"}
+ACHIEVEMENT_GRANT_RELICS: set = {"ДашбордМетрик", "Автодополнение", "ДеплойВПятницу"}
 
 
 def casino_pool_cards() -> set:

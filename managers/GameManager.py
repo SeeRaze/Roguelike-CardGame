@@ -26,6 +26,13 @@ class GameManager:
         # Ленивая загрузка с диска (битый/чужой файл → дефолт, без падения).
         self.meta = SaveManager.get_meta()
 
+        # Регистрация подписчиков ачивок (С70 Этап 3): идемпотентна, заводит
+        # _on_combat_finished на шину meta_events. Sim/baseline создают
+        # CombatManager напрямую, GameManager не строят → register_handlers не
+        # зовётся → ачивки в эталоне не срабатывают (контракт «sim слеп»).
+        from core import achievements
+        achievements.register_handlers()
+
         self.stats = {
             "name":             self.player_name,
             "max_floor":        1,
@@ -192,10 +199,20 @@ class GameManager:
         # +30 ДОПОЛНИТЕЛЬНО за босс-бой (итого +40). Точка наполнения за
         # UI-фасадом GameManager — sim/baseline distribute_combat_rewards не зовёт
         # (sim прогоняет бой напрямую через CombatManager), гард не дрейфует.
-        from core import meta_currency
+        from core import meta_currency, meta_events
         meta_currency.grant_xp(self.meta, 10)
         if is_boss:
             meta_currency.grant_xp(self.meta, 30)
+
+        # Финал снапшота фактов боя + публикация на шину meta_events (С70 Э3
+        # ачивки). Подписчик core/achievements._on_combat_finished проверит 6 MVP
+        # ачивок и грантнёт выполненные (запись в meta['unlocks'] + xp бонус).
+        facts = self.active_combat.combat_facts
+        facts["victory"] = True
+        facts["is_boss"] = is_boss
+        facts["hp_end"]  = self.player.hp
+        meta_events.publish("combat_finished", facts=facts, meta=self.meta)
+
         SaveManager.save()
 
         # Статистика убийств теперь в CombatManager._check_enemy_death

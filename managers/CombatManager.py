@@ -62,6 +62,30 @@ class CombatManager(
         # (tick в end_turn_phase отдаёт [] на пустой очереди → baseline зелёный).
         self.delayed_queue = DelayedQueue()
 
+        # Снапшот фактов боя для шины meta_events (С70 Этап 3 мета-прогрессии,
+        # см. core/achievements.py). Заполняется по ходу боя: peak_discipline/mastery,
+        # peak_hp_debt, lucky_prompt_high_mastery, big_boil_hit. Финальный snapshot
+        # публикуется в GameManager.distribute_combat_rewards (event 'combat_finished').
+        # Sim/baseline создаёт CombatManager без gm-фасада → snapshot живёт, но
+        # `combat_finished` не публикуется → AchievementChecker не дёргается, эталон
+        # не задет. NB: 'discipline'/'mastery' могут отсутствовать в статусах не своих
+        # классов — get_status вернёт 0, snapshot останется чистым.
+        self.combat_facts = {
+            "player_class":               type(self.player).__name__,
+            "floor":                      getattr(self.gm, "current_floor", 1),
+            "hp_start":                   self.player.hp,
+            "max_hp":                     self.player.max_hp,
+            "peak_discipline":            self.player.get_status("discipline"),
+            "peak_mastery":               self.player.get_status("mastery"),
+            "peak_hp_debt":               max(0, -self.player.hp),
+            "lucky_prompt_high_mastery":  False,
+            "big_boil_hit":               False,
+            # Заполняются в момент публикации (distribute_combat_rewards):
+            "victory":                    False,
+            "is_boss":                    False,
+            "hp_end":                     self.player.hp,
+        }
+
         self.add_log_message("=== БОЙ НАЧАЛСЯ ===")
 
         # Хук on_combat_start -- реликвии

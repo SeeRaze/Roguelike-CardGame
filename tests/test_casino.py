@@ -22,10 +22,16 @@ def test_achievement_grants_are_subset_of_locked():
     assert progression.ACHIEVEMENT_GRANT_RELICS <= progression.LOCKED_RELICS
 
 
-def test_casino_pool_currently_full_locked():
-    """На Этапе 2 (ачивки пустые) пул казино = весь LOCKED."""
-    assert progression.casino_pool_cards()  == progression.LOCKED_CARDS
-    assert progression.casino_pool_relics() == progression.LOCKED_RELICS
+def test_casino_pool_excludes_achievement_grants():
+    """Пул казино = LOCKED минус то, что забронировано под ачивки (Э3 заполнил
+    конкретные id: steel_barricade/boil/final_deploy + 3 реликвии)."""
+    assert progression.ACHIEVEMENT_GRANT_CARDS.isdisjoint(progression.casino_pool_cards())
+    assert progression.ACHIEVEMENT_GRANT_RELICS.isdisjoint(progression.casino_pool_relics())
+    # Объединение = весь LOCKED (ничего не теряется).
+    assert (progression.casino_pool_cards() | progression.ACHIEVEMENT_GRANT_CARDS) \
+        == progression.LOCKED_CARDS
+    assert (progression.casino_pool_relics() | progression.ACHIEVEMENT_GRANT_RELICS) \
+        == progression.LOCKED_RELICS
 
 
 # ─── try_spin: счастливый путь ────────────────────────────────────────────────

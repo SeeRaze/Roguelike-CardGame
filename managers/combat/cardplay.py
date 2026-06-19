@@ -78,6 +78,14 @@ class CardPlayMixin:
         # ретриггерил сам себя и давал 4 заряда вместо заявленных 2).
         echo_stacks = self.player.echo
         self.player.echo = 0
+        # Снапшот max_damage_dealt ДО розыгрыша — для трекинга ачивки «big_boil»
+        # (Заплыв в проде: «Залить в прод» ≥ 60 урона). Дельта после apply+эхо =
+        # верхняя оценка урона ЭТОЙ карты (если она поставила новый рекорд забега).
+        # См. core/achievements.py:_check_big_boil. MVP-упрощение: для гранта
+        # достаточно, чтобы карта поставила рекорд ≥60 — точный единичный удар
+        # без правок EffectCalculator неощупаем.
+        _pre_max_dmg = (self.gm.stats.get("max_damage_dealt", 0)
+                        if self.gm and hasattr(self.gm, "stats") else 0)
         selected_card.apply(self.player, target, self)
 
         for i in range(echo_stacks):
@@ -99,6 +107,30 @@ class CardPlayMixin:
         # Карта сыграна — счётчик для предикатов first/nth card (читается ИЗ снимка,
         # инкремент ПОСЛЕ розыгрыша, чтобы первая карта за ход видела play_index=0).
         self.cards_played_this_turn += 1
+
+        # Обновление снапшота фактов боя (С70 мета-прогрессия): пиковые значения
+        # классовых статусов + флаги ачивок, привязанных к моменту розыгрыша. После
+        # apply+эхо состояние самое свежее. NB: get_status возвращает 0 для статусов
+        # «не моего» класса → пик у других классов остаётся 0, не ложно срабатывает.
+        facts = self.combat_facts
+        facts["peak_discipline"] = max(facts["peak_discipline"],
+                                       self.player.get_status("discipline"))
+        facts["peak_mastery"]    = max(facts["peak_mastery"],
+                                       self.player.get_status("mastery"))
+        facts["peak_hp_debt"]    = max(facts["peak_hp_debt"], max(0, -self.player.hp))
+        # «Удачный промпт» (mage card create_arcane_focus, display = «Удачный промпт»)
+        # при «Мастерство» ≥ 5. Сравнение по display-name — стабильно к перенесению
+        # фабрики, ломается только при ребренде display.
+        if (selected_card.name == "Удачный промпт"
+                and self.player.get_status("mastery") >= 5):
+            facts["lucky_prompt_high_mastery"] = True
+        # «Залить в прод» (create_boil) ≥60 урона за розыгрыш. Дельта рекорда забега
+        # = верхняя оценка урона этой карты (если она поставила новый максимум).
+        if selected_card.name == "Залить в прод":
+            post_max_dmg = (self.gm.stats.get("max_damage_dealt", 0)
+                            if self.gm and hasattr(self.gm, "stats") else 0)
+            if post_max_dmg - _pre_max_dmg >= 60:
+                facts["big_boil_hit"] = True
 
         self.player.on_card_played_passive(selected_card, self)
 
