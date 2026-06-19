@@ -333,6 +333,12 @@ class HubView:
             gm.current_floor = 1
             # Ставки применяются ДО хила — Хрупкость должна успеть урезать макс. HP.
             gm.activate_pending_stakes()
+            # keepsake (L1 Грейд): надеть выбранную реликвию в инвентарь забега.
+            # Дубль-гард по классу внутри apply_to_run. Эффект сработает на старте боя.
+            from core import keepsake
+            kid = keepsake.apply_to_run(gm)
+            if kid is not None:
+                print(f"[keepsake] Надета реликвия: {kid}")
             gm.player.hp     = gm.player.max_hp
             gm.setup_next_floor()
 

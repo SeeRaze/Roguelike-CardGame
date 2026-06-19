@@ -14,7 +14,7 @@
 
 import pygame
 
-from core import achievements, meta_currency
+from core import achievements, meta_currency, keepsake
 from ui.hub.data import (
     SCREEN_W,
     _BG_COLOR, _PANEL_COLOR, _BTN_BORDER, _TITLE_COLOR, _TEXT_COLOR,
@@ -73,9 +73,11 @@ class AchievementsView:
 
     def __init__(self):
         self.back_button: pygame.Rect | None = None
+        self.keepsake_buttons: dict = {}      # relic_id -> Rect (чипы выбора)
 
     def reset(self):
         self.back_button = None
+        self.keepsake_buttons = {}
 
     def draw(self, view):
         screen = view.screen
@@ -101,6 +103,7 @@ class AchievementsView:
         screen.blit(sub, (SCREEN_W // 2 - sub.get_width() // 2, 104))
 
         self._draw_grade_ladder(screen, meta, f_hdr, f_txt, f_small)
+        self._draw_keepsake(screen, meta, mouse, f_hdr, f_small)
         self._draw_achievements(screen, meta, f_hdr, f_txt, f_small)
         self._draw_back_button(screen, mouse)
 
@@ -164,13 +167,86 @@ class AchievementsView:
         screen.blit(f_small.render(line, True, _MUTED_COLOR),
                     (panel.x + 20, panel.y + 126))
 
+    # --- KEEPSAKE (бонус L1 Грейда) ---
+
+    def _draw_keepsake(self, screen, meta, mouse, f_hdr, f_small):
+        self.keepsake_buttons = {}
+        panel = pygame.Rect(SCREEN_W // 2 - 560, 300, 1120, 116)
+        pygame.draw.rect(screen, _PANEL_COLOR, panel, border_radius=10)
+        pygame.draw.rect(screen, _BTN_BORDER,  panel, 2, border_radius=10)
+
+        unlocked = keepsake.is_unlocked(meta)
+        cur      = keepsake.equipped(meta)
+        hdr_col  = _TEXT_COLOR if unlocked else _MUTED_COLOR
+        screen.blit(f_hdr.render("KEEPSAKE — носимая реликвия (надевается на старт забега)",
+                                 True, hdr_col),
+                    (panel.x + 20, panel.y + 10))
+
+        if not unlocked:
+            msg = f_small.render(
+                "Откроется на L1 «Первый PR» — накопи 150 Грейд-Опыта.",
+                True, _MUTED_COLOR)
+            screen.blit(msg, (panel.x + 20, panel.y + 52))
+            return
+
+        # Ряд из 6 чипов-реликвий. Надетая — золотом; повторный клик снимает.
+        ids   = keepsake.KEEPSAKE_RELICS
+        n     = len(ids)
+        gap   = 8
+        chip_w = (panel.width - 40 - gap * (n - 1)) // n
+        chip_h = 40
+        cy     = panel.y + 42
+        f_chip = pygame.font.SysFont("Arial", 13, bold=True)
+        for i, rid in enumerate(ids):
+            cx = panel.x + 20 + i * (chip_w + gap)
+            chip = pygame.Rect(cx, cy, chip_w, chip_h)
+            on = (rid == cur)
+            hovered = chip.collidepoint(mouse)
+            if on:
+                bg, border = (70, 60, 20), _GOLD_COLOR
+            elif hovered:
+                bg, border = (50, 60, 80), (150, 180, 240)
+            else:
+                bg, border = (30, 30, 45), _BTN_BORDER
+            pygame.draw.rect(screen, bg, chip, border_radius=8)
+            pygame.draw.rect(screen, border, chip, 2, border_radius=8)
+            name = keepsake.display_name(rid)
+            col  = _GOLD_COLOR if on else _TEXT_COLOR
+            nl = f_chip.render(name, True, col)
+            # Аккуратно вписать длинное имя: обрезать по ширине чипа.
+            if nl.get_width() > chip_w - 10:
+                nl = self._fit_text(name, f_chip, chip_w - 10, col)
+            screen.blit(nl, (chip.centerx - nl.get_width() // 2,
+                             chip.centery - nl.get_height() // 2))
+            self.keepsake_buttons[rid] = chip
+
+        # Описание надетой реликвии (или подсказка).
+        if cur:
+            line = f"Надето: {keepsake.display_name(cur)} — {keepsake.description(cur)}"
+        else:
+            line = "Ничего не надето. Клик по реликвии — надеть; повторный клик — снять."
+        desc = f_small.render(line, True, _MUTED_COLOR)
+        if desc.get_width() > panel.width - 40:
+            desc = self._fit_text(line, f_small, panel.width - 40, _MUTED_COLOR)
+        screen.blit(desc, (panel.x + 20, panel.y + 90))
+
+    @staticmethod
+    def _fit_text(text, font, max_w, color):
+        """Обрезать строку под max_w, добавив многоточие. Простой посимвольный фит."""
+        if font.size(text)[0] <= max_w:
+            return font.render(text, True, color)
+        ell = "…"
+        while text and font.size(text + ell)[0] > max_w:
+            text = text[:-1]
+        return font.render(text + ell, True, color)
+
     # --- Список ачивок ---
 
     def _draw_achievements(self, screen, meta, f_hdr, f_txt, f_small):
         rows = catalog_rows(meta)
-        top   = 312
-        row_h = 96
-        gap   = 12
+        top   = 432
+        row_h = 88
+        gap   = 8
         x     = SCREEN_W // 2 - 560
         w     = 1120
         for i, r in enumerate(rows):
@@ -184,7 +260,7 @@ class AchievementsView:
 
             # Бейдж статуса слева.
             badge_w = 150
-            badge = pygame.Rect(rect.x + 16, rect.y + 28, badge_w, 40)
+            badge = pygame.Rect(rect.x + 16, rect.y + 24, badge_w, 40)
             if done:
                 pygame.draw.rect(screen, (40, 90, 40), badge, border_radius=8)
                 pygame.draw.rect(screen, (130, 230, 130), badge, 2, border_radius=8)
@@ -198,14 +274,14 @@ class AchievementsView:
 
             tx = rect.x + 16 + badge_w + 20
             title_col = (235, 255, 235) if done else _TEXT_COLOR
-            screen.blit(f_hdr.render(r["title"], True, title_col), (tx, rect.y + 12))
+            screen.blit(f_hdr.render(r["title"], True, title_col), (tx, rect.y + 10))
             screen.blit(f_txt.render(r["description"], True, _MUTED_COLOR),
-                        (tx, rect.y + 44))
+                        (tx, rect.y + 40))
 
             kind_ru = "Карта" if r["kind"] == "card" else "Реликвия"
             rew = f_small.render(f"Награда: {kind_ru} «{r['reward']}»",
                                  True, _GOLD_COLOR)
-            screen.blit(rew, (tx, rect.y + 70))
+            screen.blit(rew, (tx, rect.y + 64))
 
     # --- Назад ---
 
@@ -226,3 +302,13 @@ class AchievementsView:
         if self.back_button and self.back_button.collidepoint(mouse_pos):
             gm.current_state = "HUB"
             return
+
+        # Клик по чипу keepsake: надеть реликвию (повторный клик по надетой — снять).
+        meta = getattr(gm, "meta", None)
+        for rid, rect in self.keepsake_buttons.items():
+            if rect.collidepoint(mouse_pos):
+                target = None if keepsake.equipped(meta) == rid else rid
+                if keepsake.equip(meta, target):
+                    from managers import SaveManager
+                    SaveManager.save()
+                return
