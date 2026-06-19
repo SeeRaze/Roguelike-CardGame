@@ -112,6 +112,10 @@ class TurnPhaseMixin:
     def start_turn_phase(self):
         # Новый ход — обнуляем счётчик сыгранных карт (предикаты first/nth card).
         self.cards_played_this_turn = 0
+        # Новый ход — сброс счётчика розыгрышей по card_id (факт max_same_card_in_turn:
+        # «Дежавю» = одна карта 3× ЗА ОДИН ХОД). getattr-страховка для путей без init.
+        if hasattr(self, "_turn_card_counts"):
+            self._turn_card_counts.clear()
         # БЕЗУМИЕ (Берсерк) длится один ход — сбрасываем (надо переактивировать). NO-OP
         # для классов без безумия (атрибут просто становится False).
         self.player.overdrive_active = False

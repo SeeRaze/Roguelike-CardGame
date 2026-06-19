@@ -47,6 +47,13 @@ class ResolutionMixin:
             return
         enemy._death_processed = True
 
+        # Контент гл.1 (С71): враг умер с активной Декомпиляцией → факт для ачивки
+        # «Дамп ядра» (→ memory_dump). Читаем ДО любой чистки статусов. getattr-
+        # страховка: combat_facts может отсутствовать в лёгких стабах.
+        facts = getattr(self, "combat_facts", None)
+        if facts is not None and enemy.get_status("decomp") > 0:
+            facts["killed_with_decomp"] = True
+
         self.add_log_message(f"=== {enemy.name} ПОВЕРЖЕН! ===")
 
         # Хук on_kill -- реликвии

@@ -80,11 +80,20 @@ class CombatManager(
             "peak_hp_debt":               max(0, -self.player.hp),
             "lucky_prompt_high_mastery":  False,
             "big_boil_hit":               False,
+            # Контент гл.1 — факты карт-якорей (С71). Пики через max(), флаги через or.
+            "peak_cards_per_turn":        0,      # ≥5 → Параллелизм (task_manager)
+            "peak_element_stack":         0,      # ≥6 → Накопилось (version_control)
+            "killed_with_decomp":         False,  # decomp-килл → Дамп ядра (memory_dump)
+            "max_same_card_in_turn":      0,      # 3×/ход → Дежавю (echo_cascade)
+            "peak_distinct_elements":     0,      # 3 стихии/цель → Зоопарк (tech_regression)
             # Заполняются в момент публикации (distribute_combat_rewards):
             "victory":                    False,
             "is_boss":                    False,
             "hp_end":                     self.player.hp,
         }
+        # Счётчик розыгрышей по card_id за ТЕКУЩИЙ ход (для max_same_card_in_turn).
+        # Сбрасывается в start_turn_phase. {card_id: сколько раз сыграна за ход}.
+        self._turn_card_counts: dict = {}
 
         self.add_log_message("=== БОЙ НАЧАЛСЯ ===")
 

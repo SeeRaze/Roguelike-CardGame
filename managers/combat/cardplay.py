@@ -132,6 +132,9 @@ class CardPlayMixin:
             if post_max_dmg - _pre_max_dmg >= 60:
                 facts["big_boil_hit"] = True
 
+        # Контент гл.1 — факты карт-якорей (С71):
+        self._track_anchor_facts(facts, selected_card, target)
+
         self.player.on_card_played_passive(selected_card, self)
 
         # Post-хуки розыгрыша под предохранителем (R2): реликвии и враги реагируют
@@ -177,6 +180,44 @@ class CardPlayMixin:
         # последнего врага) → обрываем ход немедленно, без «лишней» фазы.
         self._check_victory()
         return True
+
+    def _track_anchor_facts(self, facts, selected_card, target):
+        """Контент гл.1 (С71): обновить факты карт-якорей после розыгрыша. Чистый
+        трекинг (пики max/счётчики) — НЕ влияет на бой. Sim не публикует
+        'combat_finished' → ачивки не дёргаются, эталон не задет.
+
+        - peak_cards_per_turn: пик карт за ход (Параллелизм → task_manager);
+        - max_same_card_in_turn: одна карта N раз ЗА ХОД (Дежавю → echo_cascade);
+        - peak_element_stack / peak_distinct_elements: пик стака одной стихии и числа
+          разных стихий на ОДНОМ живом враге (Накопилось / Зоопарк).
+        killed_with_decomp трекается отдельно в _check_enemy_death (момент смерти)."""
+        from core.StatusRegistry import ELEMENT_KEYS
+
+        # Темп: cards_played_this_turn уже инкрементнут выше → это число за ход.
+        facts["peak_cards_per_turn"] = max(
+            facts["peak_cards_per_turn"], self.cards_played_this_turn)
+
+        # Повтор одной карты за ход (по display-имени — повтор «той же карты»).
+        counts = self._turn_card_counts
+        name = selected_card.name
+        counts[name] = counts.get(name, 0) + 1
+        facts["max_same_card_in_turn"] = max(
+            facts["max_same_card_in_turn"], counts[name])
+
+        # Стихии на живых врагах: пик одиночного стака + пик числа разных стихий
+        # на ОДНОЙ цели (распределённые по разным врагам не считаются за «радугу»).
+        for e in self.enemies:
+            if e.hp <= 0:
+                continue
+            distinct = 0
+            for key in ELEMENT_KEYS:
+                stack = e.get_status(key)
+                if stack > 0:
+                    distinct += 1
+                    if stack > facts["peak_element_stack"]:
+                        facts["peak_element_stack"] = stack
+            if distinct > facts["peak_distinct_elements"]:
+                facts["peak_distinct_elements"] = distinct
 
     def fuse_hand_cards(self, index_a: int, index_b: int) -> bool:
         """СЛИЯНИЕ КАРТ (Химик, §2): сплавить две карты руки в одну Глитч-карту
