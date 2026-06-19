@@ -41,7 +41,14 @@ class CasinoView:
     def draw(self, view):
         screen = view.screen
         gm     = view.gm
-        meta   = getattr(gm, "meta", None) or {}
+        # Ленивый claim бонусов Грейда при входе в казино: дошёл до L1 во время
+        # забега/победы — бесплатная крутка кредитуется здесь (идемпотентно).
+        real_meta = getattr(gm, "meta", None)
+        if isinstance(real_meta, dict):
+            if meta_currency.claim_grade_rewards(real_meta):
+                from managers import SaveManager
+                SaveManager.save()
+        meta   = real_meta or {}
         mouse  = pygame.mouse.get_pos()
 
         screen.fill(_BG_COLOR)
@@ -85,19 +92,22 @@ class CasinoView:
         screen.blit(f_txt.render(grade_line, True, _MUTED_COLOR),
                     (bal_panel.x + 20, bal_panel.y + 54))
 
-        # Размер пула / бан-капасити
-        pool_size = len(casino.available_pool(meta))
-        bans_used = len(meta.get("casino_bans", []))
-        bans_cap  = casino.bans_capacity(meta)
+        # Размер пула / бан-капасити / бесплатные крутки
+        pool_size  = len(casino.available_pool(meta))
+        bans_used  = len(meta.get("casino_bans", []))
+        bans_cap   = casino.bans_capacity(meta)
+        free_spins = int(meta.get("free_spins", 0))
         info_line = (f"В пуле осталось предметов: {pool_size}  •  "
-                     f"Перманент-баны: {bans_used}/{bans_cap}")
+                     f"Перманент-баны: {bans_used}/{bans_cap}  •  "
+                     f"Бесплатные крутки: {free_spins}")
         screen.blit(f_small.render(info_line, True, _MUTED_COLOR),
                     (bal_panel.x + 20, bal_panel.y + 80))
 
         # Большая кнопка крутки
+        cost = meta_currency.CASINO_SPIN_COST
         spin_w, spin_h = 360, 80
         spin_rect = pygame.Rect(SCREEN_W // 2 - spin_w // 2, 300, spin_w, spin_h)
-        can_spin  = xp >= meta_currency.CASINO_SPIN_COST and pool_size > 0
+        can_spin  = (free_spins > 0 or xp >= cost) and pool_size > 0
         hovered   = spin_rect.collidepoint(mouse)
         if not can_spin:
             colour = (60, 60, 70)
@@ -108,8 +118,12 @@ class CasinoView:
         pygame.draw.rect(screen, colour, spin_rect, border_radius=14)
         pygame.draw.rect(screen, (100, 220, 100) if can_spin else _BTN_BORDER,
                          spin_rect, 2, border_radius=14)
-        cost = meta_currency.CASINO_SPIN_COST
-        lbl = f"КРУТИТЬ ({cost} Опыта)" if can_spin else "КРУТИТЬ — недоступно"
+        if not can_spin:
+            lbl = "КРУТИТЬ — недоступно"
+        elif free_spins > 0:
+            lbl = f"КРУТИТЬ (бесплатно ×{free_spins})"
+        else:
+            lbl = f"КРУТИТЬ ({cost} Опыта)"
         rl = pygame.font.SysFont("Arial", 28, bold=True).render(
             lbl, True, (255, 255, 255))
         screen.blit(rl, (spin_rect.centerx - rl.get_width() // 2,
@@ -189,7 +203,8 @@ class CasinoView:
             self.last_result = res
             if res.get("ok"):
                 kind_ru = "Карта" if res["kind"] == "card" else "Реликвия"
-                self.session_log.append(f"{kind_ru}: {res['id']}")
+                tag = " (бесплатно)" if res.get("free") else ""
+                self.session_log.append(f"{kind_ru}: {res['id']}{tag}")
                 # Сразу на диск (как DEV-тоггл): крутка ценная, не теряем при крэше.
                 from managers import SaveManager
                 SaveManager.save()

@@ -42,21 +42,27 @@ def available_pool(meta) -> list:
 
 
 def try_spin(meta, rng=None) -> dict:
-    """Попытка крутки казино: списать Опыт и выдать рандом-предмет из пула.
+    """Попытка крутки казино: списать бесплатную крутку ИЛИ Опыт и выдать
+    рандом-предмет из пула.
 
-    Возвращает dict {'ok': bool, 'kind': str|None, 'id': str|None, 'reason': str|None}.
-    Возможные reason: 'no_meta' / 'not_enough_xp' / 'pool_empty' / None (при ok=True).
+    Возвращает dict {'ok': bool, 'kind': str|None, 'id': str|None,
+    'reason': str|None, 'free': bool}. free=True если списалась бесплатная крутка
+    (бонус L1 Грейда), а не Опыт. Возможные reason: 'no_meta' / 'not_enough_xp' /
+    'pool_empty' / None (при ok=True).
 
-    Идемпотентность провала: мета НЕ мутируется ни при одной из ошибок —
-    проверки → списание → запись id, в этом порядке. rng по умолчанию = модуль
-    random (для тестов передаётся random.Random(seed))."""
+    Бесплатные крутки (meta['free_spins']) тратятся ПЕРВЫМИ — иначе игрок мог бы
+    «сжечь» Опыт, имея бесплатную. Идемпотентность провала: мета НЕ мутируется ни
+    при одной из ошибок — проверки → списание → запись id, в этом порядке. rng по
+    умолчанию = модуль random (для тестов передаётся random.Random(seed))."""
     if meta is None:
-        return {"ok": False, "kind": None, "id": None, "reason": "no_meta"}
-    if int(meta.get("xp", 0)) < meta_currency.CASINO_SPIN_COST:
-        return {"ok": False, "kind": None, "id": None, "reason": "not_enough_xp"}
+        return {"ok": False, "kind": None, "id": None, "reason": "no_meta", "free": False}
+    free = int(meta.get("free_spins", 0)) > 0
+    if not free and int(meta.get("xp", 0)) < meta_currency.CASINO_SPIN_COST:
+        return {"ok": False, "kind": None, "id": None,
+                "reason": "not_enough_xp", "free": False}
     pool = available_pool(meta)
     if not pool:
-        return {"ok": False, "kind": None, "id": None, "reason": "pool_empty"}
+        return {"ok": False, "kind": None, "id": None, "reason": "pool_empty", "free": False}
 
     chooser = rng if rng is not None else random
     # Стабильный порядок: список из множеств приходит в порядке итерации set'а
@@ -66,15 +72,19 @@ def try_spin(meta, rng=None) -> dict:
     pool_sorted = sorted(pool, key=lambda kv: (kv[0], kv[1]))
     kind, item_id = chooser.choice(pool_sorted)
 
-    # Списываем Опыт (spend_xp гарантирует возврат True — мы уже проверили баланс).
-    meta_currency.spend_xp(meta, meta_currency.CASINO_SPIN_COST)
+    # Бесплатная крутка тратится первой; иначе списываем Опыт (spend_xp вернёт True —
+    # баланс уже проверен).
+    if free:
+        meta["free_spins"] = int(meta.get("free_spins", 0)) - 1
+    else:
+        meta_currency.spend_xp(meta, meta_currency.CASINO_SPIN_COST)
     meta.setdefault("casino_seen", []).append(item_id)
     # Грант в общий список анлоков → is_card_unlocked/is_relic_unlocked сразу True
     # (см. core/progression.py — namespace классов/карт/реликвий не пересекается).
     unlocks = meta.setdefault("unlocks", [])
     if item_id not in unlocks:
         unlocks.append(item_id)
-    return {"ok": True, "kind": kind, "id": item_id, "reason": None}
+    return {"ok": True, "kind": kind, "id": item_id, "reason": None, "free": free}
 
 
 # ─── Перманент-баны (L2+ Грейд) ───────────────────────────────────────────────

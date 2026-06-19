@@ -93,3 +93,33 @@ def xp_to_next(meta):
         return None
     gx = 0 if meta is None else int(meta.get("grade_xp", 0))
     return max(0, nxt - gx)
+
+
+def claim_grade_rewards(meta) -> list:
+    """Выдать ещё-не-выданные РАЗОВЫЕ бонусы достигнутых ступеней Грейда.
+
+    Идемпотентна: отмеченные ступени пишутся в meta['claimed_grades'], повторный
+    вызов без роста Грейда вернёт []. Возвращает список номеров ступеней, бонусы
+    которых выданы ИМЕННО СЕЙЧАС (для всплывашек/логов).
+
+    Сейчас разовый бонус один:
+      • L1 «Первый PR» → +1 бесплатная крутка казино (meta['free_spins']).
+    Прочие бонусы ступеней — ПАССИВНЫЕ права от current_grade, claim не требуют:
+      • L2 → +1 слот перманент-бана (casino.bans_capacity читает грейд напрямую);
+      • L3 → хардкор-режим + per-run бан тега (гейт по грейду);
+      • L4 → нарративный маяк Демиурга.
+
+    meta=None → [] (sim/baseline-контракт)."""
+    if meta is None:
+        return []
+    claimed = meta.setdefault("claimed_grades", [])
+    grade = current_grade(meta)
+    newly = []
+    for tier in range(1, grade + 1):
+        if tier in claimed:
+            continue
+        claimed.append(tier)
+        newly.append(tier)
+        if tier == 1:
+            meta["free_spins"] = int(meta.get("free_spins", 0)) + 1
+    return newly

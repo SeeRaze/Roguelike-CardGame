@@ -56,7 +56,9 @@ def _default_meta() -> dict:
         "achievements": [],    # id выполненных достижений (фикс-гранты, без дублей)
         "casino_bans":  [],    # перманент-баны казино (L2 Грейд: +1 слот)
         "casino_seen":  [],    # id уже выкрученных предметов (анти-дубль)
-        "keepsake":     None,  # L1 Грейд: носимый стартер (id; пока заглушка)
+        "keepsake":     None,  # L1 Грейд: носимая реликвия по выбору (relic_id)
+        "free_spins":   0,     # L1 Грейд: бесплатные крутки казино (claim-бонус)
+        "claimed_grades": [],  # номера ступеней, чьи разовые бонусы уже выданы
     }
 
 
@@ -158,6 +160,7 @@ def record_run(run: dict) -> list:
     # давала что-то даже после смерти на этаже 3. Точка наполнения за UI-фасадом
     # (record_run зовётся только из defeat.py живой игры; sim/baseline сюда не ходят).
     meta_currency.grant_xp(meta, 50)
+    meta_currency.claim_grade_rewards(meta)    # разовые бонусы ступеней (L1 крутка)
     fresh = progression.newly_unlocked(meta)   # грант анлоков по итогам забега
     save()
     return fresh
