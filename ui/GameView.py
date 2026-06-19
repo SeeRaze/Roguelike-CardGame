@@ -91,7 +91,7 @@ class GameView:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    if self.gm.current_state in ["MAIN_MENU", "HUB"]:
+                    if self.gm.current_state in ["MAIN_MENU", "HUB", "CASINO"]:
                         MainMenu.handle_clicks(self, mouse_pos)
                         continue
                     if self.gm.current_state == "MAP":
@@ -157,4 +157,7 @@ class GameView:
         from ui.combat.relic_panel import RelicPanel
         if RelicPanel.is_open(self):
             RelicPanel.draw(self, self.screen)
+        # Баннер «Достижение открыто!» — поверх всего, очередь автозатухает (С70 Э4).
+        from ui import achievement_popup
+        achievement_popup.draw(self.screen)
         pygame.display.flip()

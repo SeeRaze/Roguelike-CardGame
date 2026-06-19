@@ -1,6 +1,6 @@
 import pygame
 import sys
-from ui.hub import HubView
+from ui.hub import HubView, CasinoView
 
 
 class MainMenu:
@@ -20,7 +20,8 @@ class MainMenu:
     _EXIT_COLOR      = (180,  60,  60)
     _EXIT_HOVER      = (220,  80,  80)
 
-    _hub: HubView = None
+    _hub:    HubView    = None
+    _casino: CasinoView = None
 
     @classmethod
     def get_hub(cls) -> HubView:
@@ -29,8 +30,15 @@ class MainMenu:
         return cls._hub
 
     @classmethod
+    def get_casino(cls) -> CasinoView:
+        if cls._casino is None:
+            cls._casino = CasinoView()
+        return cls._casino
+
+    @classmethod
     def reset(cls):
-        cls._hub = None
+        cls._hub    = None
+        cls._casino = None
 
     @staticmethod
     def draw_menu(view):
@@ -127,6 +135,10 @@ class MainMenu:
         MainMenu.get_hub().draw(view)
 
     @staticmethod
+    def draw_casino(view):
+        MainMenu.get_casino().draw(view)
+
+    @staticmethod
     def handle_clicks(view, mouse_pos):
         if view.gm.current_state == "MAIN_MENU":
             cont = getattr(view, 'btn_menu_continue', None)
@@ -152,3 +164,6 @@ class MainMenu:
 
         elif view.gm.current_state == "HUB":
             MainMenu.get_hub().handle_click(view, mouse_pos)
+
+        elif view.gm.current_state == "CASINO":
+            MainMenu.get_casino().handle_click(view, mouse_pos)

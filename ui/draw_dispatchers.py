@@ -16,6 +16,7 @@ from ui.cards import CardRenderer
 
 def _draw_main_menu(view):    MainMenu.draw_menu(view)
 def _draw_hub(view):          MainMenu.draw_hub(view)
+def _draw_casino(view):       MainMenu.draw_casino(view)
 def _draw_map(view):          MapView.draw_map(view)
 def _draw_campfire(view):     Campfire.draw_screen(view)
 def _draw_shop(view):         Shop.draw_screen(view)
@@ -67,6 +68,7 @@ def _draw_combat(view):
 DRAW_HANDLERS = {
     "MAIN_MENU":    _draw_main_menu,
     "HUB":          _draw_hub,
+    "CASINO":       _draw_casino,
     "MAP":          _draw_map,
     "COMBAT":       _draw_combat,
     "CAMPFIRE":     _draw_campfire,

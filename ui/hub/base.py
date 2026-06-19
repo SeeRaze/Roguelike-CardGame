@@ -20,6 +20,7 @@ class HubView:
         self.class_buttons:    dict  = {}
         self.stake_buttons:    dict  = {}
         self.dev_button              = None
+        self.casino_button           = None      # С70 Этап 4: вход в казино
         self.is_start_hovered: bool  = False
 
     def reset(self):
@@ -68,6 +69,8 @@ class HubView:
         self._draw_meta_stats(screen, gm)
         self._draw_stake_toggles(screen, gm)
         self._draw_dev_toggle(screen, gm)
+        self._draw_casino_button(screen, gm, mouse_pos)
+        self._draw_grade_panel(screen, gm)
         self._draw_menu_button(screen, mouse_pos)
         self._draw_start_button(view, screen, mouse_pos)
 
@@ -106,6 +109,56 @@ class HubView:
         screen.blit(t, (rect.centerx - t.get_width() // 2,
                         rect.centery - t.get_height() // 2))
         self.dev_button = rect
+
+    def _draw_casino_button(self, screen, gm, mouse_pos):
+        """Вход в казино мета-прогрессии (С70 Этап 4). Свободное место — под
+        DEV-тогглом в правом верхнем углу. Полировка позиции/стиля позже."""
+        from core import meta_currency
+        meta = getattr(gm, "meta", None)
+        if meta is None:
+            return
+        font_lbl = pygame.font.SysFont("Arial", 16, bold=True)
+        font_sub = pygame.font.SysFont("Arial", 14)
+        btn_w, btn_h = 240, 50
+        rect = pygame.Rect(SCREEN_W - btn_w - 20, 64, btn_w, btn_h)
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, (60, 80, 110) if hovered else (40, 55, 80),
+                         rect, border_radius=6)
+        pygame.draw.rect(screen, (140, 180, 240), rect, 2, border_radius=6)
+        t1 = font_lbl.render("КАЗИНО", True, _TITLE_COLOR)
+        screen.blit(t1, (rect.centerx - t1.get_width() // 2, rect.y + 6))
+        xp   = int(meta.get("xp", 0))
+        cost = meta_currency.CASINO_SPIN_COST
+        t2 = font_sub.render(f"Опыт: {xp}  •  Крутка: {cost}", True, _TEXT_COLOR)
+        screen.blit(t2, (rect.centerx - t2.get_width() // 2, rect.y + 28))
+        self.casino_button = rect
+
+    def _draw_grade_panel(self, screen, gm):
+        """Компактная панель статуса Грейда у заголовка Хаба — игрок видит
+        прогресс лестницы, не заходя в казино. С70 Этап 4."""
+        from core import meta_currency
+        meta = getattr(gm, "meta", None)
+        if meta is None:
+            return
+        font_h = pygame.font.SysFont("Arial", 18, bold=True)
+        font_v = pygame.font.SysFont("Arial", 16)
+        grade  = meta_currency.current_grade(meta)
+        labels = (
+            "L0 Onboarding", "L1 Первый PR", "L2 On-call",
+            "L3 Архитектор", "L4 CTO",
+        )
+        lbl_text = labels[grade] if grade < len(labels) else "L?"
+        gx       = int(meta.get("grade_xp", 0))
+        nxt      = meta_currency.next_threshold(meta)
+
+        # Слева под «В главное меню» — свободная полоса.
+        x, y = 24, 70
+        screen.blit(font_h.render(f"Грейд: {lbl_text}", True, _TITLE_COLOR), (x, y))
+        if nxt is None:
+            line = f"Грейд-Опыт: {gx} (потолок)"
+        else:
+            line = f"Грейд-Опыт: {gx} / {nxt}"
+        screen.blit(font_v.render(line, True, _TEXT_COLOR), (x, y + 24))
 
     def _draw_stake_toggles(self, screen, gm):
         """Ряд тогглов Ставок (опт-ин сложность поверх RuleStack). Клик переключает
@@ -222,6 +275,12 @@ class HubView:
                 else:
                     gm.pending_stakes.append(stake_id)
                 return
+
+        # Вход в казино (С70 Этап 4).
+        cas_rect = getattr(self, "casino_button", None)
+        if cas_rect is not None and cas_rect.collidepoint(mouse_pos):
+            gm.current_state = "CASINO"
+            return
 
         # DEV-тоггл полного доступа: переключает meta['dev_unlock_all'] + персист.
         dev_rect = getattr(self, "dev_button", None)

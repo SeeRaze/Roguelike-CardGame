@@ -32,6 +32,10 @@ class GameManager:
         # зовётся → ачивки в эталоне не срабатывают (контракт «sim слеп»).
         from core import achievements
         achievements.register_handlers()
+        # Поп-ап ачивок (С70 Этап 4): подписка на 'achievement_unlocked', очередь
+        # рендерится в GameView поверх любого state'а. Идемпотентно.
+        from ui import achievement_popup
+        achievement_popup.register_handlers()
 
         self.stats = {
             "name":             self.player_name,
