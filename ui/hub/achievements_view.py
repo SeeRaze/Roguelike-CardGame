@@ -244,44 +244,54 @@ class AchievementsView:
 
     def _draw_achievements(self, screen, meta, f_hdr, f_txt, f_small):
         rows = catalog_rows(meta)
-        top   = 432
-        row_h = 88
-        gap   = 8
-        x     = SCREEN_W // 2 - 560
-        w     = 1120
+        # 2 колонки × N строк: каталог дорос до 12 ачивок (контент гл.1) — в один
+        # столбец не влезает. Раскладка по столбцам сверху-вниз (слева 0..k-1).
+        top      = 430
+        row_h    = 88
+        gap      = 10
+        col_gap  = 16
+        cols     = 2
+        full_w   = 1120
+        x0       = SCREEN_W // 2 - full_w // 2
+        col_w    = (full_w - col_gap * (cols - 1)) // cols
+        per_col  = (len(rows) + cols - 1) // cols       # строк в столбце (округл. вверх)
+
         for i, r in enumerate(rows):
-            ry = top + i * (row_h + gap)
-            rect = pygame.Rect(x, ry, w, row_h)
+            col = i // per_col
+            row = i % per_col
+            rx  = x0 + col * (col_w + col_gap)
+            ry  = top + row * (row_h + gap)
+            rect = pygame.Rect(rx, ry, col_w, row_h)
             done = r["done"]
             bg     = (28, 48, 30) if done else (24, 24, 40)
             border = (110, 200, 110) if done else _BTN_BORDER
             pygame.draw.rect(screen, bg, rect, border_radius=10)
             pygame.draw.rect(screen, border, rect, 2, border_radius=10)
 
-            # Бейдж статуса слева.
-            badge_w = 150
-            badge = pygame.Rect(rect.x + 16, rect.y + 24, badge_w, 40)
+            # Заголовок + компактный статус-бейдж справа сверху.
+            title_col = (235, 255, 235) if done else _TEXT_COLOR
+            ttl = self._fit_text(r["title"], f_hdr, col_w - 150, title_col)
+            screen.blit(ttl, (rect.x + 14, rect.y + 9))
+
+            badge = pygame.Rect(rect.right - 126, rect.y + 10, 112, 26)
             if done:
-                pygame.draw.rect(screen, (40, 90, 40), badge, border_radius=8)
-                pygame.draw.rect(screen, (130, 230, 130), badge, 2, border_radius=8)
+                pygame.draw.rect(screen, (40, 90, 40), badge, border_radius=7)
+                pygame.draw.rect(screen, (130, 230, 130), badge, 2, border_radius=7)
                 bt = f_small.render("✓ ОТКРЫТО", True, (180, 255, 180))
             else:
-                pygame.draw.rect(screen, (45, 40, 30), badge, border_radius=8)
-                pygame.draw.rect(screen, _BTN_BORDER, badge, 2, border_radius=8)
+                pygame.draw.rect(screen, (45, 40, 30), badge, border_radius=7)
+                pygame.draw.rect(screen, _BTN_BORDER, badge, 2, border_radius=7)
                 bt = f_small.render("ЗАПЕРТО", True, _MUTED_COLOR)
             screen.blit(bt, (badge.centerx - bt.get_width() // 2,
                              badge.centery - bt.get_height() // 2))
 
-            tx = rect.x + 16 + badge_w + 20
-            title_col = (235, 255, 235) if done else _TEXT_COLOR
-            screen.blit(f_hdr.render(r["title"], True, title_col), (tx, rect.y + 10))
-            screen.blit(f_txt.render(r["description"], True, _MUTED_COLOR),
-                        (tx, rect.y + 40))
-
+            # Описание (фит по ширине) + награда.
+            desc = self._fit_text(r["description"], f_small, col_w - 28, _MUTED_COLOR)
+            screen.blit(desc, (rect.x + 14, rect.y + 40))
             kind_ru = "Карта" if r["kind"] == "card" else "Реликвия"
-            rew = f_small.render(f"Награда: {kind_ru} «{r['reward']}»",
-                                 True, _GOLD_COLOR)
-            screen.blit(rew, (tx, rect.y + 64))
+            rew = self._fit_text(f"Награда: {kind_ru} «{r['reward']}»",
+                                 f_small, col_w - 28, _GOLD_COLOR)
+            screen.blit(rew, (rect.x + 14, rect.y + 62))
 
     # --- Назад ---
 
