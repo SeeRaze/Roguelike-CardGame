@@ -162,6 +162,17 @@ def test_accrue_bug_кладёт_баги_в_колоду():
     assert all(c.name == "Баг" for c in gm.deck)
 
 
+def test_gain_random_relic_не_выдаёт_challenge_релик():
+    # Легендарка-за-испытание (С72) исключена из случайной выдачи событием даже
+    # при анлоке: её детерминированно фильтрует из пула (только за развязку).
+    gm = _gm_full()
+    gm.meta = {"unlocks": ["ТочкаОтказа"]}
+    for _ in range(30):
+        gm.relics = []
+        apply_effect("gain_random_relic", gm)
+        assert type(gm.relics[0]).__name__ != "ТочкаОтказа"
+
+
 # ── С72: подсистема ИСПЫТАНИЙ под легендарки (флаги-цепочки + condition-опции) ──
 def test_set_flag_ставит_флаг_забега():
     gm = _gm()

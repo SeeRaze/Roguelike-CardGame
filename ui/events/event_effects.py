@@ -144,14 +144,16 @@ def apply_effect(effect_str: str, gm) -> None:
         # Случайная реликвия из ВСЕГО пула (meta-фильтр по анлокам, как у карт), а не
         # из устаревшего ручного реестра _get_relic_class → события дотягиваются до
         # нового контента (Блок 3). Дедуп по уже имеющимся (не выдаём дубль).
+        # Легендарки-за-испытание (С72) исключены — они только за развязку испытания.
         from core.relics import ALL_RELICS
-        from core.progression import is_relic_unlocked, relic_id_for
+        from core.progression import is_relic_unlocked, relic_id_for, is_challenge_relic
         meta  = getattr(gm, "meta", None)
         owned = {type(r).__name__ for r in gm.relics}
-        pool  = [c for c in ALL_RELICS
+        elig  = [c for c in ALL_RELICS if not is_challenge_relic(relic_id_for(c))]
+        pool  = [c for c in elig
                  if is_relic_unlocked(meta, relic_id_for(c)) and c.__name__ not in owned]
         if not pool:                      # всё уже есть/залочено → не падаем
-            pool = [c for c in ALL_RELICS if c.__name__ not in owned] or ALL_RELICS
+            pool = [c for c in elig if c.__name__ not in owned] or elig
         r = random.choice(pool)()
         gm.relics.append(r)
         gm.event_result = f"Получена реликвия: {r.name}"

@@ -4,7 +4,7 @@
 import random
 from core.relics import RELIC_POOL, ALL_RELICS
 from core.rarity import Rarity
-from core.progression import is_relic_unlocked, relic_id_for
+from core.progression import is_relic_unlocked, relic_id_for, is_challenge_relic
 
 
 def _roll_relic_rarity(is_boss: bool, is_elite: bool, floor: int = 0) -> Rarity:
@@ -51,6 +51,10 @@ def _pick_relic(gm, rarity: Rarity):
     def _ok(r):
         inst = r()
         if inst.name in current_names:
+            return False
+        # Легендарка-за-испытание (С72): НЕ выпадает рандомом ни при каких meta —
+        # её даёт только развязка испытания (gain_relic). Безусловно, до meta-чека.
+        if is_challenge_relic(relic_id_for(r)):
             return False
         rc = getattr(inst, "relic_class", None)
         if rc is not None and rc != player_class:
