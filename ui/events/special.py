@@ -11,6 +11,25 @@ def _death_march_pledged(gm):
     return getattr(gm, "death_march", False)
 
 
+# ── ИСПЫТАНИЕ «Точка отказа» (С72, раскатка Z2). ОРТОГОНАЛЬНО мете (Option A):
+# завязка «Незаменимый» появляется, ТОЛЬКО если легендарка открыта в мете (казино)
+# — так мета «открывает испытание», а рандом-дроп убран ([[legendary-challenges]]).
+def _point_of_failure_offered(gm):
+    """Условие ЗАВЯЗКИ «Незаменимый»: легендарка открыта в мете, не в инвентаре,
+    испытание ещё не начато (флаг не стоит). Иначе крутится развязка / ничего."""
+    from core.progression import is_relic_unlocked
+    if getattr(gm, "point_of_failure", False):
+        return False                       # уже подписан → крутится развязка
+    if not is_relic_unlocked(getattr(gm, "meta", None), "ТочкаОтказа"):
+        return False                       # мета ещё не открыла «в принципе»
+    return all(type(r).__name__ != "ТочкаОтказа" for r in getattr(gm, "relics", []))
+
+
+def _point_of_failure_pledged(gm):
+    """Условие РАЗВЯЗКИ «Точка отказа»: завязка поставила флаг point_of_failure."""
+    return getattr(gm, "point_of_failure", False)
+
+
 SPECIAL_EVENTS = [
     {
         "type": "special",
@@ -58,6 +77,51 @@ SPECIAL_EVENTS = [
             {
                 "label": "Соскочить с марша (+монеты)",
                 "effects": ["remove_flag:death_march", "gain_gold_floor:3"],
+            },
+        ],
+    },
+    # ── ИСПЫТАНИЕ (С72, Z2): ЗАВЯЗКА цепочки «Точка отказа». Видна ТОЛЬКО при
+    # мета-анлоке (_point_of_failure_offered). СКРЫТЫЙ ПЕЙОФФ: текст молчит про
+    # легендарку, берёт техдолг легаси (+2 Бага) вслепую. ──
+    {
+        "type": "special",
+        "title": "Незаменимый",
+        "text": (
+            "Легаси-сервис, который понимаешь только ты. Ни доков, ни второго на подхвате.\n"
+            "«Будешь единственным, кто его держит?» — спрашивают, уже зная ответ.\n"
+            "Соглашаешься. Теперь всё на тебе — и весь его техдолг тоже."
+        ),
+        "condition": _point_of_failure_offered,
+        "options": [
+            {
+                "label": "Взять систему на себя",
+                "effects": ["set_flag:point_of_failure", "accrue_bug:2"],
+            },
+            {
+                "label": "Настоять на резервировании",
+                "effects": ["skip"],
+            },
+        ],
+    },
+    # ── РАЗВЯЗКА: пейофф РАСКРЫВАЕТСЯ (текст описывает эффект легендарки), выдаёт
+    # «Точка отказа». «Настроить резервирование» снимает флаг + компенсация. ──
+    {
+        "type": "special",
+        "title": "Точка отказа",
+        "text": (
+            "Сервис лёг — и встал только потому, что ты не отошёл ни на шаг.\n"
+            "Теперь ясно: ты и есть точка отказа. Один удар по тебе — и всё погасло.\n"
+            "Зато любую защиту держишь насмерть, и эта стена бьёт в ответ."
+        ),
+        "condition": _point_of_failure_pledged,
+        "options": [
+            {
+                "label": "Стать точкой отказа",
+                "effects": ["gain_relic:ТочкаОтказа", "remove_flag:point_of_failure"],
+            },
+            {
+                "label": "Настроить резервирование (+монеты)",
+                "effects": ["remove_flag:point_of_failure", "gain_gold_floor:3"],
             },
         ],
     },

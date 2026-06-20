@@ -260,3 +260,68 @@ def test_забрать_марш_закрыт_при_hp_1():
                    if "gain_relic:МаршСмерти" in o["effects"])
     assert option_visible(забрать, _gm(hp=1)) is False
     assert option_visible(забрать, _gm(hp=20)) is True
+
+
+# ── С72 раскатка Z2: испытание «Точка отказа» (Незаменимый → Точка отказа) ──
+def _незаменимый():
+    from ui.events.special import SPECIAL_EVENTS
+    return next(e for e in SPECIAL_EVENTS if e["title"] == "Незаменимый")
+
+
+def _точка_отказа():
+    from ui.events.special import SPECIAL_EVENTS
+    return next(e for e in SPECIAL_EVENTS if e["title"] == "Точка отказа")
+
+
+def test_завязка_незаменимый_не_спойлерит_награду():
+    # Скрытый пейофф: текст/лейблы завязки НЕ упоминают легендарку, цена = техдолг.
+    зав = _незаменимый()
+    текст = зав["text"] + " ".join(o["label"] for o in зав["options"])
+    assert "Точка отказа" not in текст
+    подписка = next(o for o in зав["options"] if "set_flag:point_of_failure" in o["effects"])
+    assert "accrue_bug:2" in подписка["effects"]
+
+
+def test_завязка_видна_только_при_мета_анлоке():
+    # Option A «мета открывает испытание»: завязка появляется ТОЛЬКО если
+    # легендарка открыта в мете (казино). Не открыта → ни испытания, ни дропа.
+    зав = _незаменимый()
+    gm = _gm_full(); gm.meta = {"unlocks": []}
+    assert зав["condition"](gm) is False
+    gm.meta = {"unlocks": ["ТочкаОтказа"]}
+    assert зав["condition"](gm) is True
+
+
+def test_завязка_прячется_если_уже_взята_или_подписана():
+    from core.relics.advanced import ТочкаОтказа
+    зав = _незаменимый()
+    gm = _gm_full(); gm.meta = {"unlocks": ["ТочкаОтказа"]}; gm.point_of_failure = True
+    assert зав["condition"](gm) is False                # подписан → крутится развязка
+    gm2 = _gm_full(); gm2.meta = {"unlocks": ["ТочкаОтказа"]}; gm2.relics = [ТочкаОтказа()]
+    assert зав["condition"](gm2) is False               # уже в инвентаре
+
+
+def test_развязка_точка_отказа_дремлет_без_флага():
+    разв = _точка_отказа()
+    gm = _gm_full()
+    assert разв["condition"](gm) is False
+    gm.point_of_failure = True
+    assert разв["condition"](gm) is True
+
+
+def test_цепочка_точка_отказа_выдаёт_легендарку():
+    # Сквозной проход: подписался (флаг + 2 Бага вслепую) → забрал «Точку отказа».
+    from ui.events.event_effects import apply_option
+    gm = _gm_full(); gm.meta = {"unlocks": ["ТочкаОтказа"]}
+    gm.add_card = lambda c: gm.deck.append(c)
+    подписка = next(o for o in _незаменимый()["options"]
+                    if "set_flag:point_of_failure" in o["effects"])
+    apply_option(подписка, gm)
+    assert gm.point_of_failure is True
+    assert len(gm.deck) == 2 and all(c.name == "Баг" for c in gm.deck)   # техдолг уплачен
+
+    забрать = next(o for o in _точка_отказа()["options"]
+                   if "gain_relic:ТочкаОтказа" in o["effects"])
+    apply_option(забрать, gm)
+    assert any(type(r).__name__ == "ТочкаОтказа" for r in gm.relics)
+    assert gm.point_of_failure is False                  # флаг снят после выдачи
