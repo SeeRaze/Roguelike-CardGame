@@ -20,7 +20,7 @@ def _get_relic_class(name: str):
         "СборщикМусора": СборщикМусора,
         "ОткатКБэкапу":       ОткатКБэкапу,
         "ЗомбиПроцесс":         ЗомбиПроцесс,
-        "МаршСмерти":    МаршСмерти,
+        "МаршСмерти":    МаршСмерти,   # LEGENDARY за испытание (С72): изъят из рандом-выдачи → только развязкой
         "GitBlame":      GitBlame,
         "Дедлайн": Дедлайн,
         "СнекБар":       СнекБар,
@@ -170,6 +170,14 @@ def apply_effect(effect_str: str, gm) -> None:
         for _ in range(amount):
             gm.add_card(create_bug())
         gm.event_result = f"+{amount} Баг(ов) в колоду"
+
+    elif key == "set_flag":
+        # Ставит флаг-веху забега (мост многошаговых ИСПЫТАНИЙ, С72): завязка ставит
+        # флаг → развязка-событие читает его через condition (зеркало remove_flag).
+        # СКРЫТЫЙ ПЕЙОФФ (решение юзера): не спойлерит награду — даём нейтральный
+        # event_result, который перетрётся ценой (lose_hp_pct идёт в опции ПОСЛЕ).
+        setattr(gm, value, True)
+        gm.event_result = "Ты ввязался."
 
     elif key == "remove_flag":
         if hasattr(gm, value):

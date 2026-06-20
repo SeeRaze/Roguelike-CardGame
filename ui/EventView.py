@@ -27,6 +27,16 @@ def reset():
     _current_event = None
 
 
+def option_visible(opt, gm):
+    """Видима ли опция события. True, если у опции нет ключа "condition" ИЛИ
+    condition(gm) истинно. condition-опции (С72, подсистема испытаний) скрывают
+    недоступный выбор — это держит тайну награды (см. [[legendary-challenges]]):
+    «Забрать ???» не маячит, пока игрок не заслужил. Чистая функция → тестируема
+    без pygame."""
+    cond = opt.get("condition")
+    return cond is None or cond(gm)
+
+
 def draw_screen(view):
     global _option_rects
 
@@ -87,6 +97,11 @@ def draw_screen(view):
 
     y += 60
     for i, opt in enumerate(_current_event["options"]):
+        # condition-ОПЦИИ (С72): скрытая опция держит тайну награды (option_visible).
+        # Индекс i — реальный (handle_clicks берёт options[i]); пропуск отрисовки
+        # его НЕ сдвигает, поэтому теги остаются консистентными.
+        if not option_visible(opt, view.gm):
+            continue
         btn_rect = pygame.Rect(W // 2 - 380, y, 760, 64)
         hover = btn_rect.collidepoint(mouse)
         pygame.draw.rect(screen, _BTN_HOVER_COLOR if hover else _BTN_COLOR,

@@ -160,3 +160,38 @@ def test_accrue_bug_кладёт_баги_в_колоду():
     apply_effect("accrue_bug:2", gm)
     assert len(gm.deck) == 2
     assert all(c.name == "Баг" for c in gm.deck)
+
+
+# ── С72: подсистема ИСПЫТАНИЙ под легендарки (флаги-цепочки + condition-опции) ──
+def test_set_flag_ставит_флаг_забега():
+    gm = _gm()
+    assert getattr(gm, "death_march", False) is False
+    apply_effect("set_flag:death_march", gm)
+    assert gm.death_march is True
+
+
+def test_set_remove_flag_полный_цикл():
+    # Завязка ставит флаг → развязка снимает (мост многошаговых испытаний).
+    gm = _gm()
+    apply_effect("set_flag:quest", gm)
+    assert gm.quest is True
+    apply_effect("remove_flag:quest", gm)
+    assert gm.quest is False
+
+
+def test_gain_relic_марш_смерти_выдаётся():
+    # Легендарка-за-испытание: Марш смерти изъят из рандом-пулов и доступен ТОЛЬКО
+    # именным gain_relic (развязка испытания). Реестр _get_relic_class знает его.
+    gm = _gm_full()
+    apply_effect("gain_relic:МаршСмерти", gm)
+    assert len(gm.relics) == 1
+    assert type(gm.relics[0]).__name__ == "МаршСмерти"
+
+
+def test_option_visible_гейтит_опцию_по_condition():
+    # condition-опции (С72): опция без condition видна; с condition — по предикату.
+    from ui.EventView import option_visible
+    gm = _gm(hp=10)
+    assert option_visible({"label": "x"}, gm) is True
+    assert option_visible({"label": "x", "condition": lambda g: g.player.hp > 1}, gm) is True
+    assert option_visible({"label": "x", "condition": lambda g: g.player.hp > 100}, gm) is False
