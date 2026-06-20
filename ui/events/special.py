@@ -4,6 +4,13 @@ def _has_basilisk_egg(gm):
     return getattr(gm, "has_basilisk_egg", False)
 
 
+# Условие РАЗВЯЗКИ испытания «Марш смерти» (С72): флаг ставит ЗАВЯЗКА «Кранч»
+# (neutral.py, set_flag:death_march). Пока флаг стоит, развязка крутится в пуле
+# (вес ×2) — раскрывает скрытый пейофф и выдаёт легендарку. См. [[legendary-challenges]].
+def _death_march_pledged(gm):
+    return getattr(gm, "death_march", False)
+
+
 SPECIAL_EVENTS = [
     {
         "type": "special",
@@ -26,6 +33,31 @@ SPECIAL_EVENTS = [
             {
                 "label": "Тихо уйти",
                 "effects": ["skip"],
+            },
+        ],
+    },
+    # ── ИСПЫТАНИЕ (С72): РАЗВЯЗКА цепочки «Марш смерти». Появляется ТОЛЬКО с флагом
+    # death_march (поставлен завязкой «Кранч»). Здесь скрытый пейофф РАСКРЫВАЕТСЯ.
+    # Опция «Забрать» гейтится condition-опции (HP>1: пережил кранч) → выдаёт
+    # легендарку, изъятую из рандом-выдачи. «Соскочить» снимает флаг + компенсация. ──
+    {
+        "type": "special",
+        "title": "Дедлайн сдан",
+        "text": (
+            "Проект сдан ценой здоровья. Команда полегла — ты выстоял.\n"
+            "За марш полагается награда: реликвия, что бьёт вдвое...\n"
+            "но золота из неё не выжать, и карты режет вдвое дороже."
+        ),
+        "condition": _death_march_pledged,
+        "options": [
+            {
+                "label": "Забрать Марш смерти",
+                "condition": lambda gm: gm.player.hp > 1,
+                "effects": ["gain_relic:МаршСмерти", "remove_flag:death_march"],
+            },
+            {
+                "label": "Соскочить с марша (+монеты)",
+                "effects": ["remove_flag:death_march", "gain_gold_floor:3"],
             },
         ],
     },

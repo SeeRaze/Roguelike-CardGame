@@ -195,3 +195,57 @@ def test_option_visible_гейтит_опцию_по_condition():
     assert option_visible({"label": "x"}, gm) is True
     assert option_visible({"label": "x", "condition": lambda g: g.player.hp > 1}, gm) is True
     assert option_visible({"label": "x", "condition": lambda g: g.player.hp > 100}, gm) is False
+
+
+# ── С72 инкремент 2: цепочка-испытание «Марш смерти» (завязка → развязка) ──
+def _кранч():
+    from ui.events.neutral import NEUTRAL_EVENTS
+    return next(e for e in NEUTRAL_EVENTS if e["title"] == "Кранч")
+
+
+def _дедлайн_сдан():
+    from ui.events.special import SPECIAL_EVENTS
+    return next(e for e in SPECIAL_EVENTS if e["title"] == "Дедлайн сдан")
+
+
+def test_завязка_кранч_не_спойлерит_награду():
+    # Скрытый пейофф: текст/лейблы завязки НЕ упоминают легендарку.
+    кранч = _кранч()
+    весь_текст = кранч["text"] + " ".join(o["label"] for o in кранч["options"])
+    assert "Марш смерти" not in весь_текст
+    assert any("set_flag:death_march" in o["effects"] for o in кранч["options"])
+
+
+def test_развязка_дремлет_без_флага():
+    # Развязка появляется ТОЛЬКО когда завязка поставила флаг.
+    разв = _дедлайн_сдан()
+    gm = _gm_full()
+    assert разв["condition"](gm) is False
+    gm.death_march = True
+    assert разв["condition"](gm) is True
+
+
+def test_цепочка_выдаёт_марш_и_снимает_флаг():
+    # Сквозной проход: подписался (флаг+цена HP) → забрал Марш смерти → флаг снят.
+    from ui.events.event_effects import apply_option
+    gm = _gm_full()
+    gm.player.hp = gm.player.max_hp
+    подписка = next(o for o in _кранч()["options"] if "set_flag:death_march" in o["effects"])
+    apply_option(подписка, gm)
+    assert gm.death_march is True
+    assert gm.player.hp < gm.player.max_hp                  # задаток кровью уплачен
+
+    забрать = next(o for o in _дедлайн_сдан()["options"]
+                   if "gain_relic:МаршСмерти" in o["effects"])
+    apply_option(забрать, gm)
+    assert any(type(r).__name__ == "МаршСмерти" for r in gm.relics)
+    assert gm.death_march is False                          # флаг снят после получения
+
+
+def test_забрать_марш_закрыт_при_hp_1():
+    # condition-опции развязки: на 1 HP «не пережил» → опция «Забрать» скрыта.
+    from ui.EventView import option_visible
+    забрать = next(o for o in _дедлайн_сдан()["options"]
+                   if "gain_relic:МаршСмерти" in o["effects"])
+    assert option_visible(забрать, _gm(hp=1)) is False
+    assert option_visible(забрать, _gm(hp=20)) is True
