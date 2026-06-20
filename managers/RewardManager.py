@@ -19,6 +19,10 @@ def _roll_relic_rarity(is_boss: bool, is_elite: bool, floor: int = 0) -> Rarity:
     Проценты ниже — тюнинг-ручки (старт-калибровка)."""
     if is_boss:
         roll = random.random()
+        # ⚠️ Ветка LEGENDARY сейчас ХОЛОСТАЯ (С72): все 3 легендарки яруса 1 берутся
+        # ТОЛЬКО за испытания (is_challenge_relic) → _pick_relic их фильтрует и
+        # фоллбэчит на обычную реликвию. НЕ удалять — осознанный задел под ярусы 2/3,
+        # где появятся НЕ-испытательные легендарки и канал «босс роняет LEG» оживёт.
         if floor >= 60 and roll < 0.40:
             return Rarity.LEGENDARY
         if floor >= 40 and roll < 0.50:
