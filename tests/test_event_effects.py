@@ -78,6 +78,21 @@ def test_temper_spirit_процент_масштаб_инвариантен():
     assert gm.player.max_hp == 220
 
 
+def test_lose_max_hp_pct_режет_макс_навсегда():
+    # «Выгорание» (С72 Z4): зеркало temper_spirit — −% к МАКС HP, текущий обрезан.
+    gm = _gm(hp=100, max_hp=100)
+    apply_effect("lose_max_hp_pct:0.10", gm)
+    assert gm.player.max_hp == 90
+    assert gm.player.hp == 90              # текущий HP обрезан до нового максимума
+
+
+def test_lose_max_hp_pct_не_ниже_1():
+    gm = _gm(hp=5, max_hp=5)
+    apply_effect("lose_max_hp_pct:0.95", gm)   # огромный % не убивает перманентно
+    assert gm.player.max_hp >= 1
+    assert gm.player.hp <= gm.player.max_hp
+
+
 def test_флэт_ключи_живы_для_back_compat():
     gm = _gm(hp=50, max_hp=100, gold=100)
     apply_effect("heal:20", gm)
@@ -377,3 +392,49 @@ def test_цепочка_деплой_в_пятницу_выдаёт_легенд
     apply_option(забрать, gm)
     assert any(type(r).__name__ == "ДеплойВПятницу" for r in gm.relics)
     assert gm.friday_deploy is False
+
+
+# ── С72 раскатка Z4: испытание «Зеро-даунтайм» (Аптайм 99.99% → Зеро-даунтайм) ──
+def _аптайм():
+    from ui.events.special import SPECIAL_EVENTS
+    return next(e for e in SPECIAL_EVENTS if e["title"] == "Аптайм 99.99%")
+
+
+def _зеро_даунтайм():
+    from ui.events.special import SPECIAL_EVENTS
+    return next(e for e in SPECIAL_EVENTS if e["title"] == "Зеро-даунтайм")
+
+
+def test_завязка_аптайм_не_спойлерит_награду():
+    зав = _аптайм()
+    текст = зав["text"] + " ".join(o["label"] for o in зав["options"])
+    assert "Зеро-даунтайм" not in текст
+    подписка = next(o for o in зав["options"] if "set_flag:zero_downtime" in o["effects"])
+    assert "lose_max_hp_pct:0.10" in подписка["effects"]
+
+
+def test_завязка_аптайм_видна_только_при_мета_анлоке():
+    зав = _аптайм()
+    gm = _gm_full(); gm.meta = {"unlocks": []}
+    assert зав["condition"](gm) is False
+    gm.meta = {"unlocks": ["ЗероДаунтайм"]}
+    assert зав["condition"](gm) is True
+
+
+def test_цепочка_зеро_даунтайм_выдаёт_легендарку():
+    # Сквозной проход: дежурство (флаг + выгорание макс HP навсегда) → забрал легендарку.
+    from ui.events.event_effects import apply_option
+    gm = _gm_full(); gm.meta = {"unlocks": ["ЗероДаунтайм"]}
+    gm.player.hp = gm.player.max_hp
+    max0 = gm.player.max_hp
+    подписка = next(o for o in _аптайм()["options"]
+                    if "set_flag:zero_downtime" in o["effects"])
+    apply_option(подписка, gm)
+    assert gm.zero_downtime is True
+    assert gm.player.max_hp < max0                        # выгорание срезало макс HP
+
+    забрать = next(o for o in _зеро_даунтайм()["options"]
+                   if "gain_relic:ЗероДаунтайм" in o["effects"])
+    apply_option(забрать, gm)
+    assert any(type(r).__name__ == "ЗероДаунтайм" for r in gm.relics)
+    assert gm.zero_downtime is False

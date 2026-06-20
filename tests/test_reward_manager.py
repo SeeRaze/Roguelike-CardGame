@@ -95,11 +95,12 @@ def test_босс_акта3_способен_дать_legendary_и_epic():
 
 # --- С72: легендарки-за-испытание исключены из рандом-дропа ---
 
-def test_challenge_релик_не_падает_даже_открытый():
-    # Option A: ТочкаОтказа открыта в мете, но рандом-дроп её НЕ выдаёт — только
-    # развязка испытания (gain_relic). Проверяем _pick_relic на её редкости
-    # (LEGENDARY) при полном анлоке: выпадают соседи по пулу, но не она.
+def test_challenge_релики_не_падают_даже_открытые():
+    # Option A: все 3 легендарки открыты в мете, но рандом-дроп их НЕ выдаёт —
+    # только развязка испытания (gain_relic). RELIC_POOL[LEGENDARY] = ровно эти 3,
+    # значит лег-дроп с боссов обнулён → _pick_relic фоллбэчит в НЕ-challenge.
     from managers.RewardManager import _pick_relic
+    from core.progression import is_challenge_relic
     gm = SimpleNamespace(relics=[], current_floor=100,
                          meta={"unlocks": ["ТочкаОтказа", "ДеплойВПятницу", "ЗероДаунтайм"]})
     picked = set()
@@ -108,9 +109,8 @@ def test_challenge_релик_не_падает_даже_открытый():
         r = _pick_relic(gm, Rarity.LEGENDARY)
         if r is not None:
             picked.add(type(r).__name__)
-    assert "ТочкаОтказа" not in picked
-    assert "ДеплойВПятницу" not in picked
-    assert picked <= {"ЗероДаунтайм"}        # ещё-не-раскатанная легендарка падает
+    assert picked, "фоллбэк должен что-то выдать (не-challenge реликвии)"
+    assert all(not is_challenge_relic(n) for n in picked)   # ни одной challenge-легендарки
 
 
 def test_challenge_релик_жив_в_библиотеке_и_хелпере():
@@ -118,6 +118,6 @@ def test_challenge_релик_жив_в_библиотеке_и_хелпере()
     # (библиотека/мета-анлок) и помечена хелпером is_challenge_relic.
     from core.progression import is_challenge_relic
     assert any(c.__name__ == "ТочкаОтказа" for c in ALL_RELICS)
-    assert is_challenge_relic("ТочкаОтказа")
-    assert is_challenge_relic("ДеплойВПятницу")
+    for cr in ("ТочкаОтказа", "ДеплойВПятницу", "ЗероДаунтайм"):
+        assert is_challenge_relic(cr)
     assert not is_challenge_relic("Линтер")

@@ -9,7 +9,7 @@ def _get_relic_class(name: str):
         СборщикМусора, ОткатКБэкапу, ЗомбиПроцесс,
         МаршСмерти, GitBlame, Дедлайн,
         СнекБар, Кэшбэк, ФоновоеИндексирование,
-        ДМСБазовый, УтреннийСозвон, ТочкаОтказа, ДеплойВПятницу,
+        ДМСБазовый, УтреннийСозвон, ТочкаОтказа, ДеплойВПятницу, ЗероДаунтайм,
     )
     registry = {
         "Автодополнение":        Автодополнение,
@@ -23,6 +23,7 @@ def _get_relic_class(name: str):
         "МаршСмерти":    МаршСмерти,   # LEGENDARY за испытание (С72): изъят из рандом-выдачи → только развязкой
         "ТочкаОтказа":   ТочкаОтказа,  # LEGENDARY за испытание (С72, раскатка Z2): выдаётся развязкой «Точка отказа»
         "ДеплойВПятницу": ДеплойВПятницу,  # LEGENDARY за испытание (С72, Z3): выдаётся развязкой «Деплой в пятницу»
+        "ЗероДаунтайм":  ЗероДаунтайм,  # LEGENDARY за испытание (С72, Z4): выдаётся развязкой «Зеро-даунтайм»
         "GitBlame":      GitBlame,
         "Дедлайн": Дедлайн,
         "СнекБар":       СнекБар,
@@ -101,6 +102,14 @@ def apply_effect(effect_str: str, gm) -> None:
         amount = max(1, int(gm.player.max_hp * float(value)))
         gm.player.hp = max(gm.player.hp - amount, 1)
         gm.event_result = f"-{amount} HP"
+
+    elif key == "lose_max_hp_pct":
+        # «Выгорание»: −% к МАКС. HP НАВСЕГДА (зеркало temper_spirit). Текущий HP
+        # обрезается до нового максимума; пол макс HP = 1 (перманентно не убиваем).
+        loss = max(1, int(gm.player.max_hp * float(value)))
+        gm.player.max_hp = max(1, gm.player.max_hp - loss)
+        gm.player.hp = min(gm.player.hp, gm.player.max_hp)
+        gm.event_result = f"-{loss} к макс. HP"
 
     elif key == "lose_gold_pct":
         amount = int(gm.player_gold * float(value))

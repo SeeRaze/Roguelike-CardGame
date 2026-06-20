@@ -49,6 +49,24 @@ def _friday_deploy_pledged(gm):
     return getattr(gm, "friday_deploy", False)
 
 
+# ── ИСПЫТАНИЕ «Зеро-даунтайм» (С72, раскатка Z4). Мета-канал — казино. Завязка
+# «Аптайм 99.99%» появляется только при мета-анлоке (Option A). ──
+def _zero_downtime_offered(gm):
+    """Условие ЗАВЯЗКИ «Аптайм 99.99%»: легендарка открыта в мете (казино), не в
+    инвентаре, испытание ещё не начато (флаг не стоит)."""
+    from core.progression import is_relic_unlocked
+    if getattr(gm, "zero_downtime", False):
+        return False                       # уже подписан → крутится развязка
+    if not is_relic_unlocked(getattr(gm, "meta", None), "ЗероДаунтайм"):
+        return False                       # мета ещё не открыла «в принципе»
+    return all(type(r).__name__ != "ЗероДаунтайм" for r in getattr(gm, "relics", []))
+
+
+def _zero_downtime_pledged(gm):
+    """Условие РАЗВЯЗКИ «Зеро-даунтайм»: завязка поставила флаг zero_downtime."""
+    return getattr(gm, "zero_downtime", False)
+
+
 SPECIAL_EVENTS = [
     {
         "type": "special",
@@ -186,6 +204,51 @@ SPECIAL_EVENTS = [
             {
                 "label": "Откатить деплой (+монеты)",
                 "effects": ["remove_flag:friday_deploy", "gain_gold_floor:3"],
+            },
+        ],
+    },
+    # ── ИСПЫТАНИЕ (С72, Z4): ЗАВЯЗКА «Аптайм 99.99%». Видна ТОЛЬКО при мета-анлоке
+    # (казино). СКРЫТЫЙ ПЕЙОФФ: текст молчит про легендарку, берёт −% МАКС HP
+    # НАВСЕГДА вслепую (выгорание — 4-я, перманентная ось цены). ──
+    {
+        "type": "special",
+        "title": "Аптайм 99.99%",
+        "text": (
+            "Сервис должен жить всегда. Четыре девятки в SLA, дежурство без выходных.\n"
+            "«Подержишь аптайм любой ценой?» Пейджер уже пристёгнут к поясу.\n"
+            "Спать будешь потом."
+        ),
+        "condition": _zero_downtime_offered,
+        "options": [
+            {
+                "label": "Держать любой ценой",
+                "effects": ["set_flag:zero_downtime", "lose_max_hp_pct:0.10"],
+            },
+            {
+                "label": "Поставить разумный SLA",
+                "effects": ["skip"],
+            },
+        ],
+    },
+    # ── РАЗВЯЗКА: пейофф РАСКРЫВАЕТСЯ (снежный ком стихий по полю + самоурон),
+    # выдаёт «Зеро-даунтайм». «Уйти на ротацию» снимает флаг + компенсация. ──
+    {
+        "type": "special",
+        "title": "Зеро-даунтайм",
+        "text": (
+            "Сервис не падает. Никогда. Каждая трещина в системе множится сама собой.\n"
+            "Но нестабильность течёт и в тебя — чем пестрее доска, тем больнее.\n"
+            "Аптайм 100%. Ценой себя."
+        ),
+        "condition": _zero_downtime_pledged,
+        "options": [
+            {
+                "label": "Принять режим 24/7",
+                "effects": ["gain_relic:ЗероДаунтайм", "remove_flag:zero_downtime"],
+            },
+            {
+                "label": "Уйти на ротацию (+монеты)",
+                "effects": ["remove_flag:zero_downtime", "gain_gold_floor:3"],
             },
         ],
     },
