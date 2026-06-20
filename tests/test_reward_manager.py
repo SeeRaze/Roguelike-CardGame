@@ -109,6 +109,8 @@ def test_challenge_релик_не_падает_даже_открытый():
         if r is not None:
             picked.add(type(r).__name__)
     assert "ТочкаОтказа" not in picked
+    assert "ДеплойВПятницу" not in picked
+    assert picked <= {"ЗероДаунтайм"}        # ещё-не-раскатанная легендарка падает
 
 
 def test_challenge_релик_жив_в_библиотеке_и_хелпере():
@@ -117,4 +119,5 @@ def test_challenge_релик_жив_в_библиотеке_и_хелпере()
     from core.progression import is_challenge_relic
     assert any(c.__name__ == "ТочкаОтказа" for c in ALL_RELICS)
     assert is_challenge_relic("ТочкаОтказа")
+    assert is_challenge_relic("ДеплойВПятницу")
     assert not is_challenge_relic("Линтер")

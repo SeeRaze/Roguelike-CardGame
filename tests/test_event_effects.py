@@ -325,3 +325,55 @@ def test_цепочка_точка_отказа_выдаёт_легендарк�
     apply_option(забрать, gm)
     assert any(type(r).__name__ == "ТочкаОтказа" for r in gm.relics)
     assert gm.point_of_failure is False                  # флаг снят после выдачи
+
+
+# ── С72 раскатка Z3: испытание «Деплой в пятницу» (Пятница 17:00 → Деплой в пятницу) ──
+def _пятница():
+    from ui.events.special import SPECIAL_EVENTS
+    return next(e for e in SPECIAL_EVENTS if e["title"] == "Пятница, 17:00")
+
+
+def _деплой_в_пятницу():
+    from ui.events.special import SPECIAL_EVENTS
+    return next(e for e in SPECIAL_EVENTS if e["title"] == "Деплой в пятницу")
+
+
+def test_завязка_пятница_не_спойлерит_награду():
+    зав = _пятница()
+    текст = зав["text"] + " ".join(o["label"] for o in зав["options"])
+    assert "Деплой в пятницу" not in текст
+    подписка = next(o for o in зав["options"] if "set_flag:friday_deploy" in o["effects"])
+    assert "lose_gold_pct:0.40" in подписка["effects"]
+
+
+def test_завязка_пятница_видна_только_при_мета_анлоке():
+    зав = _пятница()
+    gm = _gm_full(); gm.meta = {"unlocks": []}
+    assert зав["condition"](gm) is False
+    gm.meta = {"unlocks": ["ДеплойВПятницу"]}
+    assert зав["condition"](gm) is True
+
+
+def test_развязка_деплой_дремлет_без_флага():
+    разв = _деплой_в_пятницу()
+    gm = _gm_full()
+    assert разв["condition"](gm) is False
+    gm.friday_deploy = True
+    assert разв["condition"](gm) is True
+
+
+def test_цепочка_деплой_в_пятницу_выдаёт_легендарку():
+    # Сквозной проход: залил (флаг + −40% золота вслепую) → забрал «Деплой в пятницу».
+    from ui.events.event_effects import apply_option
+    gm = _gm_full(); gm.meta = {"unlocks": ["ДеплойВПятницу"]}; gm.player_gold = 100
+    подписка = next(o for o in _пятница()["options"]
+                    if "set_flag:friday_deploy" in o["effects"])
+    apply_option(подписка, gm)
+    assert gm.friday_deploy is True
+    assert gm.player_gold == 60                           # -40% кошелька уплачено
+
+    забрать = next(o for o in _деплой_в_пятницу()["options"]
+                   if "gain_relic:ДеплойВПятницу" in o["effects"])
+    apply_option(забрать, gm)
+    assert any(type(r).__name__ == "ДеплойВПятницу" for r in gm.relics)
+    assert gm.friday_deploy is False

@@ -30,6 +30,25 @@ def _point_of_failure_pledged(gm):
     return getattr(gm, "point_of_failure", False)
 
 
+# ── ИСПЫТАНИЕ «Деплой в пятницу» (С72, раскатка Z3). Мета-канал — ачивка «Первый
+# деплой» (победить первого босса) пишет анлок в meta['unlocks']; завязка «Пятница,
+# 17:00» появляется только при нём (Option A — мета открывает испытание). ──
+def _friday_deploy_offered(gm):
+    """Условие ЗАВЯЗКИ «Пятница, 17:00»: легендарка открыта в мете (ачивкой), не в
+    инвентаре, испытание ещё не начато (флаг не стоит)."""
+    from core.progression import is_relic_unlocked
+    if getattr(gm, "friday_deploy", False):
+        return False                       # уже подписан → крутится развязка
+    if not is_relic_unlocked(getattr(gm, "meta", None), "ДеплойВПятницу"):
+        return False                       # мета ещё не открыла «в принципе»
+    return all(type(r).__name__ != "ДеплойВПятницу" for r in getattr(gm, "relics", []))
+
+
+def _friday_deploy_pledged(gm):
+    """Условие РАЗВЯЗКИ «Деплой в пятницу»: завязка поставила флаг friday_deploy."""
+    return getattr(gm, "friday_deploy", False)
+
+
 SPECIAL_EVENTS = [
     {
         "type": "special",
@@ -122,6 +141,51 @@ SPECIAL_EVENTS = [
             {
                 "label": "Настроить резервирование (+монеты)",
                 "effects": ["remove_flag:point_of_failure", "gain_gold_floor:3"],
+            },
+        ],
+    },
+    # ── ИСПЫТАНИЕ (С72, Z3): ЗАВЯЗКА «Пятница, 17:00». Видна ТОЛЬКО при мета-анлоке
+    # (ачивка «Первый деплой»). СКРЫТЫЙ ПЕЙОФФ: текст молчит про легендарку, берёт
+    # 40% золота вслепую (замыкает трини осей цены: HP-пилот / баги-Z2 / золото-Z3). ──
+    {
+        "type": "special",
+        "title": "Пятница, 17:00",
+        "text": (
+            "Фича готова. Не протестирована — но готова. На часах пятница, 17:00.\n"
+            "Зальёшь сейчас — выйдешь героем. Или проведёшь выходные в логах.\n"
+            "Палец над кнопкой Deploy."
+        ),
+        "condition": _friday_deploy_offered,
+        "options": [
+            {
+                "label": "Зальём, что будет то будет",
+                "effects": ["set_flag:friday_deploy", "lose_gold_pct:0.40"],
+            },
+            {
+                "label": "Дождаться понедельника",
+                "effects": ["skip"],
+            },
+        ],
+    },
+    # ── РАЗВЯЗКА: пейофф РАСКРЫВАЕТСЯ (×3 урон + сгорание карт навсегда), выдаёт
+    # «Деплой в пятницу». «Откатить деплой» снимает флаг + компенсация. ──
+    {
+        "type": "special",
+        "title": "Деплой в пятницу",
+        "text": (
+            "Залил — и оно взлетело. Бьёт втрое сильнее, чем должно.\n"
+            "Только колода теперь горит: каждый розыгрыш может спалить карту насовсем.\n"
+            "Машина смерти, у которой кончаются патроны."
+        ),
+        "condition": _friday_deploy_pledged,
+        "options": [
+            {
+                "label": "Оставить в проде",
+                "effects": ["gain_relic:ДеплойВПятницу", "remove_flag:friday_deploy"],
+            },
+            {
+                "label": "Откатить деплой (+монеты)",
+                "effects": ["remove_flag:friday_deploy", "gain_gold_floor:3"],
             },
         ],
     },
