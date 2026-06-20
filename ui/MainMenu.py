@@ -69,7 +69,7 @@ class MainMenu:
         title = title_font.render("ROGUELIKE CARD GAME", True, M._TITLE_COLOR)
         screen.blit(title, (W // 2 - title.get_width() // 2, H // 2 - 270))
 
-        sub = subtitle_font.render("Pre-Alpha Edition v0.3", True, M._SUBTITLE_COLOR)
+        sub = subtitle_font.render("Alpha Edition v0.5.2", True, M._SUBTITLE_COLOR)
         screen.blit(sub, (W // 2 - sub.get_width() // 2, H // 2 - 200))
 
         # Разделитель
